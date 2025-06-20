@@ -1,0 +1,37 @@
+# dependencies
+/node_modules
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+.env
+.env.*
+
+# testing
+/coverage
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS generated files
+Thumbs.db
+
+# Docker
+*.local
+.dockerignore
+
+# Others
+*.log 

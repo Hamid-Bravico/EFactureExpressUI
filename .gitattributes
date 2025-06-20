@@ -1,0 +1,23 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Explicitly declare text files you want to always be normalized
+*.js   text
+*.ts   text
+*.tsx  text
+*.css  text
+*.md   text
+*.json text
+*.yml  text
+*.yaml text
+
+# Denote all files that are truly binary and should not be modified
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.gif  binary
+*.svg  text
+
+# Ensure shell scripts have LF endings
+*.sh   text eol=lf 
