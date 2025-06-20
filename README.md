@@ -1,47 +1,71 @@
-# Getting Started with Create React App
+# E-Facture Express
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**E-Facture Express** is a lightweight, web-based invoicing platform designed to help Moroccan SMEs comply with the upcoming 2026 mandatory e-invoicing law (Article 145-IX). The platform streamlines invoice management, ensures legal compliance, and is optimized for rapid deployment in modern business environments.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Secure User Authentication:** Robust JWT-based authentication for user accounts.
+- **Invoice Management:** Create, edit, and manage invoices with ease.
+- **Bulk CSV Import:** Quickly import multiple invoices from CSV files.
+- **Automatic PDF Generation:** Generate VAT-compliant invoice PDFs using QuestPDF.
+- **File Storage:** Store invoice files securely via MinIO.
+- **Dockerized Deployment:** All components (frontend, backend, storage) are containerized for fast and reliable setup.
+- **DGI Integration Simulation:** Simulates "Send to DGI" functionality while awaiting the official Moroccan tax authority API.
 
-### `npm start`
+## Roadmap
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **MVP (June 2025):**  
+  - [x] Dockerized frontend and backend  
+  - [x] JWT authentication  
+  - [x] Invoice CRUD operations  
+  - [x] CSV import  
+  - [x] PDF generation and storage  
+  - [x] Simulated DGI integration  
+  - [ ] Production-ready CI/CD  
+  - [ ] Official DGI API integration
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Quick Start
 
-### `npm test`
+### Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/)
 
-### `npm run build`
+### Setup
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-org/efacture-express.git
+   cd efacture-express
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. **Configure environment variables:**  
+   Copy `.env.example` to `.env` and adjust as needed.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. **Start the application:**
+   ```bash
+   docker-compose up --build
+   ```
 
-### `npm run eject`
+4. **Access the app:**  
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Technologies Used
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **Frontend:** React, TypeScript, Tailwind CSS
+- **Backend:** .NET (with QuestPDF for PDF generation)
+- **Storage:** MinIO (S3-compatible object storage)
+- **Authentication:** JWT
+- **Containerization:** Docker, Docker Compose
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Compliance
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+E-Facture Express is designed to help businesses comply with Morocco's e-invoicing requirements (Article 145-IX, effective 2026). The platform will integrate with the official DGI API as soon as it becomes available.
 
-## Learn More
+## Contributing
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Contributions are welcome! Please open issues or submit pull requests for improvements and bug fixes.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-# EFactureExpressUI
+## License
+
+[MIT License](LICENSE)
