@@ -249,7 +249,11 @@
       "unitPrice": "Unit Price",
       "total": "Total",
       "subtotal": "Subtotal",
-      "vat": "VAT"
+      "vat": "VAT",
+      "grandTotal": "Grand Total"
+    },
+    "tooltip": {
+      "createdBy": "Created on {{date}} by {{email}}"
     },
     "confirm": {
       "title": "Confirm {{action}}",

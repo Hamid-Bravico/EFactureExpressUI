@@ -541,6 +541,10 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                     <tr 
                       className="hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => setSelectedInvoice(selectedInvoice === invoice.id ? null : invoice.id)}
+                      title={t('invoice.tooltip.createdBy', {
+                        date: new Date(invoice.createdAt).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US'),
+                        email: invoice.createdBy.email
+                      })}
                     >
                       <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <input

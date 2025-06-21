@@ -103,6 +103,7 @@ function App() {
       
       if (!response.ok) throw new Error("Failed to fetch invoices");
       const data = await response.json();
+      console.log(data);
       setInvoices(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

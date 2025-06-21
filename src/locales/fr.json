@@ -250,6 +250,9 @@
       "subtotal": "Sous-total",
       "vat": "TVA"
     },
+    "tooltip": {
+      "createdBy": "Créé le {{date}} par {{email}}"
+    },
     "confirm": {
       "title": "Confirmer {{action}}",
       "message": "Êtes-vous sûr de vouloir {{action}} {{count}} facture{{plural}} ?{{warning}}",

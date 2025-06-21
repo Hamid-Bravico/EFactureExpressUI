@@ -17,6 +17,12 @@ export interface InvoiceLine {
     total: number;
     lines: InvoiceLine[];
     status: number; // 0 = Draft, 1 = Ready, 2 = Submitted
+    createdAt: string;
+    createdBy: {
+      createdById: string;
+      name: string;
+      email: string;
+    };
   }
   
   // For creating, we don't send `id` or `invoiceId`
