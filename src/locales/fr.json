@@ -66,7 +66,13 @@
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
     "signIn": "Se connecter",
     "users": "Utilisateurs",
-    "create": "Créer"
+    "create": "Créer",
+    "profile": "Profil",
+    "companyProfile": "Profil de l'entreprise",
+    "memberSince": "Membre depuis",
+    "noAddress": "Aucune adresse fournie",
+    "copy": "Copier",
+    "copied": "Copié !"
   },
   "errors": {
     "invalidCredentials": "Identifiants invalides",
@@ -100,7 +106,8 @@
     "managersCannotChangeRoles": "Les gestionnaires ne peuvent pas modifier les rôles",
     "invalidUserId": "ID utilisateur invalide",
     "invalidResponse": "Réponse invalide du serveur",
-    "invalidRole": "Rôle utilisateur invalide"
+    "invalidRole": "Rôle utilisateur invalide",
+    "noCompanyData": "Aucune donnée d'entreprise disponible."
   },
   "success": {
     "invoiceCreated": "Facture créée avec succès",

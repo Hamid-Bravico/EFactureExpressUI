@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
-import { Invoice, NewInvoice } from "./types";
+import { Invoice, NewInvoice, Company } from "./types";
 import Dashboard from "./components/Dashboard";
 import InvoiceList from "./components/InvoiceList";
 import CreateInvoice from "./components/CreateInvoice";
@@ -17,6 +17,7 @@ import ErrorPage from './components/ErrorPage';
 import { useTranslation } from 'react-i18next';
 import ProtectedRoute from './components/ProtectedRoute';
 import { decodeJWT } from "./utils/jwt";
+import CompanyProfile from "./components/CompanyProfile";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -30,6 +31,19 @@ function App() {
         return null;
       }
       return storedToken;
+    }
+    return null;
+  });
+
+  const [company, setCompany] = useState<Company | null>(() => {
+    const storedCompany = localStorage.getItem("company");
+    if (storedCompany) {
+      try {
+        return JSON.parse(storedCompany);
+      } catch (e) {
+        localStorage.removeItem("company");
+        return null;
+      }
     }
     return null;
   });
@@ -136,12 +150,20 @@ function App() {
     localStorage.setItem("token", data.token);
     localStorage.setItem("userRole", decoded.role);
     localStorage.setItem("userId", decoded.userId);
+    if (data.company) {
+      localStorage.setItem("company", JSON.stringify(data.company));
+      setCompany(data.company);
+    }
     setToken(data.token);    
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("company");
     setToken(null);
+    setCompany(null);
   };
 
   const handleCreateInvoice = async (newInvoice: NewInvoice) => {
@@ -445,6 +467,32 @@ function App() {
                           <span className="capitalize">{userRole}</span>
                         </div>
                       </div>
+                      {company && (
+                        <div className="px-4 py-3 border-b border-gray-100">
+                          <div className="font-medium text-gray-900 truncate flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                            </svg>
+                            {company.name}
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                            </svg>
+                            <span className="truncate">{`Tax ID: ${company.taxId}`}</span>
+                          </div>
+                        </div>
+                      )}
+                      <NavLink
+                        to="/profile"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors duration-150"
+                      >
+                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>{t('common.profile')}</span>
+                      </NavLink>
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors duration-150"
@@ -580,6 +628,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['Admin', 'Manager']}>
                       <Users token={token} />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <CompanyProfile company={company} />
                     </ProtectedRoute>
                   }
                 />

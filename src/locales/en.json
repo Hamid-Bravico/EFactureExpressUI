@@ -66,7 +66,13 @@
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in",
     "users": "Users",
-    "create": "Create"
+    "create": "Create",
+    "profile": "Profile",
+    "companyProfile": "Company Profile",
+    "memberSince": "Member Since",
+    "noAddress": "No address provided",
+    "copy": "Copy",
+    "copied": "Copied!"
   },
   "errors": {
     "invalidCredentials": "Invalid credentials",
@@ -101,7 +107,8 @@
     "passwordUpdated": "Password has been updated successfully",
     "invalidResponse": "Invalid response from server",
     "invalidRole": "Invalid user role",
-    "invalidUserId": "Invalid user ID"
+    "invalidUserId": "Invalid user ID",
+    "noCompanyData": "No company data available."
   },
   "success": {
     "invoiceCreated": "Invoice created successfully",

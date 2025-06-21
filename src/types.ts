@@ -42,3 +42,11 @@ export interface InvoiceLine {
     url: string;
   }
   
+  export interface Company {
+    id: number;
+    name: string;
+    taxId: string;
+    address: string;
+    createdAt: string;
+  }
+  

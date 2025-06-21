@@ -149,7 +149,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
           <div className="space-y-4">
             <div>
               <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
-                {t('common.companyName')}
+                {t('common.companyName')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
                 <input
@@ -170,7 +170,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
             <div>
               <label htmlFor="taxId" className="block text-sm font-medium text-gray-700">
-                {t('common.taxId')}
+                {t('common.taxId')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
                 <input
@@ -211,7 +211,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                {t('common.email')}
+                {t('common.email')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
                 <input
@@ -232,7 +232,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                {t('common.password')}
+                {t('common.password')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1 relative">
                 <input
@@ -271,7 +271,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                {t('common.confirmPassword')}
+                {t('common.confirmPassword')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1 relative">
                 <input
