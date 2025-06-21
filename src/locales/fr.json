@@ -72,7 +72,10 @@
     "memberSince": "Membre depuis",
     "noAddress": "Aucune adresse fournie",
     "copy": "Copier",
-    "copied": "Copié !"
+    "copied": "Copié !",
+    "deletingInvoice": "Suppression de la facture...",
+    "downloadingPDF": "Téléchargement du PDF...",
+    "submittingInvoice": "Soumission de la facture..."
   },
   "errors": {
     "invalidCredentials": "Identifiants invalides",
@@ -107,7 +110,8 @@
     "invalidUserId": "ID utilisateur invalide",
     "invalidResponse": "Réponse invalide du serveur",
     "invalidRole": "Rôle utilisateur invalide",
-    "noCompanyData": "Aucune donnée d'entreprise disponible."
+    "noCompanyData": "Aucune donnée d'entreprise disponible.",
+    "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter."
   },
   "success": {
     "invoiceCreated": "Facture créée avec succès",
@@ -122,7 +126,8 @@
     "userCreated": "Utilisateur créé avec succès",
     "userUpdated": "Utilisateur mis à jour avec succès",
     "userDeleted": "Utilisateur supprimé avec succès",
-    "passwordUpdated": "Mot de passe mis à jour avec succès"
+    "passwordUpdated": "Mot de passe mis à jour avec succès",
+    "pdfReady": "Le PDF est prêt et s'ouvrira dans un nouvel onglet."
   },
   "dashboard": {
     "title": "Tableau de bord",

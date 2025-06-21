@@ -72,7 +72,10 @@
     "memberSince": "Member Since",
     "noAddress": "No address provided",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "deletingInvoice": "Deleting invoice...",
+    "downloadingPDF": "Downloading PDF...",
+    "submittingInvoice": "Submitting invoice..."
   },
   "errors": {
     "invalidCredentials": "Invalid credentials",
@@ -108,7 +111,8 @@
     "invalidResponse": "Invalid response from server",
     "invalidRole": "Invalid user role",
     "invalidUserId": "Invalid user ID",
-    "noCompanyData": "No company data available."
+    "noCompanyData": "No company data available.",
+    "sessionExpired": "Your session has expired. Please log in again."
   },
   "success": {
     "invoiceCreated": "Invoice created successfully",
@@ -123,7 +127,8 @@
     "userCreated": "New user account has been created successfully",
     "userUpdated": "User account has been updated successfully",
     "userDeleted": "User account has been deleted successfully",
-    "passwordUpdated": "Password has been updated successfully"
+    "passwordUpdated": "Password has been updated successfully",
+    "pdfReady": "PDF is ready and will open in a new tab."
   },
   "dashboard": {
     "title": "Dashboard",

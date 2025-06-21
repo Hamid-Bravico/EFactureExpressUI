@@ -32,14 +32,12 @@ ChartJS.register(
 interface DashboardProps {
   invoices: Invoice[];
   loading: boolean;
-  error: string;
   onRefresh: () => Promise<void>;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   invoices, 
   loading, 
-  error,
   onRefresh
 }) => {
   const { t, i18n } = useTranslation();
@@ -185,17 +183,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 flex items-center gap-2">
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        {error}
       </div>
     );
   }

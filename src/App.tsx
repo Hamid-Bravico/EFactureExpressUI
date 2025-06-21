@@ -51,7 +51,6 @@ function App() {
   // ─── LISTING STATE ─────────────────────────────────────────────────────────
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [importLoading, setImportLoading] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
 
@@ -88,7 +87,6 @@ function App() {
   // ─── FETCH LIST ────────────────────────────────────────────────────────────
   const fetchInvoices = async () => {
     setLoading(true);
-    setError("");
     try {
       const response = await fetch(API_ENDPOINTS.INVOICES.LIST, {
         headers: { Authorization: token ? `Bearer ${token}` : "" },
@@ -106,7 +104,7 @@ function App() {
       console.log(data);
       setInvoices(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
     } finally {
       setLoading(false);
     }
@@ -231,6 +229,7 @@ function App() {
   };
 
   const handleDeleteInvoice = async (id: number) => {
+    const toastId = toast.loading(t('common.deletingInvoice'));
     try {
       const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
         method: "DELETE",
@@ -240,18 +239,25 @@ function App() {
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
+        toast.error(t('errors.sessionExpired'), { id: toastId });
         return;
       }
 
-      if (!response.ok) throw new Error("Failed to delete invoice");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
+        throw new Error(errorData.message || t('errors.failedToDeleteInvoice'));
+      }
       
       await fetchInvoices();
+      toast.success(t('success.invoiceDeleted'), { id: toastId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
+      toast.error(errorMessage, { id: toastId });
     }
   };
 
   const handleDownloadPdf = async (id: number) => {
+    const toastId = toast.loading(t('common.downloadingPDF'));
     try {
       const response = await fetch(API_ENDPOINTS.INVOICES.PDF(id), {
         headers: { Authorization: token ? `Bearer ${token}` : "" },
@@ -260,18 +266,25 @@ function App() {
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
+        toast.error(t('errors.sessionExpired'), { id: toastId });
         return;
       }
 
-      if (!response.ok) throw new Error("Failed to download PDF");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: t('errors.failedToDownloadPDF') }));
+        throw new Error(errorData.message || t('errors.failedToDownloadPDF'));
+      }
       const data = await response.json();
       window.open(data.url, '_blank');
+      toast.success(t('success.pdfReady'), { id: toastId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
+      toast.error(errorMessage, { id: toastId });
     }
   };
 
   const handleSubmitInvoice = async (id: number) => {
+    const toastId = toast.loading(t('common.submittingInvoice'));
     try {
       const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
         method: "POST",
@@ -281,20 +294,25 @@ function App() {
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
+        toast.error(t('errors.sessionExpired'), { id: toastId });
         return;
       }
 
-      if (!response.ok) throw new Error("Failed to submit invoice");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: t('errors.failedToSubmitInvoice') }));
+        throw new Error(errorData.message || t('errors.failedToSubmitInvoice'));
+      }
       
       await fetchInvoices();
+      toast.success(t('success.invoiceSubmitted'), { id: toastId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
+      toast.error(errorMessage, { id: toastId });
     }
   };
 
   const handleImportCSV = async (file: File) => {
     setImportLoading(true);
-    setError("");
     const toastId = toast.loading(t('common.importingCSV'));
     try {
       const formData = new FormData();
@@ -341,7 +359,6 @@ function App() {
       toast.success(t('success.csvImported'), { id: toastId });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
-      setError(errorMessage);
       // If the error message contains multiple lines (from array of errors), show them in a more readable format
       const displayMessage = errorMessage.includes('\n') 
         ? `${t('errors.failedToImportCSV')}:\n${errorMessage}`
@@ -563,7 +580,6 @@ function App() {
                       <Dashboard
                         invoices={invoices}
                         loading={loading}
-                        error={error}
                         onRefresh={fetchInvoices}
                       />
                     </ProtectedRoute>
@@ -593,7 +609,6 @@ function App() {
                           <InvoiceList 
                             invoices={invoices} 
                             loading={loading} 
-                            error={error} 
                             onDelete={handleDeleteInvoice}
                             onDownloadPdf={handleDownloadPdf}
                             onSubmit={handleSubmitInvoice}

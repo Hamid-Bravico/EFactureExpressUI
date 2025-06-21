@@ -8,7 +8,6 @@ import StatusBadge from './StatusBadge';
 interface InvoiceListProps {
   invoices: Invoice[];
   loading: boolean;
-  error: string;
   onDelete: (id: number) => void;
   onDownloadPdf: (id: number) => void;
   onSubmit: (id: number) => void;
@@ -31,7 +30,6 @@ interface Filters {
 const InvoiceList: React.FC<InvoiceListProps> = ({
   invoices,
   loading,
-  error,
   onDelete,
   onDownloadPdf,
   onSubmit,
@@ -281,15 +279,6 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 flex items-start gap-2">
-          <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="whitespace-pre-line">{error}</div>
-        </div>
-      )}
-
       {/* Filters Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="flex items-center justify-between">
@@ -319,7 +308,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">{t('invoice.filters.dateRange')}</label>
               <div className="grid grid-cols-2 gap-2">
