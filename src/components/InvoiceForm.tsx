@@ -36,6 +36,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendErrors, setBackendErrors] = useState<BackendErrorResponse>({});
+  const userRole = localStorage.getItem('userRole');
 
   useEffect(() => {
     if (invoice) {
@@ -408,7 +409,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.status ? 'border-red-500' : 'border-gray-300'
                 }`}
-                disabled={disabled || isSubmitting || invoice?.status === 2}
+                disabled={disabled || isSubmitting || invoice?.status === 2 || userRole === 'Clerk'}
               >
                 <option value={0}>{t('invoice.status.draft')}</option>
                 <option value={1}>{t('invoice.status.ready')}</option>
