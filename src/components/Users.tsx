@@ -177,7 +177,7 @@ const Users = ({ token }: UsersProps) => {
       }
 
       // If current user is Manager, prevent role changes
-      if (currentUserRole === 'Manager' && updates.role) {
+      if (currentUserRole === 'Manager' && updates.role && updates.role !== currentUser.roles[0]) {
         toast.error(t('errors.managersCannotChangeRoles'));
         return;
       }
@@ -194,13 +194,26 @@ const Users = ({ token }: UsersProps) => {
         return;
       }
 
+      const payload: any = {
+        email: updates.email,
+        role: updates.role,
+      };
+
+      if (updates.password) {
+        payload.password = updates.password;
+      }
+
+      if (payload.role === currentUser.roles[0]) {
+        payload.role = null;
+      }
+
       const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: token ? `Bearer ${token}` : '',
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -292,7 +305,8 @@ const Users = ({ token }: UsersProps) => {
                           setEditingUser(user);
                           setEditForm({
                             email: user.email,
-                            role: user.roles[0] as 'Admin' | 'Manager' | 'Clerk'
+                            role: user.roles[0] as 'Admin' | 'Manager' | 'Clerk',
+                            password: ''
                           });
                         }}
                         className="inline-flex items-center p-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -488,7 +502,6 @@ const Users = ({ token }: UsersProps) => {
                       className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       placeholder="••••••••"
                       minLength={8}
-                      required
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                       <button
