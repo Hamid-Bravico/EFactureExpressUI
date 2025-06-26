@@ -23,6 +23,7 @@ export interface InvoiceLine {
       name: string;
       email: string;
     };
+    vatRate?: number;
   }
   
   // For creating, we don't send `id` or `invoiceId`
@@ -42,6 +43,7 @@ export interface InvoiceLine {
     total: number;
     status: number; // 0 = Draft, 1 = Ready, 2 = Submitted
     lines: NewLine[];
+    vatRate?: number;
   }
 
   export interface PdfUrlResponse {

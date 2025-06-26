@@ -45,9 +45,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       const formattedDate = new Date(invoice.date).toISOString().split('T')[0];
       setDate(formattedDate);
       setCustomerName(invoice.customerName);
-      // Calculate VAT rate from the invoice data
-      const calculatedVatRate = invoice.vat / invoice.subTotal * 100;
-      setVatRate(Number(calculatedVatRate.toFixed(2)));
+      // Use vatRate from invoice if available, otherwise keep the default
+      setVatRate(invoice.vatRate !== undefined ? invoice.vatRate : 20);
       setLines(invoice.lines);
       /*/ Initialize lines with all invoice lines
       setLines(invoice.lines.map(line => ({
@@ -251,6 +250,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
           quantity: ln.quantity,
           unitPrice: ln.unitPrice,
         })),
+        vatRate,
       };
 
       await onSubmit(newInvoice);
