@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy dependency definitions
 COPY package*.json ./
 # Use npm ci for more reliable builds
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy source & build
 COPY . .
