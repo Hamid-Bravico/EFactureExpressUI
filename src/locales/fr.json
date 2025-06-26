@@ -166,7 +166,10 @@
       "paid": "Payée",
       "overdue": "En retard",
       "cancelled": "Annulée",
-      "submitted": "Soumis"
+      "submitted": "Soumis",
+      "draftDescription": "En cours de travail",
+      "readyDescription": "Prêt pour soumission",
+      "submittedDescription": "Soumis aux autorités"
     },
     "form": {
       "customerInfo": "Informations client",

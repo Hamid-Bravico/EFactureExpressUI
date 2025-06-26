@@ -397,26 +397,106 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               )}
             </div>
             <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.status')}</label>
-              <select
-                value={status}
-                onChange={(e) => {
-                  setStatus(Number(e.target.value));
-                  if (errors.status) {
-                    setErrors(prev => ({ ...prev, status: undefined }));
-                  }
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.status ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={disabled || isSubmitting || invoice?.status === 2 || userRole === 'Clerk'}
-              >
-                <option value={0}>{t('invoice.status.draft')}</option>
-                <option value={1}>{t('invoice.status.ready')}</option>
+              <label className="block text-sm text-gray-600 mb-3">{t('invoice.form.status')}</label>
+              <div className="flex space-x-4">
+                <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                  status === 0 
+                    ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                } ${(disabled || isSubmitting || invoice?.status === 2 || userRole === 'Clerk') ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value={0}
+                    checked={status === 0}
+                    onChange={(e) => {
+                      setStatus(Number(e.target.value));
+                      if (errors.status) {
+                        setErrors(prev => ({ ...prev, status: undefined }));
+                      }
+                    }}
+                    disabled={disabled || isSubmitting || invoice?.status === 2 || userRole === 'Clerk'}
+                    className="sr-only"
+                  />
+                  <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
+                    status === 0 ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                  }`}>
+                    {status === 0 && (
+                      <div className="w-2 h-2 rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-medium">{t('invoice.status.draft')}</div>
+                    <div className="text-xs text-gray-500">{t('invoice.status.draftDescription')}</div>
+                  </div>
+                </label>
+
+                <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                  status === 1 
+                    ? 'border-green-500 bg-green-50 text-green-700' 
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                } ${(disabled || isSubmitting || invoice?.status === 2 || userRole === 'Clerk') ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value={1}
+                    checked={status === 1}
+                    onChange={(e) => {
+                      setStatus(Number(e.target.value));
+                      if (errors.status) {
+                        setErrors(prev => ({ ...prev, status: undefined }));
+                      }
+                    }}
+                    disabled={disabled || isSubmitting || invoice?.status === 2 || userRole === 'Clerk'}
+                    className="sr-only"
+                  />
+                  <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
+                    status === 1 ? 'border-green-500 bg-green-500' : 'border-gray-300'
+                  }`}>
+                    {status === 1 && (
+                      <div className="w-2 h-2 rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-medium">{t('invoice.status.ready')}</div>
+                    <div className="text-xs text-gray-500">{t('invoice.status.readyDescription')}</div>
+                  </div>
+                </label>
+
                 {invoice?.status === 2 && (
-                  <option value={2}>{t('invoice.status.submitted')}</option>
+                  <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                    status === 2 
+                      ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  } ${(disabled || isSubmitting) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <input
+                      type="radio"
+                      name="status"
+                      value={2}
+                      checked={status === 2}
+                      onChange={(e) => {
+                        setStatus(Number(e.target.value));
+                        if (errors.status) {
+                          setErrors(prev => ({ ...prev, status: undefined }));
+                        }
+                      }}
+                      disabled={disabled || isSubmitting}
+                      className="sr-only"
+                    />
+                    <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
+                      status === 2 ? 'border-purple-500 bg-purple-500' : 'border-gray-300'
+                    }`}>
+                      {status === 2 && (
+                        <div className="w-2 h-2 rounded-full bg-white"></div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium">{t('invoice.status.submitted')}</div>
+                      <div className="text-xs text-gray-500">{t('invoice.status.submittedDescription')}</div>
+                    </div>
+                  </label>
                 )}
-              </select>
+              </div>
               {errors.status && (
                 <div className="text-red-500 text-xs mt-1">
                   {errors.status}

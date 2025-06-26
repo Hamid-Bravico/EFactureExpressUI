@@ -167,7 +167,10 @@
       "paid": "Paid",
       "overdue": "Overdue",
       "cancelled": "Cancelled",
-      "submitted": "Submitted"
+      "submitted": "Submitted",
+      "draftDescription": "Work in progress",
+      "readyDescription": "Ready for submission",
+      "submittedDescription": "Submitted to authorities"
     },
     "form": {
       "customerInfo": "Customer Information",
