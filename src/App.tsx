@@ -101,8 +101,20 @@ function App() {
       
       if (!response.ok) throw new Error("Failed to fetch invoices");
       const data = await response.json();
-      console.log(data);
-      setInvoices(data);
+      // Patch: Recalculate subTotal, vat, and total for each invoice to ensure consistency
+      const patchedInvoices = data.map((invoice: any) => {
+        const subTotal = invoice.lines.reduce((sum: number, line: any) => sum + (line.quantity * line.unitPrice), 0);
+        const vatRate = invoice.vatRate !== undefined ? invoice.vatRate : 20;
+        const vat = +(subTotal * (vatRate / 100)).toFixed(2);
+        const total = +(subTotal + vat).toFixed(2);
+        return {
+          ...invoice,
+          subTotal: +subTotal.toFixed(2),
+          vat,
+          total
+        };
+      });
+      setInvoices(patchedInvoices);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
     } finally {
