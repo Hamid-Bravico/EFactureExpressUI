@@ -159,7 +159,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     ],
   };
 
-  const chartOptions = {
+  // Chart options with correct formatting and percentage logic
+  const pieChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -169,10 +170,47 @@ const Dashboard: React.FC<DashboardProps> = ({
       tooltip: {
         callbacks: {
           label: function(context: any) {
-            const label = context.label || '';
+            const dataset = context.dataset;
             const value = context.raw || 0;
-            const percentage = totalInvoices > 0 ? ((value / totalInvoices) * 100).toFixed(1) : 0;
-            return `${label}: ${value} (${percentage}%)`;
+            const dataSum = dataset.data.reduce((a: number, b: number) => a + b, 0);
+            const percent = dataSum > 0 ? ((value / dataSum) * 100).toFixed(1) : '0.0';
+            return `${context.label}: ${value} (${percent}%)`;
+          }
+        }
+      }
+    },
+  };
+
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const value = context.raw || 0;
+            return `${context.dataset.label}: ${formatCurrency(value)}`;
+          }
+        }
+      }
+    },
+  };
+
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const value = context.raw || 0;
+            return `${context.dataset.label}: ${formatCurrency(value)}`;
           }
         }
       }
@@ -308,7 +346,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <h2 className="text-lg font-medium text-gray-900">{t('dashboard.monthlyTrend')}</h2>
           </div>
           <div className="p-6" style={{ height: '300px' }}>
-            <Line options={chartOptions} data={monthlyChartData} />
+            <Line options={lineChartOptions} data={monthlyChartData} />
           </div>
         </div>
 
@@ -318,7 +356,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <h2 className="text-lg font-medium text-gray-900">{t('dashboard.statusDistribution')}</h2>
           </div>
           <div className="p-6" style={{ height: '300px' }}>
-            <Pie options={chartOptions} data={statusData} />
+            <Pie options={pieChartOptions} data={statusData} />
           </div>
         </div>
 
@@ -328,7 +366,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <h2 className="text-lg font-medium text-gray-900">{t('dashboard.topCustomersByAmount')}</h2>
           </div>
           <div className="p-6" style={{ height: '300px' }}>
-            <Bar options={chartOptions} data={topCustomersChartData} />
+            <Bar options={barChartOptions} data={topCustomersChartData} />
           </div>
         </div>
 
