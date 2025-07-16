@@ -9,10 +9,11 @@ git push
 
 echo "🚀 Deploying UI on server..."
 ssh -p 2222 bravico@bravico.from-ma.com << 'EOF'
-cd ~/EFacture.API
+cd ~/EFacture.UI
 git pull
-sudo docker compose build frontend
-sudo docker compose up -d frontend
+cd ~/EFacture.API
+sudo docker-compose build frontend
+sudo docker-compose up -d frontend
 EOF
 
 echo "✅ UI deployed!"
