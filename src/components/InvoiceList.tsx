@@ -134,10 +134,11 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const readyInvoices = filteredAndSortedInvoices
-        .filter(inv => inv.status === 1)
+      // Allow selecting all draft (0) and submitted (1) invoices for delete
+      const selectableInvoices = filteredAndSortedInvoices
+        .filter(inv => inv.status === 0 || inv.status === 1)
         .map(inv => inv.id);
-      setSelectedInvoices(new Set(readyInvoices));
+      setSelectedInvoices(new Set(selectableInvoices));
     } else {
       setSelectedInvoices(new Set());
     }
@@ -145,7 +146,8 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
   const handleSelectInvoice = (id: number, status: number) => {
     const newSelected = new Set(selectedInvoices);
-    if (status === 1) { // Only allow selecting ready invoices
+    // Allow selecting draft (0) and submitted (1) invoices for delete
+    if (status === 0 || status === 1) {
       if (newSelected.has(id)) {
         newSelected.delete(id);
       } else {
@@ -156,20 +158,28 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   };
 
   const handleBulkSubmit = async () => {
-    if (selectedInvoices.size === 0) return;
-    
+    // Only allow bulk submit for submitted (1) invoices
+    const submitIds = Array.from(selectedInvoices).filter(id => {
+      const inv = filteredAndSortedInvoices.find(i => i.id === id);
+      return inv && inv.status === 1;
+    });
+    if (submitIds.length === 0) return;
     setShowConfirmDialog({
       type: 'submit',
-      count: selectedInvoices.size
+      count: submitIds.length
     });
   };
 
   const handleBulkDelete = async () => {
-    if (selectedInvoices.size === 0) return;
-    
+    // Allow bulk delete for selected draft (0) and submitted (1) invoices
+    const deleteIds = Array.from(selectedInvoices).filter(id => {
+      const inv = filteredAndSortedInvoices.find(i => i.id === id);
+      return inv && (inv.status === 0 || inv.status === 1);
+    });
+    if (deleteIds.length === 0) return;
     setShowConfirmDialog({
       type: 'delete',
-      count: selectedInvoices.size
+      count: deleteIds.length
     });
   };
 
@@ -182,20 +192,29 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
         : t('invoice.bulk.deleting', { count: showConfirmDialog.count })
     );
 
-    // Close the confirmation dialog immediately
     setShowConfirmDialog(null);
 
     try {
       if (showConfirmDialog.type === 'submit') {
+        // Only submit invoices with status 1
+        const submitIds = Array.from(selectedInvoices).filter(id => {
+          const inv = filteredAndSortedInvoices.find(i => i.id === id);
+          return inv && inv.status === 1;
+        });
         await Promise.all(
-          Array.from(selectedInvoices).map(id => onSubmit(id))
+          submitIds.map(id => onSubmit(id))
         );
-        toast.success(t('success.bulkInvoicesSubmitted', { count: showConfirmDialog.count }), { id: toastId });
+        toast.success(t('success.bulkInvoicesSubmitted', { count: submitIds.length }), { id: toastId });
       } else {
+        // Delete invoices with status 0 or 1
+        const deleteIds = Array.from(selectedInvoices).filter(id => {
+          const inv = filteredAndSortedInvoices.find(i => i.id === id);
+          return inv && (inv.status === 0 || inv.status === 1);
+        });
         await Promise.all(
-          Array.from(selectedInvoices).map(id => onDelete(id))
+          deleteIds.map(id => onDelete(id))
         );
-        toast.success(t('success.bulkInvoicesDeleted', { count: showConfirmDialog.count }), { id: toastId });
+        toast.success(t('success.bulkInvoicesDeleted', { count: deleteIds.length }), { id: toastId });
       }
       setSelectedInvoices(new Set());
       setShowBulkActions(false);
@@ -542,7 +561,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           checked={selectedInvoices.has(invoice.id)}
                           onChange={() => handleSelectInvoice(invoice.id, invoice.status)}
-                          disabled={invoice.status !== 1}
+                          disabled={invoice.status !== 0 && invoice.status !== 1}
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -566,64 +585,81 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
+                          {invoice.status === 2 ? (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleEditInvoice(invoice);
+                                onDownloadPdf(invoice.id);
                               }}
-                            disabled={invoice.status === 2}
-                              className={`text-blue-600 hover:text-blue-900 ${
-                              invoice.status === 2 ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                              title={t('invoice.actions.edit')}
+                              className="text-gray-600 hover:text-gray-900"
+                              title={t('invoice.actions.download')}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
                             </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDownloadPdf(invoice.id);
-                            }}
-                            className="text-gray-600 hover:text-gray-900"
-                            title={t('invoice.actions.download')}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          </button>
-                          {isAdmin && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSubmit(invoice.id);
-                              }}
-                              disabled={invoice.status !== 1}
-                              className={`text-green-600 hover:text-green-900 ${
-                                invoice.status !== 1 ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                              title={t('invoice.actions.submit')}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                              </svg>
-                            </button>
-                          )}
-                            {((userRole === 'Admin' || userRole === 'Manager') && invoice.status !== 2) || (userRole === 'Clerk' && invoice.status === 0) ? (
+                          ) : (
+                            <>
                               <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(invoice.id);
-                              }}
-                              className={`text-red-600 hover:text-red-900`}
-                              title={t('invoice.actions.delete')}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                            ) : null}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditInvoice(invoice);
+                                }}
+                                disabled={invoice.status === 2}
+                                className={`text-blue-600 hover:text-blue-900 ${
+                                  invoice.status === 2 ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                                title={t('invoice.actions.edit')}
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDownloadPdf(invoice.id);
+                                }}
+                                className="text-gray-600 hover:text-gray-900"
+                                title={t('invoice.actions.download')}
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                              </button>
+                              {isAdmin && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSubmit(invoice.id);
+                                  }}
+                                  disabled={invoice.status !== 1}
+                                  className={`text-green-600 hover:text-green-900 ${
+                                    invoice.status !== 1 ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                  title={t('invoice.actions.submit')}
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                  </svg>
+                                </button>
+                              )}
+                              {((userRole === 'Admin' || userRole === 'Manager') && invoice.status !== 2) || (userRole === 'Clerk' && invoice.status === 0) ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(invoice.id);
+                                  }}
+                                  className={`text-red-600 hover:text-red-900`}
+                                  title={t('invoice.actions.delete')}
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              ) : null}
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
