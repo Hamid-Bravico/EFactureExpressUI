@@ -12,8 +12,8 @@ ssh -p 2222 bravico@bravico.from-ma.com << 'EOF'
 cd ~/EFacture.UI
 git pull
 cd ~/EFacture.API
-sudo docker-compose build frontend
-sudo docker-compose up -d frontend
+sudo docker compose build frontend
+sudo docker compose up -d frontend
 EOF
 
 echo "✅ UI deployed!"

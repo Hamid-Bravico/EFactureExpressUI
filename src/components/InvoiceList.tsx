@@ -136,7 +136,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
     if (e.target.checked) {
       // Allow selecting all draft (0) and submitted (1) invoices for delete
       const selectableInvoices = filteredAndSortedInvoices
-        .filter(inv => inv.status === 0 || inv.status === 1)
+        .filter(inv => (userRole === 'Clerk' ? inv.status === 0 : inv.status === 0 || inv.status === 1))
         .map(inv => inv.id);
       setSelectedInvoices(new Set(selectableInvoices));
     } else {
@@ -465,7 +465,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                     <input
                       type="checkbox"
                       className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      checked={selectedInvoices.size === filteredAndSortedInvoices.filter(inv => inv.status === 1).length}
+                      checked={selectedInvoices.size === filteredAndSortedInvoices.filter(inv => (userRole === 'Clerk' ? inv.status === 0 : inv.status === 0 || inv.status === 1)).length}
                       onChange={handleSelectAll}
                     />
                   </th>
@@ -561,7 +561,9 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           checked={selectedInvoices.has(invoice.id)}
                           onChange={() => handleSelectInvoice(invoice.id, invoice.status)}
-                          disabled={invoice.status !== 0 && invoice.status !== 1}
+                          disabled={
+                            (userRole === 'Clerk' && invoice.status !== 0) || (invoice.status !== 0 && invoice.status !== 1)
+                          }
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -600,21 +602,23 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                             </button>
                           ) : (
                             <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
+                              {((userRole === 'Admin' || userRole === 'Manager') || (userRole === 'Clerk' && invoice.status === 0)) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                   handleEditInvoice(invoice);
                                 }}
-                                disabled={invoice.status === 2}
-                                className={`text-blue-600 hover:text-blue-900 ${
-                                  invoice.status === 2 ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                                title={t('invoice.actions.edit')}
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
+                                  disabled={invoice.status === 2}
+                                  className={`text-blue-600 hover:text-blue-900 ${
+                                    invoice.status === 2 ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                  title={t('invoice.actions.edit')}
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -644,7 +648,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                                   </svg>
                                 </button>
                               )}
-                              {((userRole === 'Admin' || userRole === 'Manager') && invoice.status !== 2) || (userRole === 'Clerk' && invoice.status === 0) ? (
+                              {((userRole === 'Admin' || userRole === 'Manager') || (userRole === 'Clerk' && invoice.status === 0)) ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
