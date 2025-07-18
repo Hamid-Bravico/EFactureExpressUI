@@ -247,7 +247,8 @@
       "edit": "Modifier la facture",
       "submit": "Soumettre à la DGI",
       "download": "Télécharger le PDF",
-      "delete": "Supprimer la facture"
+      "delete": "Supprimer la facture",
+      "downloadJson": "Télécharger JSON"
     },
     "details": {
       "title": "Détails de la facture",

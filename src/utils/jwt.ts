@@ -67,4 +67,8 @@ export function decodeJWT(token: string): DecodedJWT | null {
   } catch {
     return null;
   }
+}
+
+export function getJwtToken(): string | null {
+  return localStorage.getItem('jwtToken');
 } 

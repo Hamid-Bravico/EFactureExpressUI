@@ -248,7 +248,8 @@
       "edit": "Edit Invoice",
       "submit": "Submit to DGI",
       "download": "Download PDF",
-      "delete": "Delete Invoice"
+      "delete": "Delete Invoice",
+      "downloadJson": "Download JSON"
     },
     "details": {
       "title": "Invoice Details",

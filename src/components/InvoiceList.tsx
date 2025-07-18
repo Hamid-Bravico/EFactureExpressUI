@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Invoice, NewInvoice } from '../types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
 import StatusBadge from './StatusBadge';
+import { API_ENDPOINTS } from '../config/api';
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -52,6 +53,30 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   } | null>(null);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>();
+  const [fetchingJsonId, setFetchingJsonId] = useState<number | null>(null);
+  const [downloadDropdownOpenId, setDownloadDropdownOpenId] = useState<number | null>(null);
+  const downloadDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        downloadDropdownOpenId !== null &&
+        downloadDropdownRefs.current[downloadDropdownOpenId] &&
+        !downloadDropdownRefs.current[downloadDropdownOpenId]?.contains(event.target as Node)
+      ) {
+        setDownloadDropdownOpenId(null);
+      }
+    }
+    if (downloadDropdownOpenId !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [downloadDropdownOpenId]);
 
   const [filters, setFilters] = useState<Filters>({
     dateFrom: '',
@@ -266,6 +291,31 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
       warning: ''
     }))) {
       onSubmit(id);
+    }
+  };
+
+  const handleDownloadJson = async (invoiceId: number) => {
+    setFetchingJsonId(invoiceId);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token');
+      const res = await fetch(API_ENDPOINTS.INVOICES.JSON(invoiceId), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No URL');
+      }
+    } catch(err) {
+      console.error(err);
+      toast.error('Failed to fetch JSON. Make sure Compliance Mode is enabled.');
+    } finally {
+      setFetchingJsonId(null);
     }
   };
 
@@ -588,59 +638,100 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
                           {invoice.status === 2 ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDownloadPdf(invoice.id);
-                              }}
-                              className="text-gray-600 hover:text-gray-900"
-                              title={t('invoice.actions.download')}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                            </button>
+                            <>
+                              {/* Other action buttons here (edit, submit, delete) */}
+                              {/* Vertical separator before download dropdown */}
+                              <span className="mx-2 h-6 border-l border-gray-200 align-middle inline-block"></span>
+                              <div
+                                className="relative inline-block"
+                                ref={el => { downloadDropdownRefs.current[invoice.id] = el; }}>
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setDownloadDropdownOpenId(downloadDropdownOpenId === invoice.id ? null : invoice.id);
+                                  }}
+                                  className="text-gray-600 hover:text-gray-900 p-1"
+                                  title={t('invoice.actions.download')}
+                                >
+                                  {/* Standard download icon: arrow down into tray */}
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5 5 5-5" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V3" />
+                                  </svg>
+                                </button>
+                                {downloadDropdownOpenId === invoice.id && (
+                                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                                    <button
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setDownloadDropdownOpenId(null);
+                                        onDownloadPdf(invoice.id);
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                      title={t('invoice.actions.download')}
+                                    >
+                                      {/* PDF icon */}
+                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
+                                        <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#e53e3e">PDF</text>
+                                      </svg>
+                                      {t('invoice.actions.download')}
+                                    </button>
+                                    <button
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setDownloadDropdownOpenId(null);
+                                        handleDownloadJson(invoice.id);
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                      title={t('invoice.actions.downloadJson')}
+                                      disabled={fetchingJsonId === invoice.id}
+                                    >
+                                      {/* JSON icon */}
+                                      {fetchingJsonId === invoice.id ? (
+                                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                          <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
+                                          <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#3182ce">&#123;&#125;</text>
+                                        </svg>
+                                      )}
+                                      {t('invoice.actions.downloadJson')}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </>
                           ) : (
                             <>
                               {((userRole === 'Admin' || userRole === 'Manager') || (userRole === 'Clerk' && invoice.status === 0)) && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                  handleEditInvoice(invoice);
-                                }}
-                                  disabled={invoice.status === 2}
-                                  className={`text-blue-600 hover:text-blue-900 ${
-                                    invoice.status === 2 ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                                  title={t('invoice.actions.edit')}
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </button>
+                                invoice.status !== 2 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditInvoice(invoice);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-900"
+                                    title={t('invoice.actions.edit')}
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                )
                               )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDownloadPdf(invoice.id);
-                                }}
-                                className="text-gray-600 hover:text-gray-900"
-                                title={t('invoice.actions.download')}
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                              </button>
-                              {isAdmin && (
+                              {/* Other action buttons here (edit, submit, delete) */}
+                              {isAdmin && invoice.status === 1 && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleSubmit(invoice.id);
                                   }}
-                                  disabled={invoice.status !== 1}
-                                  className={`text-green-600 hover:text-green-900 ${
-                                    invoice.status !== 1 ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
+                                  className="text-green-600 hover:text-green-900"
                                   title={t('invoice.actions.submit')}
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -648,7 +739,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                                   </svg>
                                 </button>
                               )}
-                              {((userRole === 'Admin' || userRole === 'Manager') || (userRole === 'Clerk' && invoice.status === 0)) ? (
+                              {((userRole === 'Admin' || userRole === 'Manager') || (userRole === 'Clerk' && invoice.status === 0)) && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -661,7 +752,73 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
                                 </button>
-                              ) : null}
+                              )}
+                              
+                              {/* Vertical separator before download dropdown */}
+                              <span className="mx-0 h-6 border-l border-gray-200 align-middle inline-block"></span>
+                              <div
+                                className="relative inline-block"
+                                ref={el => { downloadDropdownRefs.current[invoice.id] = el; }}>
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setDownloadDropdownOpenId(downloadDropdownOpenId === invoice.id ? null : invoice.id);
+                                  }}
+                                  className="text-gray-600 hover:text-gray-900 p-1"
+                                  title={t('invoice.actions.download')}
+                                >
+                                  {/* Standard download icon: arrow down into tray */}
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5 5 5-5" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V3" />
+                                  </svg>
+                                </button>
+                                {downloadDropdownOpenId === invoice.id && (
+                                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                                    <button
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setDownloadDropdownOpenId(null);
+                                        onDownloadPdf(invoice.id);
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                      title={t('invoice.actions.download')}
+                                    >
+                                      {/* PDF icon */}
+                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
+                                        <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#e53e3e">PDF</text>
+                                      </svg>
+                                      {t('invoice.actions.download')}
+                                    </button>
+                                    <button
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        setDownloadDropdownOpenId(null);
+                                        handleDownloadJson(invoice.id);
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                      title={t('invoice.actions.downloadJson')}
+                                      disabled={fetchingJsonId === invoice.id}
+                                    >
+                                      {/* JSON icon */}
+                                      {fetchingJsonId === invoice.id ? (
+                                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                          <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
+                                          <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#3182ce">&#123;&#125;</text>
+                                        </svg>
+                                      )}
+                                      {t('invoice.actions.downloadJson')}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </>
                           )}
                         </div>
