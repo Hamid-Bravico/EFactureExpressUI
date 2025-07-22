@@ -58,6 +58,8 @@
     "companyNamePlaceholder": "Entrez le nom de votre entreprise",
     "taxId": "Numéro de TVA",
     "taxIdPlaceholder": "Entrez votre numéro de TVA",
+    "identifiantFiscal": "Identifiant Fiscal",
+    "identifiantFiscalPlaceholder": "Entrez votre identifiant fiscal",
     "address": "Adresse",
     "addressPlaceholder": "Entrez l'adresse de votre entreprise",
     "confirmPassword": "Confirmer le mot de passe",
@@ -66,6 +68,7 @@
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
     "signIn": "Se connecter",
     "users": "Utilisateurs",
+    "customers": "Clients",
     "create": "Créer",
     "profile": "Profil",
     "companyProfile": "Profil de l'entreprise",
@@ -91,7 +94,6 @@
     "invalidFileType": "Type de fichier invalide. Veuillez télécharger un fichier CSV.",
     "fileTooLarge": "Le fichier est trop volumineux. Taille maximale : {{size}}MB.",
     "requiredField": "Ce champ est obligatoire",
-    "invalidEmail": "Adresse e-mail invalide",
     "invalidNumber": "Nombre invalide",
     "invalidDate": "Date invalide",
     "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
@@ -111,23 +113,28 @@
     "invalidResponse": "Réponse invalide du serveur",
     "invalidRole": "Rôle utilisateur invalide",
     "noCompanyData": "Aucune donnée d'entreprise disponible.",
-    "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter."
+    "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
+    "failedToSaveCustomer": "Échec de l'enregistrement du client.",
+    "failedToDeleteCustomer": "Échec de la suppression du client.",
+    "nameIsRequired": "Le nom est requis.",
+    "invalidEmail": "Veuillez saisir une adresse e-mail valide.",
+    "invalidICE": "L'ICE doit comporter 15 chiffres.",
+    "invalidTaxId": "L'ID fiscal doit comporter 8 chiffres."
   },
   "success": {
-    "invoiceCreated": "Facture créée avec succès",
-    "invoiceUpdated": "Facture mise à jour avec succès",
-    "csvImported": "Fichier CSV importé avec succès !",
-    "invoiceDeleted": "Facture supprimée avec succès",
-    "invoiceSubmitted": "Facture soumise avec succès",
-    "changesSaved": "Modifications enregistrées avec succès",
-    "fileUploaded": "Fichier téléchargé avec succès",
-    "bulkInvoicesSubmitted": "{{count}} factures soumises avec succès",
-    "bulkInvoicesDeleted": "{{count}} factures supprimées avec succès",
-    "userCreated": "Utilisateur créé avec succès",
-    "userUpdated": "Utilisateur mis à jour avec succès",
-    "userDeleted": "Utilisateur supprimé avec succès",
-    "passwordUpdated": "Mot de passe mis à jour avec succès",
-    "pdfReady": "Le PDF est prêt et s'ouvrira dans un nouvel onglet."
+    "invoiceCreated": "Facture créée avec succès.",
+    "invoiceUpdated": "Facture mise à jour avec succès.",
+    "invoiceDeleted": "Facture supprimée avec succès.",
+    "invoiceSubmitted": "Facture soumise avec succès.",
+    "csvImported": "CSV importé avec succès.",
+    "pdfReady": "Le PDF est prêt à être téléchargé.",
+    "userCreated": "Utilisateur créé avec succès.",
+    "userUpdated": "Utilisateur mis à jour avec succès.",
+    "passwordUpdated": "Mot de passe mis à jour avec succès.",
+    "userDeleted": "Utilisateur supprimé avec succès.",
+    "customerCreated": "Client créé avec succès.",
+    "customerUpdated": "Client mis à jour avec succès.",
+    "customerDeleted": "Client supprimé avec succès."
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -208,7 +215,9 @@
         "fixErrors": "Veuillez corriger les erreurs dans le formulaire",
         "submissionError": "Une erreur s'est produite lors de la soumission du formulaire. Veuillez vérifier les champs en surbrillance.",
         "saveFailed": "Échec de l'enregistrement de la facture. Veuillez réessayer."
-      }
+      },
+      "taxRate": "Taux de TVA (%)",
+      "selectCustomer": "Sélectionner un client"
     },
     "filters": {
       "title": "Filtres",
@@ -282,23 +291,48 @@
   "users": {
     "title": "Gestion des utilisateurs",
     "addUser": "Ajouter un utilisateur",
-    "editUser": "Modifier l'utilisateur",
-    "email": "Email",
+    "email": "E-mail",
     "password": "Mot de passe",
     "role": "Rôle",
-    "resetOwnPassword": "Réinitialiser mon mot de passe",
-    "resetUserPassword": "Réinitialiser le mot de passe",
-    "resettingPasswordFor": "Réinitialisation du mot de passe pour",
-    "newPassword": "Nouveau mot de passe",
-    "passwordRequirements": "Le mot de passe doit contenir au moins 8 caractères",
-    "adminUserNote": "Les administrateurs ne peuvent pas être modifiés"
+    "actions": "Actions",
+    "editUser": "Modifier l'utilisateur",
+    "saveChanges": "Enregistrer les modifications",
+    "cancel": "Annuler"
+  },
+  "customers": {
+    "title": "Clients",
+    "addCustomer": "Ajouter un client",
+    "editCustomer": "Modifier le client",
+    "headers": {
+      "name": "Nom",
+      "ice": "ICE",
+      "taxId": "ID Fiscal",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "actions": "Actions"
+    },
+    "form": {
+      "namePlaceholder": "Nom",
+      "icePlaceholder": "ICE",
+      "taxIdPlaceholder": "ID Fiscal",
+      "addressPlaceholder": "Adresse",
+      "emailPlaceholder": "E-mail",
+      "phonePlaceholder": "Numéro de téléphone",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    }
   },
   "roles": {
-    "admin": "Administrateur",
-    "manager": "Gestionnaire",
+    "admin": "Admin",
+    "manager": "Manager",
     "clerk": "Employé"
   },
   "confirmations": {
-    "deleteUser": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?"
+    "deleteInvoice": "Êtes-vous sûr de vouloir supprimer cette facture ?",
+    "deleteUser": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
+    "deleteCustomer": "Êtes-vous sûr de vouloir supprimer ce client ?",
+    "submitInvoice": "Êtes-vous sûr de vouloir soumettre cette facture ?",
+    "bulkDelete": "Êtes-vous sûr de vouloir supprimer les factures sélectionnées ?",
+    "bulkSubmit": "Êtes-vous sûr de vouloir soumettre les factures sélectionnées ?"
   }
 } 

@@ -60,6 +60,15 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
         </svg>
       ),
     },
+    company.identifiantFiscal ? {
+      label: t('common.identifiantFiscal'),
+      value: company.identifiantFiscal,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm2 4a1 1 0 112 0 1 1 0 01-2 0zm-1 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+        </svg>
+      ),
+    } : null,
     {
       label: t('common.address'),
       value: company.address ? (
@@ -100,15 +109,18 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       </div>
       
       <div className="space-y-6">
-        {profileItems.map((item, index) => (
-          <div key={index} className="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors duration-200">
-            <div className="flex-shrink-0 mr-4">{item.icon}</div>
-            <div className="w-full">
-              <p className="text-sm font-medium text-gray-500">{item.label}</p>
-              <div className="text-lg font-semibold text-gray-900 mt-1">{item.value}</div>
+        {profileItems.filter(Boolean).map((item, index) => {
+          const nonNullItem = item!;
+          return (
+            <div key={index} className="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors duration-200">
+              <div className="flex-shrink-0 mr-4">{nonNullItem.icon}</div>
+              <div className="w-full">
+                <p className="text-sm font-medium text-gray-500">{nonNullItem.label}</p>
+                <div className="text-lg font-semibold text-gray-900 mt-1">{nonNullItem.value}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

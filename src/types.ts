@@ -5,13 +5,14 @@ export interface InvoiceLine {
     unitPrice: number;
     total: number;
     invoiceId: number;
+    taxRate: number;
   }
   
   export interface Invoice {
     id: number;
     invoiceNumber: string;
     date: string;
-    customerName: string;
+    customer: { id: number; name: string };
     subTotal: number;
     vat: number;
     total: number;
@@ -31,19 +32,19 @@ export interface InvoiceLine {
     description: string;
     quantity: number;
     unitPrice: number;
+    taxRate: number;
   }
   
   export interface NewInvoice {
     id?: number; // Optional id for updates
     invoiceNumber: string;
     date: string;
-    customerName: string;
+    customerId: number;
     subTotal: number;
     vat: number;
     total: number;
     status: number; // 0 = Draft, 1 = Ready, 2 = Submitted
     lines: NewLine[];
-    vatRate?: number;
   }
 
   export interface PdfUrlResponse {
@@ -53,8 +54,20 @@ export interface InvoiceLine {
   export interface Company {
     id: number;
     name: string;
+    //TODO : Change TaxId to ICE
     taxId: string;
+    identifiantFiscal?: string;
     address: string;
     createdAt: string;
+  }
+
+  export interface Customer {
+    id: number;
+    name: string;
+    ice?: string;
+    taxId?: string;
+    address?: string;
+    email?: string;
+    phoneNumber?: string;
   }
   

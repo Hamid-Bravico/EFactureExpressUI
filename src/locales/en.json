@@ -58,6 +58,8 @@
     "companyNamePlaceholder": "Enter your company name",
     "taxId": "Tax ID",
     "taxIdPlaceholder": "Enter your tax ID",
+    "identifiantFiscal": "Identifiant Fiscal",
+    "identifiantFiscalPlaceholder": "Enter your Identifiant Fiscal",
     "address": "Address",
     "addressPlaceholder": "Enter your company address",
     "confirmPassword": "Confirm Password",
@@ -66,6 +68,7 @@
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in",
     "users": "Users",
+    "customers": "Customers",
     "create": "Create",
     "profile": "Profile",
     "companyProfile": "Company Profile",
@@ -110,25 +113,28 @@
     "passwordUpdated": "Password has been updated successfully",
     "invalidResponse": "Invalid response from server",
     "invalidRole": "Invalid user role",
-    "invalidUserId": "Invalid user ID",
-    "noCompanyData": "No company data available.",
-    "sessionExpired": "Your session has expired. Please log in again."
+    "invalidUserId": "Invalid user ID in token.",
+    "failedToSaveCustomer": "Failed to save customer.",
+    "failedToDeleteCustomer": "Failed to delete customer.",
+    "nameIsRequired": "Name is required.",
+    "invalidEmail": "Please enter a valid email address.",
+    "invalidICE": "ICE must be 15 digits.",
+    "invalidTaxId": "Tax ID must be 8 digits."
   },
   "success": {
-    "invoiceCreated": "Invoice created successfully",
-    "invoiceUpdated": "Invoice updated successfully",
-    "csvImported": "CSV file imported successfully!",
-    "invoiceDeleted": "Invoice deleted successfully",
-    "invoiceSubmitted": "Invoice submitted successfully",
-    "changesSaved": "Changes saved successfully",
-    "fileUploaded": "File uploaded successfully",
-    "bulkInvoicesSubmitted": "{{count}} invoices submitted successfully",
-    "bulkInvoicesDeleted": "{{count}} invoices deleted successfully",
-    "userCreated": "New user account has been created successfully",
-    "userUpdated": "User account has been updated successfully",
-    "userDeleted": "User account has been deleted successfully",
-    "passwordUpdated": "Password has been updated successfully",
-    "pdfReady": "PDF is ready and will open in a new tab."
+    "invoiceCreated": "Invoice created successfully.",
+    "invoiceUpdated": "Invoice updated successfully.",
+    "invoiceDeleted": "Invoice deleted successfully.",
+    "invoiceSubmitted": "Invoice submitted successfully.",
+    "csvImported": "CSV imported successfully.",
+    "pdfReady": "PDF is ready for download.",
+    "userCreated": "User created successfully.",
+    "userUpdated": "User updated successfully.",
+    "passwordUpdated": "Password updated successfully.",
+    "userDeleted": "User deleted successfully.",
+    "customerCreated": "Customer created successfully.",
+    "customerUpdated": "Customer updated successfully.",
+    "customerDeleted": "Customer deleted successfully."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -209,7 +215,9 @@
         "fixErrors": "Please fix the errors in the form",
         "submissionError": "There was an error submitting the form. Please check the highlighted fields.",
         "saveFailed": "Failed to save invoice. Please try again."
-      }
+      },
+      "taxRate": "Tax Rate (%)",
+      "selectCustomer": "Select Customer"
     },
     "filters": {
       "title": "Filters",
@@ -283,18 +291,37 @@
     "importCSV": "Import CSV"
   },
   "users": {
-    "title": "Users",
+    "title": "User Management",
     "addUser": "Add User",
-    "editUser": "Edit User",
     "email": "Email",
     "password": "Password",
-    "newPassword": "New Password",
     "role": "Role",
-    "passwordRequirements": "Password must be at least 8 characters long",
-    "adminUserNote": "Admin users cannot be modified",
-    "resetOwnPassword": "Reset Own Password",
-    "confirmations": {
-      "deleteUser": "Are you sure you want to delete this user?"
+    "actions": "Actions",
+    "editUser": "Edit User",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel"
+  },
+  "customers": {
+    "title": "Customers",
+    "addCustomer": "Add Customer",
+    "editCustomer": "Edit Customer",
+    "headers": {
+      "name": "Name",
+      "ice": "ICE",
+      "taxId": "Tax ID",
+      "email": "Email",
+      "phone": "Phone",
+      "actions": "Actions"
+    },
+    "form": {
+      "namePlaceholder": "Name",
+      "icePlaceholder": "ICE",
+      "taxIdPlaceholder": "Tax ID",
+      "addressPlaceholder": "Address",
+      "emailPlaceholder": "Email",
+      "phonePlaceholder": "Phone Number",
+      "cancel": "Cancel",
+      "save": "Save"
     }
   },
   "roles": {
@@ -303,6 +330,11 @@
     "clerk": "Clerk"
   },
   "confirmations": {
-    "deleteUser": "Are you sure you want to delete this user?"
+    "deleteInvoice": "Are you sure you want to delete this invoice?",
+    "deleteUser": "Are you sure you want to delete this user?",
+    "deleteCustomer": "Are you sure you want to delete this customer?",
+    "submitInvoice": "Are you sure you want to submit this invoice?",
+    "bulkDelete": "Are you sure you want to delete the selected invoices?",
+    "bulkSubmit": "Are you sure you want to submit the selected invoices?"
   }
 } 

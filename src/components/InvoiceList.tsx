@@ -42,7 +42,8 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [selectedInvoice, setSelectedInvoice] = useState<number | null>(null);
-  const [sortField, setSortField] = useState<keyof Invoice>('date');
+  // Use a union type for sortField
+  const [sortField, setSortField] = useState<'date' | 'invoiceNumber' | 'customer' | 'total' | 'status'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<Set<number>>(new Set());
@@ -90,11 +91,14 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   const userRole = localStorage.getItem("userRole");
   const isAdmin = userRole === "Admin";
 
-  const handleSort = (field: keyof Invoice) => {
+  // Update handleSort to only allow valid sortField values
+  const handleSort = (field: string) => {
+    const validFields = ['date', 'invoiceNumber', 'customer', 'total', 'status'] as const;
+    if (!validFields.includes(field as any)) return;
     if (field === sortField) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortField(field);
+      setSortField(field as typeof validFields[number]);
       setSortDirection('desc');
     }
   };
@@ -127,7 +131,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
     }
     if (filters.customerName) {
       filtered = filtered.filter(invoice => 
-        invoice.customerName.toLowerCase().includes(filters.customerName.toLowerCase())
+        invoice.customer.name.toLowerCase().includes(filters.customerName.toLowerCase())
       );
     }
     if (filters.status !== 'all') {
@@ -142,15 +146,22 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
     // Apply sorting
     return filtered.sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-      
+      let aValue: string | number;
+      let bValue: string | number;
+      switch (sortField) {
+        case 'customer':
+          aValue = a.customer.name;
+          bValue = b.customer.name;
+          break;
+        default:
+          aValue = a[sortField];
+          bValue = b[sortField];
+      }
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
+        return sortDirection === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
       return sortDirection === 'asc'
         ? Number(aValue) - Number(bValue)
         : Number(bValue) - Number(aValue);
@@ -550,11 +561,11 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                   <th 
                     scope="col" 
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
-                    onClick={() => handleSort('customerName')}
+                    onClick={() => handleSort('customer')}
                   >
                     <div className="flex items-center gap-2">
                       {t('invoice.list.customer')}
-                      {sortField === 'customerName' && (
+                      {sortField === 'customer' && (
                         <svg className={`w-4 h-4 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
@@ -625,7 +636,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{invoice.customerName}</div>
+                        <div className="text-sm text-gray-900">{invoice.customer.name}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="text-sm font-medium text-gray-900">

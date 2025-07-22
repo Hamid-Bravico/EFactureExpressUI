@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { NewInvoice, NewLine, Invoice } from '../types';
+import { NewInvoice, NewLine, Invoice, Customer } from '../types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { API_ENDPOINTS } from '../config/api';
 
 interface InvoiceFormProps {
   onSubmit: (invoice: NewInvoice) => Promise<void>;
@@ -13,10 +14,9 @@ interface InvoiceFormProps {
 interface FormErrors {
   invoiceNumber?: string;
   date?: string;
-  customerName?: string;
-  vatRate?: string;
+  customerId?: string;
   status?: string;
-  lines?: { [key: number]: { description?: string; quantity?: string; unitPrice?: string } };
+  lines?: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } };
 }
 
 interface BackendErrorResponse {
@@ -27,11 +27,18 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const { t, i18n } = useTranslation();
   const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoiceNumber || "");
   const [date, setDate] = useState(invoice?.date || new Date().toISOString().split('T')[0]);
-  const [customerName, setCustomerName] = useState(invoice?.customerName || "");
-  const [vatRate, setVatRate] = useState(20); // Default VAT rate of 20%
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerId, setCustomerId] = useState<number | null>(invoice?.customer?.id || null);
   const [status, setStatus] = useState(invoice?.status || 0);
   const [lines, setLines] = useState<NewLine[]>(
-    invoice?.lines || [{ description: "", quantity: 1, unitPrice: 0 }]
+    invoice?.lines
+      ? invoice.lines.map(line => ({
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          taxRate: line.taxRate,
+        }))
+      : [{ description: '', quantity: 1, unitPrice: 0, taxRate: 20 }]
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,89 +46,53 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const userRole = localStorage.getItem('userRole');
 
   useEffect(() => {
+    fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
+      headers: { Authorization: localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '' },
+    })
+      .then(res => res.json())
+      .then(setCustomers)
+      .catch(() => setCustomers([]));
+  }, []);
+
+  useEffect(() => {
     if (invoice) {
       setInvoiceNumber(invoice.invoiceNumber);
-      // Format the date to YYYY-MM-DD for the date input
       const formattedDate = new Date(invoice.date).toISOString().split('T')[0];
       setDate(formattedDate);
-      setCustomerName(invoice.customerName);
-      // Use vatRate from invoice if available, otherwise keep the default
-      setVatRate(invoice.vatRate !== undefined ? invoice.vatRate : 20);
-      setLines(invoice.lines);
-      /*/ Initialize lines with all invoice lines
+      setCustomerId(invoice.customer?.id || null);
       setLines(invoice.lines.map(line => ({
         description: line.description,
         quantity: line.quantity,
-        unitPrice: line.unitPrice
-      })));*/
+        unitPrice: line.unitPrice,
+        taxRate: line.taxRate,
+      })));
+      setStatus(invoice.status);
     }
   }, [invoice]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-
-    // Validate invoice number
-    if (!invoiceNumber.trim()) {
-      newErrors.invoiceNumber = t('invoice.form.errors.invoiceNumberRequired');
-    }
-
-    // Validate date
-    if (!date) {
-      newErrors.date = t('invoice.form.errors.dateRequired');
-    }
-
-    // Validate customer name
-    if (!customerName.trim()) {
-      newErrors.customerName = t('invoice.form.errors.customerNameRequired');
-    }
-
-    // Validate VAT rate
-    if (vatRate < 0 || vatRate > 100) {
-      newErrors.vatRate = t('invoice.form.errors.vatRateRange');
-    }
-
-    // Validate status
-    if (status !== 0 && status !== 1) {
-      newErrors.status = t('invoice.form.errors.invalidStatus');
-    }
-
-    // Validate lines
-    const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string } } = {};
+    if (!invoiceNumber.trim()) newErrors.invoiceNumber = t('invoice.form.errors.invoiceNumberRequired');
+    if (!date) newErrors.date = t('invoice.form.errors.dateRequired');
+    if (!customerId) newErrors.customerId = t('invoice.form.errors.customerNameRequired');
+    if (status !== 0 && status !== 1) newErrors.status = t('invoice.form.errors.invalidStatus');
+    const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } } = {};
     let hasValidLine = false;
-
     lines.forEach((line, index) => {
-      const lineError: { description?: string; quantity?: string; unitPrice?: string } = {};
-
-      if (!line.description.trim()) {
-        lineError.description = t('invoice.form.errors.descriptionRequired');
-      }
-
-      if (line.quantity <= 0) {
-        lineError.quantity = t('invoice.form.errors.quantityPositive');
-      }
-
-      if (line.unitPrice < 0) {
-        lineError.unitPrice = t('invoice.form.errors.unitPricePositive');
-      }
-
-      if (Object.keys(lineError).length > 0) {
-        lineErrors[index] = lineError;
-      } else {
-        hasValidLine = true;
-      }
+      const lineError: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } = {};
+      if (!line.description || !line.description.trim()) lineError.description = t('invoice.form.errors.descriptionRequired');
+      if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('invoice.form.errors.quantityPositive');
+      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice < 0) lineError.unitPrice = t('invoice.form.errors.unitPricePositive');
+      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('invoice.form.errors.taxRateRange');
+      if (Object.keys(lineError).length > 0) lineErrors[index] = lineError; else hasValidLine = true;
     });
-
-    if (!hasValidLine) {
-      newErrors.lines = { 0: { description: t('invoice.form.errors.oneLineRequired') } };
-    } else if (Object.keys(lineErrors).length > 0) {
-      newErrors.lines = lineErrors;
-    }
-
+    if (!hasValidLine) newErrors.lines = { 0: { description: t('invoice.form.errors.oneLineRequired') } };
+    else if (Object.keys(lineErrors).length > 0) newErrors.lines = lineErrors;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const updateLine = (index: number, field: keyof NewLine, value: string) => {
+  const updateLine = (index: number, field: keyof NewLine | 'taxRate', value: string) => {
     // 1) Update the line values as before
     setLines(prev =>
       prev.map((ln, i) =>
@@ -151,7 +122,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const addLine = () => {
     setLines((prev) => [
       ...prev,
-      { description: "", quantity: 1, unitPrice: 0 },
+      { description: "", quantity: 1, unitPrice: 0, taxRate: 20 },
     ]);
   };
 
@@ -168,16 +139,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       (sum, ln) => sum + ln.quantity * ln.unitPrice,
       0
     );
-    const vat = +(sub * (vatRate / 100)).toFixed(2);
-    return { subTotal: +sub.toFixed(2), vat, total: +(sub + vat).toFixed(2) };
+    const vat = lines.reduce(
+      (sum, ln) => sum + ln.quantity * ln.unitPrice * (ln.taxRate ?? 20) / 100,
+      0
+    );
+    return { subTotal: +sub.toFixed(2), vat: +vat.toFixed(2), total: +(sub + vat).toFixed(2) };
   };
 
   const getInvoiceErrorMessage = (field: string): string | undefined => {
     const fieldMap: { [key: string]: string } = {
       'invoiceNumber': 'InvoiceNumber',
       'date': 'Date',
-      'customerName': 'CustomerName',
-      'vatRate': 'VatRate'
+      'customerId': 'CustomerId',
+      'status': 'Status'
     };
     
     const backendKey = fieldMap[field];
@@ -199,8 +173,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     const fieldMap: { [key: string]: string } = {
       'invoiceNumber': 'InvoiceNumber',
       'date': 'Date',
-      'customerName': 'CustomerName',
-      'vatRate': 'VatRate'
+      'customerId': 'CustomerId',
+      'status': 'Status'
     };
     
     const backendKey = fieldMap[field];
@@ -240,17 +214,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
         ...(invoice?.id && { id: invoice.id }),
         invoiceNumber,
         date,
-        customerName,
+        customerId: customerId!,
         subTotal,
         vat,
         total,
         status,
-        lines: lines.map((ln) => ({
-          description: ln.description,
-          quantity: ln.quantity,
-          unitPrice: ln.unitPrice,
-        })),
-        vatRate,
+        lines: lines.map(ln => ({ description: ln.description, quantity: ln.quantity, unitPrice: ln.unitPrice, taxRate: ln.taxRate })),
       };
 
       await onSubmit(newInvoice);
@@ -347,53 +316,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
             </div>
             <div className="col-span-2">
               <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.customerName')}</label>
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => {
-                  setCustomerName(e.target.value);
-                  if (errors.customerName) {
-                    setErrors(prev => ({ ...prev, customerName: undefined }));
-                  }
-                  clearInvoiceError('customerName');
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.customerName || getInvoiceErrorMessage('customerName') ? 'border-red-500' : 'border-gray-300'
-                }`}
+              <select
+                value={customerId ?? ''}
+                onChange={e => { setCustomerId(Number(e.target.value)); if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined })); clearInvoiceError('customerId'); }}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.customerId || getInvoiceErrorMessage('customerId') ? 'border-red-500' : 'border-gray-300'}`}
                 disabled={disabled || isSubmitting}
                 required
-              />
-              {(errors.customerName || getInvoiceErrorMessage('customerName')) && (
-                <div className="text-red-500 text-xs mt-1">
-                  {errors.customerName || getInvoiceErrorMessage('customerName')}
-                </div>
-              )}
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.vatRate')}</label>
-              <input
-                type="number"
-                value={vatRate}
-                onChange={(e) => {
-                  setVatRate(Number(e.target.value));
-                  if (errors.vatRate) {
-                    setErrors(prev => ({ ...prev, vatRate: undefined }));
-                  }
-                  clearInvoiceError('vatRate');
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.vatRate || getInvoiceErrorMessage('vatRate') ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={disabled || isSubmitting}
-                min="0"
-                max="100"
-                step="0.1"
-                required
-              />
-              {(errors.vatRate || getInvoiceErrorMessage('vatRate')) && (
-                <div className="text-red-500 text-xs mt-1">
-                  {errors.vatRate || getInvoiceErrorMessage('vatRate')}
-                </div>
+              >
+                <option value="">{t('invoice.form.selectCustomer')}</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              {(errors.customerId || getInvoiceErrorMessage('customerId')) && (
+                <div className="text-red-500 text-xs mt-1">{errors.customerId || getInvoiceErrorMessage('customerId')}</div>
               )}
             </div>
             {userRole !== 'Clerk' && (
@@ -526,10 +462,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                   const descKey = `Lines[${idx}].Description`;
                   const qtyKey = `Lines[${idx}].Quantity`;
                   const priceKey = `Lines[${idx}].UnitPrice`;
+                  const taxRateKey = `Lines[${idx}].TaxRate`;
 
                   const descError = getLineErrorMessage(descKey);
                   const qtyError = getLineErrorMessage(qtyKey);
                   const priceError = getLineErrorMessage(priceKey);
+                  const taxRateError = getLineErrorMessage(taxRateKey);
 
                   return (
                     <>
@@ -574,7 +512,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                         )}
                       </div>
 
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.unitPrice')}</label>
                         <input
                           type="number"
@@ -583,9 +521,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                             updateLine(idx, 'unitPrice', e.target.value);
                             clearLineError(priceKey);
                           }}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
-                            errors.lines?.[idx]?.unitPrice || priceError ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.unitPrice || priceError ? 'border-red-500' : 'border-gray-300'}`}
                           disabled={disabled || isSubmitting}
                           step="0.01"
                           min="0"
@@ -593,6 +529,24 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                         />
                         {priceError && (
                           <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{priceError}</div>
+                        )}
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.taxRate')}</label>
+                        <input
+                          type="number"
+                          value={ln.taxRate ?? 20}
+                          onChange={e => { updateLine(idx, 'taxRate', e.target.value); }}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate ? 'border-red-500' : 'border-gray-300'}`}
+                          disabled={disabled || isSubmitting}
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          required
+                        />
+                        {errors.lines?.[idx]?.taxRate && (
+                          <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{errors.lines[idx]?.taxRate}</div>
                         )}
                       </div>
 
@@ -623,7 +577,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                     <span>{formatCurrency(computeTotals().subTotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>{t('invoice.form.vat', { rate: vatRate })}:</span>
+                    <span>{t('invoice.form.vat', { rate: 20 })}:</span>
                     <span>{formatCurrency(computeTotals().vat)}</span>
                   </div>
                   <div className="flex justify-between text-base font-medium text-gray-900">

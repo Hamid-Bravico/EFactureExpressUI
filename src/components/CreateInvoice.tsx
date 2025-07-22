@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NewInvoice, NewLine } from '../types';
+import { NewInvoice, NewLine, Customer } from '../types';
 
 interface CreateInvoiceProps {
   onSubmit: (invoice: NewInvoice) => Promise<void>;
@@ -9,10 +9,11 @@ interface CreateInvoiceProps {
 const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = false }) => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [date, setDate] = useState("");
-  const [customerName, setCustomerName] = useState("");
+  const [customerId, setCustomerId] = useState<number | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [vatRate, setVatRate] = useState(20); // Default VAT rate of 20%
   const [lines, setLines] = useState<NewLine[]>([
-    { description: "", quantity: 1, unitPrice: 0 },
+    { description: '', quantity: 1, unitPrice: 0, taxRate: vatRate },
   ]);
 
   const updateLine = (index: number, field: keyof NewLine, value: string) => {
@@ -28,7 +29,7 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
   const addLine = () =>
     setLines((prev) => [
       ...prev,
-      { description: "", quantity: 1, unitPrice: 0 },
+      { description: '', quantity: 1, unitPrice: 0, taxRate: vatRate },
     ]);
 
   const removeLine = (index: number) =>
@@ -43,16 +44,25 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
     return { subTotal: +sub.toFixed(2), vat, total: +(sub + vat).toFixed(2) };
   };
 
+  // Fetch customers for dropdown
+  React.useEffect(() => {
+    fetch('/api/customers')
+      .then(res => res.json())
+      .then(setCustomers)
+      .catch(() => setCustomers([]));
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disabled) return;
     
     const { subTotal, vat, total } = computeTotals();
+    if (!customerId) return;
 
     const newInvoice: NewInvoice = {
       invoiceNumber,
       date,
-      customerName,
+      customerId,
       subTotal,
       vat,
       total,
@@ -61,6 +71,7 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
         description: ln.description,
         quantity: ln.quantity,
         unitPrice: ln.unitPrice,
+        taxRate: ln.taxRate,
       })),
     };
 
@@ -69,9 +80,9 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
     // Reset form
     setInvoiceNumber("");
     setDate("");
-    setCustomerName("");
+    setCustomerId(null);
     setVatRate(20);
-    setLines([{ description: "", quantity: 1, unitPrice: 0 }]);
+    setLines([{ description: '', quantity: 1, unitPrice: 0, taxRate: 20 }]);
   };
 
   return (
@@ -100,14 +111,18 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-            <input
-              type="text"
+            <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+            <select
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
+              value={customerId ?? ''}
+              onChange={e => setCustomerId(Number(e.target.value))}
               required
-            />
+            >
+              <option value="">Select Customer</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">VAT Rate (%)</label>

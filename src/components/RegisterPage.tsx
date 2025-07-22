@@ -13,6 +13,7 @@ interface RegisterPageProps {
 interface RegisterFormData {
   companyName: string;
   taxId: string;
+  identifiantFiscal: string;
   address: string;
   email: string;
   password: string;
@@ -25,6 +26,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
   const [formData, setFormData] = useState<RegisterFormData>({
     companyName: '',
     taxId: '',
+    identifiantFiscal: '',
     address: '',
     email: '',
     password: '',
@@ -67,6 +69,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
       const response = await axios.post(API_ENDPOINTS.AUTH.REGISTER, {
         companyName: formData.companyName,
         taxId: formData.taxId,
+        identifiantFiscal: formData.identifiantFiscal,
         address: formData.address,
         email: formData.email,
         password: formData.password
@@ -186,6 +189,27 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                   placeholder={t('common.taxIdPlaceholder')}
                 />
                 {renderFieldError('TaxId')}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="identifiantFiscal" className="block text-sm font-medium text-gray-700">
+                {t('common.identifiantFiscal')} <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1">
+                <input
+                  id="identifiantFiscal"
+                  name="identifiantFiscal"
+                  type="text"
+                  required
+                  value={formData.identifiantFiscal}
+                  onChange={handleChange}
+                  className={`appearance-none block w-full px-4 py-3 border ${
+                    fieldErrors['IdentifiantFiscal'] ? 'border-red-300' : 'border-gray-300'
+                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
+                  placeholder={t('common.identifiantFiscalPlaceholder')}
+                />
+                {renderFieldError('IdentifiantFiscal')}
               </div>
             </div>
 

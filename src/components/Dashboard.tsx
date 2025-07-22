@@ -85,11 +85,11 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // Get top customers
   const customerStats = invoices.reduce((acc, invoice) => {
-    if (!acc[invoice.customerName]) {
-      acc[invoice.customerName] = { count: 0, amount: 0 };
+    if (!acc[invoice.customer.name]) {
+      acc[invoice.customer.name] = { count: 0, amount: 0 };
     }
-    acc[invoice.customerName].count++;
-    acc[invoice.customerName].amount += invoice.total;
+    acc[invoice.customer.name].count++;
+    acc[invoice.customer.name].amount += invoice.total;
     return acc;
   }, {} as Record<string, { count: number; amount: number }>);
 
@@ -400,7 +400,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <p className="text-sm font-medium text-gray-900">
                       {formatCurrency(invoice.total)}
                     </p>
-                    <p className="text-sm text-gray-500">{invoice.customerName}</p>
+                    <p className="text-sm text-gray-500">{invoice.customer.name}</p>
                   </div>
                 </div>
               </div>
