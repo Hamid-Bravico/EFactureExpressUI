@@ -78,7 +78,9 @@
     "copied": "Copied!",
     "deletingInvoice": "Deleting invoice...",
     "downloadingPDF": "Downloading PDF...",
-    "submittingInvoice": "Submitting invoice..."
+    "submittingInvoice": "Submitting invoice...",
+    "ICE": "ICE",
+    "ICEPlaceholder": "Enter your company ICE"
   },
   "errors": {
     "invalidCredentials": "Invalid credentials",

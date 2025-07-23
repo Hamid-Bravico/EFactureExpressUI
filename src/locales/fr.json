@@ -57,6 +57,7 @@
     "companyName": "Nom de l'entreprise",
     "companyNamePlaceholder": "Entrez le nom de votre entreprise",
     "ICE": "ICE",
+    "ICEPlaceholder": "Entrez l'ICE de votre entreprise",
     "taxId": "Identifiant Fiscal",
     "taxIdPlaceholder": "Entrez votre numéro de TVA",
     "identifiantFiscal": "Identifiant Fiscal",

@@ -12,7 +12,7 @@ interface RegisterPageProps {
 
 interface RegisterFormData {
   companyName: string;
-  taxId: string;
+  ICE: string;
   identifiantFiscal: string;
   address: string;
   email: string;
@@ -25,7 +25,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
   const { t } = useTranslation();
   const [formData, setFormData] = useState<RegisterFormData>({
     companyName: '',
-    taxId: '',
+    ICE: '',
     identifiantFiscal: '',
     address: '',
     email: '',
@@ -68,7 +68,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     try {
       const response = await axios.post(API_ENDPOINTS.AUTH.REGISTER, {
         companyName: formData.companyName,
-        taxId: formData.taxId,
+        ICE: formData.ICE,
         identifiantFiscal: formData.identifiantFiscal,
         address: formData.address,
         email: formData.email,
@@ -84,8 +84,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
         const errorData = err.response.data;
         if (errorData.field === 'email') {
           setError(t('errors.emailAlreadyExists'));
-        } else if (errorData.field === 'taxId') {
-          setError(t('errors.taxIdAlreadyExists'));
+        } else if (errorData.field === 'ICE') {
+          setError(t('errors.ICEAlreadyExists'));
         } else {
           setError(errorData.error || t('errors.registrationFailed'));
         }
@@ -172,23 +172,23 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
             </div>
 
             <div>
-              <label htmlFor="taxId" className="block text-sm font-medium text-gray-700">
-                {t('common.taxId')} <span className="text-red-500">*</span>
+              <label htmlFor="ICE" className="block text-sm font-medium text-gray-700">
+                {t('common.ICE')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
                 <input
-                  id="taxId"
-                  name="taxId"
+                  id="ICE"
+                  name="ICE"
                   type="text"
                   required
-                  value={formData.taxId}
+                  value={formData.ICE}
                   onChange={handleChange}
                   className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['TaxId'] ? 'border-red-300' : 'border-gray-300'
+                    fieldErrors['ICE'] ? 'border-red-300' : 'border-gray-300'
                   } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
-                  placeholder={t('common.taxIdPlaceholder')}
+                  placeholder={t('common.ICEPlaceholder')}
                 />
-                {renderFieldError('TaxId')}
+                {renderFieldError('ICE')}
               </div>
             </div>
 
