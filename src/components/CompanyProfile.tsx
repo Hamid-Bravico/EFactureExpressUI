@@ -19,8 +19,8 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
   }
 
   const handleCopy = () => {
-    if (company?.taxId) {
-      navigator.clipboard.writeText(company.taxId);
+    if (company?.ICE) {
+      navigator.clipboard.writeText(company.ICE);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -37,10 +37,10 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       ),
     },
     {
-      label: t('common.taxId'),
+      label: t('common.ICE'),
       value: (
         <div className="flex items-center">
-          <span className="font-semibold text-gray-900">{company.taxId}</span>
+          <span className="font-semibold text-gray-900">{company.ICE}</span>
           <button
             onClick={handleCopy}
             className={`ml-4 px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${

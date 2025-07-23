@@ -54,8 +54,7 @@ export interface InvoiceLine {
   export interface Company {
     id: number;
     name: string;
-    //TODO : Change TaxId to ICE
-    taxId: string;
+    ICE: string;
     identifiantFiscal?: string;
     address: string;
     createdAt: string;
