@@ -644,6 +644,7 @@ function App() {
                             onSubmit={handleSubmitInvoice}
                             onCreateInvoice={handleCreateInvoice}
                             onUpdateInvoice={handleUpdateInvoice}
+                            onRefreshInvoices={fetchInvoices}
                             disabled={importLoading}
                             importLoading={importLoading}
                             onImportCSV={handleImportCSV}

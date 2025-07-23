@@ -120,7 +120,11 @@
     "failedToDeleteCustomer": "Failed to delete customer.",
     "nameIsRequired": "Name is required.",
     "invalidICE": "ICE must be 15 digits.",
-    "invalidTaxId": "Tax ID must be 8 digits."
+    "invalidTaxId": "Tax ID must be 8 digits.",
+    "companyNameRequired": "Company name is required.",
+    "ICERequired": "ICE number is required.",
+    "emailRequired": "Email is required.",
+    "passwordRequired": "Password is required."
   },
   "success": {
     "invoiceCreated": "Invoice created successfully.",
@@ -171,13 +175,18 @@
       "draft": "Draft",
       "pending": "Ready",
       "ready": "Ready",
+      "awaitingClearance": "Awaiting Clearance",
+      "validated": "Validated",
+      "rejected": "Rejected",
       "paid": "Paid",
       "overdue": "Overdue",
       "cancelled": "Cancelled",
       "submitted": "Submitted",
       "draftDescription": "Work in progress",
       "readyDescription": "Ready for submission",
-      "submittedDescription": "Submitted to authorities"
+      "awaitingClearanceDescription": "Awaiting clearance from authorities",
+      "validatedDescription": "Validated by authorities",
+      "rejectedDescription": "Rejected by authorities"
     },
     "form": {
       "customerInfo": "Customer Information",
@@ -258,7 +267,9 @@
       "submit": "Submit to DGI",
       "download": "Download PDF",
       "delete": "Delete Invoice",
-      "downloadJson": "Download JSON"
+      "downloadJson": "Download JSON",
+      "refreshStatus": "Refresh Status",
+      "viewRejectionReason": "View Rejection Reason"
     },
     "details": {
       "title": "Invoice Details",
@@ -277,6 +288,13 @@
       "title": "Confirm {{action}}",
       "message": "Are you sure you want to {{action}} {{count}} invoice{{plural}}?{{warning}}",
       "warning": " This action cannot be undone."
+    },
+    "dgiStatus": {
+      "checking": "Checking status...",
+      "stillPending": "Status is still pending...",
+      "rejectionReason": "Rejection Reason",
+      "errorChecking": "Error checking status",
+      "switchToDraft": "Switch to Draft"
     }
   },
   "import": {
@@ -300,7 +318,10 @@
     "actions": "Actions",
     "editUser": "Edit User",
     "saveChanges": "Save Changes",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "resetOwnPassword": "Reset Own Password",
+    "newPassword": "New Password",
+    "passwordRequirements": "Password must be at least 8 characters long"
   },
   "customers": {
     "title": "Customers",

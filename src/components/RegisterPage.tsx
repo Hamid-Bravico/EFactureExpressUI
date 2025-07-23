@@ -57,21 +57,38 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     e.preventDefault();
     setError('');
     setFieldErrors({});
-    setLoading(true);
 
+    const newFieldErrors: Record<string, string[]> = {};
+    if (!formData.companyName.trim()) {
+      newFieldErrors['CompanyName'] = [t('errors.companyNameRequired')];
+    }
+    if (!formData.ICE.trim()) {
+      newFieldErrors['ICE'] = [t('errors.ICERequired')];
+    }
+    if (!formData.email.trim()) {
+      newFieldErrors['Email'] = [t('errors.emailRequired')];
+    }
+    if (!formData.password) {
+      newFieldErrors['Password'] = [t('errors.passwordRequired')];
+    }
     if (formData.password !== formData.confirmPassword) {
-      setError(t('errors.passwordsDoNotMatch'));
-      setLoading(false);
+      newFieldErrors['ConfirmPassword'] = [t('errors.passwordsDoNotMatch')];
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
       return;
     }
 
+    setLoading(true);
+
     try {
       const response = await axios.post(API_ENDPOINTS.AUTH.REGISTER, {
-        companyName: formData.companyName,
-        ICE: formData.ICE,
-        identifiantFiscal: formData.identifiantFiscal,
-        address: formData.address,
-        email: formData.email,
+        companyName: formData.companyName.trim(),
+        ICE: formData.ICE.trim(),
+        identifiantFiscal: formData.identifiantFiscal.trim(),
+        address: formData.address.trim(),
+        email: formData.email.trim(),
         password: formData.password
       });
 
@@ -194,14 +211,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
             <div>
               <label htmlFor="identifiantFiscal" className="block text-sm font-medium text-gray-700">
-                {t('common.identifiantFiscal')} <span className="text-red-500">*</span>
+                {t('common.identifiantFiscal')}
               </label>
               <div className="mt-1">
                 <input
                   id="identifiantFiscal"
                   name="identifiantFiscal"
                   type="text"
-                  required
                   value={formData.identifiantFiscal}
                   onChange={handleChange}
                   className={`appearance-none block w-full px-4 py-3 border ${

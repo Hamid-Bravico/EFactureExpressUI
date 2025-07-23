@@ -121,7 +121,11 @@
     "nameIsRequired": "Le nom est requis.",
     "invalidEmail": "Veuillez saisir une adresse e-mail valide.",
     "invalidICE": "L'ICE doit comporter 15 chiffres.",
-    "invalidTaxId": "L'ID fiscal doit comporter 8 chiffres."
+    "invalidTaxId": "L'ID fiscal doit comporter 8 chiffres.",
+    "companyNameRequired": "Le nom de l'entreprise est requis.",
+    "ICERequired": "Le numéro ICE est requis.",
+    "emailRequired": "L'adresse email est requise.",
+    "passwordRequired": "Le mot de passe est requis."
   },
   "success": {
     "invoiceCreated": "Facture créée avec succès.",
@@ -172,13 +176,18 @@
       "draft": "Brouillon",
       "pending": "Prêt",
       "ready": "Prêt",
+      "awaitingClearance": "En attente de validation",
+      "validated": "Validé",
+      "rejected": "Rejeté",
       "paid": "Payée",
       "overdue": "En retard",
       "cancelled": "Annulée",
       "submitted": "Soumis",
       "draftDescription": "En cours de travail",
       "readyDescription": "Prêt pour soumission",
-      "submittedDescription": "Soumis aux autorités"
+      "awaitingClearanceDescription": "En attente de validation des autorités",
+      "validatedDescription": "Validé par les autorités",
+      "rejectedDescription": "Rejeté par les autorités"
     },
     "form": {
       "customerInfo": "Informations client",
@@ -259,7 +268,9 @@
       "submit": "Soumettre à la DGI",
       "download": "Télécharger le PDF",
       "delete": "Supprimer la facture",
-      "downloadJson": "Télécharger JSON"
+      "downloadJson": "Télécharger JSON",
+      "refreshStatus": "Actualiser le statut",
+      "viewRejectionReason": "Voir la raison du rejet"
     },
     "details": {
       "title": "Détails de la facture",
@@ -277,6 +288,13 @@
       "title": "Confirmer {{action}}",
       "message": "Êtes-vous sûr de vouloir {{action}} {{count}} facture{{plural}} ?{{warning}}",
       "warning": " Cette action ne peut pas être annulée."
+    },
+    "dgiStatus": {
+      "checking": "Vérification du statut...",
+      "stillPending": "Le statut est toujours en attente...",
+      "rejectionReason": "Raison du rejet",
+      "errorChecking": "Erreur lors de la vérification du statut",
+      "switchToDraft": "Passer en brouillon"
     }
   },
   "import": {
@@ -299,7 +317,10 @@
     "actions": "Actions",
     "editUser": "Modifier l'utilisateur",
     "saveChanges": "Enregistrer les modifications",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "resetOwnPassword": "Réinitialiser mon mot de passe",
+    "newPassword": "Nouveau mot de passe",
+    "passwordRequirements": "Le mot de passe doit contenir au moins 8 caractères"
   },
   "customers": {
     "title": "Clients",

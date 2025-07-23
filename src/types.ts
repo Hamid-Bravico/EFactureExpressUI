@@ -17,7 +17,7 @@ export interface InvoiceLine {
     vat: number;
     total: number;
     lines: InvoiceLine[];
-    status: number; // 0 = Draft, 1 = Ready, 2 = Submitted
+    status: number; // 0 = Draft, 1 = Ready, 2 = AwaitingClearance, 3 = Validated, 4 = Rejected
     createdAt: string;
     createdBy: {
       createdById: string;
@@ -43,7 +43,7 @@ export interface InvoiceLine {
     subTotal: number;
     vat: number;
     total: number;
-    status: number; // 0 = Draft, 1 = Ready, 2 = Submitted
+    status: number; // 0 = Draft, 1 = Ready, 2 = AwaitingClearance, 3 = Validated, 4 = Rejected
     lines: NewLine[];
   }
 
@@ -68,5 +68,12 @@ export interface InvoiceLine {
     address?: string;
     email?: string;
     phoneNumber?: string;
+  }
+
+  export interface DgiStatusResponse {
+    submissionId: string;
+    status: 'PendingValidation' | 'Validated' | 'Rejected';
+    errors: string[];
+    isSuccessful: boolean;
   }
   

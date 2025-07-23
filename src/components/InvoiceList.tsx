@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Invoice, NewInvoice } from '../types';
+import { Invoice, NewInvoice, DgiStatusResponse } from '../types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
@@ -14,6 +14,7 @@ interface InvoiceListProps {
   onSubmit: (id: number) => void;
   onCreateInvoice: (invoice: NewInvoice) => Promise<void>;
   onUpdateInvoice: (invoice: NewInvoice) => Promise<void>;
+  onRefreshInvoices: () => Promise<void>;
   disabled?: boolean;
   importLoading: boolean;
   onImportCSV: (file: File) => Promise<void>;
@@ -36,6 +37,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   onSubmit,
   onCreateInvoice,
   onUpdateInvoice,
+  onRefreshInvoices,
   disabled = false,
   importLoading,
   onImportCSV
@@ -57,6 +59,8 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   const [fetchingJsonId, setFetchingJsonId] = useState<number | null>(null);
   const [downloadDropdownOpenId, setDownloadDropdownOpenId] = useState<number | null>(null);
   const downloadDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const [refreshingStatusId, setRefreshingStatusId] = useState<number | null>(null);
+  const [rejectionModal, setRejectionModal] = useState<{ invoiceId: number; reason: string } | null>(null);
 
   // Close dropdown on outside click
   React.useEffect(() => {
@@ -170,7 +174,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      // Allow selecting all draft (0) and submitted (1) invoices for delete
+      // Allow selecting all draft (0) and ready (1) invoices for delete
       const selectableInvoices = filteredAndSortedInvoices
         .filter(inv => (userRole === 'Clerk' ? inv.status === 0 : inv.status === 0 || inv.status === 1))
         .map(inv => inv.id);
@@ -182,7 +186,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
   const handleSelectInvoice = (id: number, status: number) => {
     const newSelected = new Set(selectedInvoices);
-    // Allow selecting draft (0) and submitted (1) invoices for delete
+    // Allow selecting draft (0) and ready (1) invoices for delete
     if (status === 0 || status === 1) {
       if (newSelected.has(id)) {
         newSelected.delete(id);
@@ -194,7 +198,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   };
 
   const handleBulkSubmit = async () => {
-    // Only allow bulk submit for submitted (1) invoices
+    // Only allow bulk submit for ready (1) invoices
     const submitIds = Array.from(selectedInvoices).filter(id => {
       const inv = filteredAndSortedInvoices.find(i => i.id === id);
       return inv && inv.status === 1;
@@ -207,7 +211,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   };
 
   const handleBulkDelete = async () => {
-    // Allow bulk delete for selected draft (0) and submitted (1) invoices
+    // Allow bulk delete for selected draft (0) and ready (1) invoices
     const deleteIds = Array.from(selectedInvoices).filter(id => {
       const inv = filteredAndSortedInvoices.find(i => i.id === id);
       return inv && (inv.status === 0 || inv.status === 1);
@@ -232,7 +236,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
     try {
       if (showConfirmDialog.type === 'submit') {
-        // Only submit invoices with status 1
+        // Only submit invoices with status 1 (Ready)
         const submitIds = Array.from(selectedInvoices).filter(id => {
           const inv = filteredAndSortedInvoices.find(i => i.id === id);
           return inv && inv.status === 1;
@@ -242,7 +246,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
         );
         toast.success(t('success.bulkInvoicesSubmitted', { count: submitIds.length }), { id: toastId });
       } else {
-        // Delete invoices with status 0 or 1
+        // Delete invoices with status 0 (Draft) or 1 (Ready)
         const deleteIds = Array.from(selectedInvoices).filter(id => {
           const inv = filteredAndSortedInvoices.find(i => i.id === id);
           return inv && (inv.status === 0 || inv.status === 1);
@@ -327,6 +331,96 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
       toast.error('Failed to fetch JSON. Make sure Compliance Mode is enabled.');
     } finally {
       setFetchingJsonId(null);
+    }
+  };
+
+  const handleRefreshDgiStatus = async (invoiceId: number) => {
+    setRefreshingStatusId(invoiceId);
+    const toastId = toast.loading(t('invoice.dgiStatus.checking'));
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No token');
+      }
+      
+      const res = await fetch(API_ENDPOINTS.INVOICES.DGI_STATUS(invoiceId), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch DGI status: ${res.status}`);
+      }
+      
+      const data: DgiStatusResponse = await res.json();
+      console.log('DGI Status Response:', data);
+      
+      switch (data.status) {
+        case 'PendingValidation':
+          toast.success(t('invoice.dgiStatus.stillPending'), { id: toastId });
+          break;
+          
+        case 'Validated':
+          toast.success(t('invoice.status.validated'), { id: toastId });
+          try {
+            await onRefreshInvoices();
+          } catch (refreshError) {
+            console.error('Error refreshing invoices:', refreshError);
+            toast.error('Error refreshing invoice list');
+          }
+          break;
+          
+        case 'Rejected':
+          toast.error(t('invoice.status.rejected'), { id: toastId });
+          const rejectionReason = data.errors.length > 0 
+            ? data.errors.join('; ') 
+            : 'No specific reason provided';
+          setRejectionModal({ invoiceId, reason: rejectionReason });
+          try {
+            await onRefreshInvoices();
+          } catch (refreshError) {
+            console.error('Error refreshing invoices:', refreshError);
+            toast.error('Error refreshing invoice list');
+          }
+          break;
+          
+        default:
+          toast.error(`Unknown DGI status received: ${data.status}`, { id: toastId });
+          break;
+      }
+    } catch (error) {
+      console.error('DGI status check error:', error);
+      toast.error(t('invoice.dgiStatus.errorChecking'), { id: toastId });
+    } finally {
+      // Always clear the loading state
+      setRefreshingStatusId(null);
+    }
+  };
+
+  const handleSwitchToDraft = async (invoiceId: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token');
+      
+      const res = await fetch(API_ENDPOINTS.INVOICES.UPDATE(invoiceId), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 0 })
+      });
+      
+      if (!res.ok) throw new Error('Failed to update status');
+      
+      toast.success(t('invoice.status.draft'));
+      setRejectionModal(null);
+      await onRefreshInvoices();
+    } catch (error) {
+      console.error(error);
+      toast.error(t('invoice.dgiStatus.errorChecking'));
     }
   };
 
@@ -431,8 +525,11 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                 className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
                 <option value="all">{t('invoice.filters.all')}</option>
-                <option value="0">{t('invoice.status.pending')}</option>
-                <option value="1">{t('invoice.status.submitted')}</option>
+                <option value="0">{t('invoice.status.draft')}</option>
+                <option value="1">{t('invoice.status.ready')}</option>
+                <option value="2">{t('invoice.status.awaitingClearance')}</option>
+                <option value="3">{t('invoice.status.validated')}</option>
+                <option value="4">{t('invoice.status.rejected')}</option>
               </select>
             </div>
 
@@ -644,13 +741,40 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={invoice.status} />
+                        <StatusBadge 
+                          status={invoice.status}
+                          onShowRejectionReason={invoice.status === 4 ? () => {
+                            // For rejected invoices, we would need the rejection reason
+                            // This could be stored in the invoice or fetched separately
+                            setRejectionModal({ invoiceId: invoice.id, reason: 'Rejection reason not available. Please refresh status to get the latest details.' });
+                          } : undefined}
+                          onEditInvoice={invoice.status === 4 ? () => handleSwitchToDraft(invoice.id) : undefined}
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
                           {invoice.status === 2 ? (
                             <>
-                              {/* Other action buttons here (edit, submit, delete) */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRefreshDgiStatus(invoice.id);
+                                }}
+                                disabled={refreshingStatusId === invoice.id}
+                                className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                                title={t('invoice.actions.refreshStatus')}
+                              >
+                                {refreshingStatusId === invoice.id ? (
+                                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                )}
+                              </button>
                               {/* Vertical separator before download dropdown */}
                               <span className="mx-2 h-6 border-l border-gray-200 align-middle inline-block"></span>
                               <div
@@ -672,7 +796,10 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                                   </svg>
                                 </button>
                                 {downloadDropdownOpenId === invoice.id && (
-                                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                                  <div className="fixed z-50 w-48 bg-white border border-gray-200 rounded shadow-lg" style={{
+                                    top: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.bottom || 0) + 8,
+                                    left: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.right || 0) - 192
+                                  }}>
                                     <button
                                       onClick={e => {
                                         e.stopPropagation();
@@ -786,7 +913,10 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                                   </svg>
                                 </button>
                                 {downloadDropdownOpenId === invoice.id && (
-                                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                                  <div className="fixed z-50 w-48 bg-white border border-gray-200 rounded shadow-lg" style={{
+                                    top: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.bottom || 0) + 8,
+                                    left: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.right || 0) - 192
+                                  }}>
                                     <button
                                       onClick={e => {
                                         e.stopPropagation();
@@ -942,6 +1072,43 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                 }`}
               >
                 {showConfirmDialog.type === 'submit' ? t('invoice.actions.submit') : t('invoice.actions.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Reason Modal */}
+      {rejectionModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="ml-3 text-lg font-medium text-gray-900">
+                {t('invoice.dgiStatus.rejectionReason')}
+              </h3>
+            </div>
+            <div className="mb-6">
+              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
+                {rejectionModal.reason}
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setRejectionModal(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {t('common.close')}
+              </button>
+              <button
+                onClick={() => handleSwitchToDraft(rejectionModal.invoiceId)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {t('invoice.dgiStatus.switchToDraft')}
               </button>
             </div>
           </div>

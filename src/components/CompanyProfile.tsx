@@ -40,7 +40,11 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       label: t('common.ICE'),
       value: (
         <div className="flex items-center">
-          <span className="font-semibold text-gray-900">{company.ICE}</span>
+          {company.ICE && company.ICE.trim() ? (
+            <span className="font-semibold text-gray-900">{company.ICE}</span>
+          ) : (
+            <span className="text-gray-500 italic">{t('common.noICE')}</span>
+          )}
           <button
             onClick={handleCopy}
             className={`ml-4 px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${

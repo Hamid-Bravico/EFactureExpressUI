@@ -56,12 +56,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
   useEffect(() => {
     if (invoice) {
-      setInvoiceNumber(invoice.invoiceNumber);
+      setInvoiceNumber(invoice.invoiceNumber.trim());
       const formattedDate = new Date(invoice.date).toISOString().split('T')[0];
       setDate(formattedDate);
       setCustomerId(invoice.customer?.id || null);
       setLines(invoice.lines.map(line => ({
-        description: line.description,
+        description: line.description.trim(),
         quantity: line.quantity,
         unitPrice: line.unitPrice,
         taxRate: line.taxRate,
@@ -75,7 +75,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     if (!invoiceNumber.trim()) newErrors.invoiceNumber = t('invoice.form.errors.invoiceNumberRequired');
     if (!date) newErrors.date = t('invoice.form.errors.dateRequired');
     if (!customerId) newErrors.customerId = t('invoice.form.errors.customerNameRequired');
-    if (status !== 0 && status !== 1) newErrors.status = t('invoice.form.errors.invalidStatus');
+    if (status !== 0 && status !== 1 && status !== 2 && status !== 3 && status !== 4) newErrors.status = t('invoice.form.errors.invalidStatus');
     const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } } = {};
     let hasValidLine = false;
     lines.forEach((line, index) => {
@@ -97,7 +97,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     setLines(prev =>
       prev.map((ln, i) =>
         i === index
-          ? { ...ln, [field]: field === "description" ? value : Number(value) }
+          ? { ...ln, [field]: field === "description" ? value.trim() : Number(value) }
           : ln
       )
     );
@@ -212,14 +212,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
       const newInvoice: NewInvoice = {
         ...(invoice?.id && { id: invoice.id }),
-        invoiceNumber,
+        invoiceNumber: invoiceNumber.trim(),
         date,
         customerId: customerId!,
         subTotal,
         vat,
         total,
         status,
-        lines: lines.map(ln => ({ description: ln.description, quantity: ln.quantity, unitPrice: ln.unitPrice, taxRate: ln.taxRate })),
+        lines: lines.map(ln => ({ 
+          description: ln.description.trim(), 
+          quantity: ln.quantity, 
+          unitPrice: ln.unitPrice, 
+          taxRate: ln.taxRate 
+        })),
       };
 
       await onSubmit(newInvoice);
@@ -272,7 +277,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                 type="text"
                 value={invoiceNumber}
                 onChange={(e) => {
-                  setInvoiceNumber(e.target.value);
+                  setInvoiceNumber(e.target.value.trim());
                   if (errors.invoiceNumber) {
                     setErrors(prev => ({ ...prev, invoiceNumber: undefined }));
                   }

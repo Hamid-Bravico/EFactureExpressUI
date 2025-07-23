@@ -86,13 +86,19 @@ const Users = ({ token }: UsersProps) => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const trimmedUser = {
+        ...newUser,
+        email: newUser.email.trim(),
+        password: newUser.password.trim()
+      };
+      
       const response = await fetch(API_ENDPOINTS.AUTH.USERS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: token ? `Bearer ${token}` : '',
         },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify(trimmedUser),
       });
 
       if (!response.ok) {
@@ -149,7 +155,7 @@ const Users = ({ token }: UsersProps) => {
               Authorization: token ? `Bearer ${token}` : '',
             },
             body: JSON.stringify({ 
-              password: updates.password,
+              password: updates.password.trim(),
               email: null,
               role: null
             }),
@@ -195,12 +201,12 @@ const Users = ({ token }: UsersProps) => {
       }
 
       const payload: any = {
-        email: updates.email,
+        email: updates.email.trim(),
         role: updates.role,
       };
 
       if (updates.password) {
-        payload.password = updates.password;
+        payload.password = updates.password.trim();
       }
 
       if (payload.role === currentUser.roles[0]) {
@@ -381,7 +387,7 @@ const Users = ({ token }: UsersProps) => {
                     type="email"
                     id="email"
                     value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value.trim() })}
                     className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                     placeholder="user@company.com"
                     required
@@ -403,7 +409,7 @@ const Users = ({ token }: UsersProps) => {
                     type="password"
                     id="password"
                     value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value.trim() })}
                     className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                     placeholder="••••••••"
                     required
@@ -498,7 +504,7 @@ const Users = ({ token }: UsersProps) => {
                       type={showPassword ? "text" : "password"}
                       id="edit-password"
                       value={editForm.password || ''}
-                      onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                      onChange={(e) => setEditForm({ ...editForm, password: e.target.value.trim() })}
                       className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       placeholder="••••••••"
                       minLength={8}
@@ -537,7 +543,7 @@ const Users = ({ token }: UsersProps) => {
                       type="email"
                       id="edit-email"
                       value={editForm.email}
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value.trim() })}
                       className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       required
                     />
@@ -556,7 +562,7 @@ const Users = ({ token }: UsersProps) => {
                         type={showPassword ? "text" : "password"}
                         id="edit-password"
                         value={editForm.password || ''}
-                        onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                        onChange={(e) => setEditForm({ ...editForm, password: e.target.value.trim() })}
                         className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                         placeholder="••••••••"
                         minLength={8}
