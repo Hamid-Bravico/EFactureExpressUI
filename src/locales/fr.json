@@ -98,6 +98,7 @@
     "requiredField": "Ce champ est obligatoire",
     "invalidNumber": "Nombre invalide",
     "invalidDate": "Date invalide",
+    "copyFailed": "Échec de la copie dans le presse-papiers",
     "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
     "serverError": "Erreur serveur. Veuillez réessayer plus tard.",
     "unauthorized": "Accès non autorisé. Veuillez vous reconnecter.",
@@ -270,7 +271,8 @@
       "delete": "Supprimer la facture",
       "downloadJson": "Télécharger JSON",
       "refreshStatus": "Actualiser le statut",
-      "viewRejectionReason": "Voir la raison du rejet"
+      "viewRejectionReason": "Voir la raison du rejet",
+      "copyDgiSubmissionId": "Copier l'ID de soumission DGI"
     },
     "details": {
       "title": "Détails de la facture",

@@ -314,7 +314,8 @@ function App() {
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: t('errors.failedToSubmitInvoice') }));
+        var res = await response.json();
+        const errorData = res.catch(() => ({ message: t('errors.failedToSubmitInvoice') }));
         throw new Error(errorData.message || t('errors.failedToSubmitInvoice'));
       }
       

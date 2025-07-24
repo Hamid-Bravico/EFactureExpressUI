@@ -25,6 +25,8 @@ export interface InvoiceLine {
       email: string;
     };
     vatRate?: number;
+    dgiSubmissionId?: string;
+    dgiRejectionReason?: string;
   }
   
   // For creating, we don't send `id` or `invoiceId`
@@ -73,7 +75,10 @@ export interface InvoiceLine {
   export interface DgiStatusResponse {
     submissionId: string;
     status: 'PendingValidation' | 'Validated' | 'Rejected';
-    errors: string[];
+    errors: {
+      errorCode: string;
+      errorMessage: string;
+    }[];
     isSuccessful: boolean;
   }
   

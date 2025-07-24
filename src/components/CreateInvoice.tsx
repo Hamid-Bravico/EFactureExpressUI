@@ -167,7 +167,8 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
                 <input
                   type="number"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  min="1"
+                  min="0.01"
+                  step="0.01"
                   value={ln.quantity}
                   onChange={(e) => updateLine(idx, "quantity", e.target.value)}
                   required
@@ -184,17 +185,18 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
                   required
                 />
               </div>
-              {lines.length > 1 && (
-                <div className="col-span-1">
-                  <button
-                    type="button"
-                    onClick={() => removeLine(idx)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
+              <div className="col-span-1">
+                <button
+                  type="button"
+                  onClick={() => removeLine(idx)}
+                  className="w-full px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  disabled={lines.length === 1}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
             </div>
           ))}
         </div>

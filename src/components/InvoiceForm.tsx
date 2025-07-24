@@ -3,6 +3,13 @@ import { NewInvoice, NewLine, Invoice, Customer } from '../types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config/api';
+import { 
+  getValidStatusTransitions, 
+  canChangeInvoiceStatus,
+  UserRole,
+  InvoiceStatus,
+  INVOICE_STATUS
+} from '../utils/permissions';
 
 interface InvoiceFormProps {
   onSubmit: (invoice: NewInvoice) => Promise<void>;
@@ -43,7 +50,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendErrors, setBackendErrors] = useState<BackendErrorResponse>({});
-  const userRole = localStorage.getItem('userRole');
+  const userRole = localStorage.getItem('userRole') as UserRole || 'Clerk';
 
   useEffect(() => {
     fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
@@ -247,8 +254,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   };
 
   const formatCurrency = (amount: number) => {
-    const locale = i18n.language === 'fr' ? 'fr-MA' : 'en-US';
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: 'MAD' }).format(amount);
+    if (i18n.language === 'fr') {
+      // French format: 1 234,56 MAD
+      return new Intl.NumberFormat('fr-FR', { 
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount) + ' MAD';
+    } else {
+      // English format: MAD 1,234.56
+      return new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: 'MAD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    }
   };
 
   return (
@@ -337,107 +358,98 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                 <div className="text-red-500 text-xs mt-1">{errors.customerId || getInvoiceErrorMessage('customerId')}</div>
               )}
             </div>
-            {userRole !== 'Clerk' && (
+            {canChangeInvoiceStatus(userRole, invoice?.status as InvoiceStatus || INVOICE_STATUS.DRAFT) && (
               <div className="col-span-2">
                 <label className="block text-sm text-gray-600 mb-3">{t('invoice.form.status')}</label>
-                <div className="flex space-x-4">
-                  <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                    status === 0
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  } ${(disabled || isSubmitting || invoice?.status === 2) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    <input
-                      type="radio"
-                      name="status"
-                      value={0}
-                      checked={status === 0}
-                      onChange={(e) => {
-                        setStatus(Number(e.target.value));
-                        if (errors.status) {
-                          setErrors(prev => ({ ...prev, status: undefined }));
+                <div className="flex flex-wrap gap-4">
+                  {(() => {
+                    const currentStatus = invoice?.status as InvoiceStatus || INVOICE_STATUS.DRAFT;
+                    const validTransitions = getValidStatusTransitions(userRole, currentStatus);
+                    
+                    return validTransitions.map((validStatus) => {
+                      const statusConfig = {
+                        [INVOICE_STATUS.DRAFT]: {
+                          key: 'draft',
+                          color: 'blue',
+                          icon: '📝',
+                          description: t('invoice.status.draftDescription')
+                        },
+                        [INVOICE_STATUS.READY]: {
+                          key: 'ready',
+                          color: 'green',
+                          icon: '✅',
+                          description: t('invoice.status.readyDescription')
+                        },
+                        [INVOICE_STATUS.AWAITING_CLEARANCE]: {
+                          key: 'awaitingClearance',
+                          color: 'yellow',
+                          icon: '⏳',
+                          description: t('invoice.status.awaitingClearanceDescription')
+                        },
+                        [INVOICE_STATUS.VALIDATED]: {
+                          key: 'validated',
+                          color: 'green',
+                          icon: '✔️',
+                          description: t('invoice.status.validatedDescription')
+                        },
+                        [INVOICE_STATUS.REJECTED]: {
+                          key: 'rejected',
+                          color: 'red',
+                          icon: '❌',
+                          description: t('invoice.status.rejectedDescription')
                         }
-                      }}
-                      disabled={disabled || isSubmitting || invoice?.status === 2}
-                      className="sr-only"
-                    />
-                    <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
-                      status === 0 ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
-                    }`}>
-                      {status === 0 && (
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-medium">{t('invoice.status.draft')}</div>
-                      <div className="text-xs text-gray-500">{t('invoice.status.draftDescription')}</div>
-                    </div>
-                  </label>
+                      }[validStatus];
 
-                  <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                    status === 1
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  } ${(disabled || isSubmitting || invoice?.status === 2) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    <input
-                      type="radio"
-                      name="status"
-                      value={1}
-                      checked={status === 1}
-                      onChange={(e) => {
-                        setStatus(Number(e.target.value));
-                        if (errors.status) {
-                          setErrors(prev => ({ ...prev, status: undefined }));
-                        }
-                      }}
-                      disabled={disabled || isSubmitting || invoice?.status === 2}
-                      className="sr-only"
-                    />
-                    <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
-                      status === 1 ? 'border-green-500 bg-green-500' : 'border-gray-300'
-                    }`}>
-                      {status === 1 && (
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-medium">{t('invoice.status.ready')}</div>
-                      <div className="text-xs text-gray-500">{t('invoice.status.readyDescription')}</div>
-                    </div>
-                  </label>
+                                             const colorClasses: { [key: string]: string } = {
+                         blue: status === validStatus ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                         green: status === validStatus ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                         yellow: status === validStatus ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                         red: status === validStatus ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                       };
 
-                  {invoice?.status === 2 && (
-                    <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                      status === 2
-                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    } ${(disabled || isSubmitting) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      <input
-                        type="radio"
-                        name="status"
-                        value={2}
-                        checked={status === 2}
-                        onChange={(e) => {
-                          setStatus(Number(e.target.value));
-                          if (errors.status) {
-                            setErrors(prev => ({ ...prev, status: undefined }));
-                          }
-                        }}
-                        disabled={disabled || isSubmitting}
-                        className="sr-only"
-                      />
-                      <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
-                        status === 2 ? 'border-purple-500 bg-purple-500' : 'border-gray-300'
-                      }`}>
-                        {status === 2 && (
-                          <div className="w-2 h-2 rounded-full bg-white"></div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium">{t('invoice.status.submitted')}</div>
-                        <div className="text-xs text-gray-500">{t('invoice.status.submittedDescription')}</div>
-                      </div>
-                    </label>
-                  )}
+                      return (
+                        <label
+                          key={validStatus}
+                          className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                            colorClasses[statusConfig.color]
+                          } ${(disabled || isSubmitting) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name="status"
+                            value={validStatus}
+                            checked={status === validStatus}
+                            onChange={(e) => {
+                              const newStatus = Number(e.target.value) as InvoiceStatus;
+                              setStatus(newStatus);
+                              if (errors.status) {
+                                setErrors(prev => ({ ...prev, status: undefined }));
+                              }
+                            }}
+                            disabled={disabled || isSubmitting}
+                            className="sr-only"
+                          />
+                                                     <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
+                             status === validStatus 
+                               ? statusConfig.color === 'blue' ? 'border-blue-500 bg-blue-500'
+                                 : statusConfig.color === 'green' ? 'border-green-500 bg-green-500'
+                                 : statusConfig.color === 'yellow' ? 'border-yellow-500 bg-yellow-500'
+                                 : statusConfig.color === 'red' ? 'border-red-500 bg-red-500'
+                                 : 'border-gray-300'
+                               : 'border-gray-300'
+                           }`}>
+                            {status === validStatus && (
+                              <div className="w-2 h-2 rounded-full bg-white"></div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{t(`invoice.status.${statusConfig.key}`)}</div>
+                            <div className="text-xs text-gray-500">{statusConfig.description}</div>
+                          </div>
+                        </label>
+                      );
+                    });
+                  })()}
                 </div>
                 {errors.status && (
                   <div className="text-red-500 text-xs mt-1">
@@ -509,7 +521,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                             errors.lines?.[idx]?.quantity || qtyError ? 'border-red-500' : 'border-gray-300'
                           }`}
                           disabled={disabled || isSubmitting}
-                          min="1"
+                          min="0.01"
+                          step="0.01"
                           required
                         />
                         {qtyError && (
@@ -538,34 +551,35 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                       </div>
 
                       <div className="col-span-2">
-                        <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.taxRate')}</label>
-                        <input
-                          type="number"
-                          value={ln.taxRate ?? 20}
-                          onChange={e => { updateLine(idx, 'taxRate', e.target.value); }}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate ? 'border-red-500' : 'border-gray-300'}`}
-                          disabled={disabled || isSubmitting}
-                          min="0"
-                          max="100"
-                          step="0.1"
-                          required
-                        />
-                        {errors.lines?.[idx]?.taxRate && (
-                          <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{errors.lines[idx]?.taxRate}</div>
-                        )}
-                      </div>
-
-                      <div className="col-span-1">
-                        <button
-                          type="button"
-                          onClick={() => removeLine(idx)}
-                          className="w-full px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                          disabled={disabled || isSubmitting || lines.length === 1}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.taxRate')}</label>
+                            <input
+                              type="number"
+                              value={ln.taxRate ?? 20}
+                              onChange={e => { updateLine(idx, 'taxRate', e.target.value); }}
+                              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate ? 'border-red-500' : 'border-gray-300'}`}
+                              disabled={disabled || isSubmitting}
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              required
+                            />
+                            {errors.lines?.[idx]?.taxRate && (
+                              <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{errors.lines[idx]?.taxRate}</div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeLine(idx)}
+                            className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                            disabled={disabled || isSubmitting || lines.length === 1}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </>
                   );

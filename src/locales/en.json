@@ -98,6 +98,7 @@
     "requiredField": "This field is required",
     "invalidEmail": "Invalid email address",
     "invalidNumber": "Invalid number",
+    "copyFailed": "Failed to copy to clipboard",
     "invalidDate": "Invalid date",
     "networkError": "Network error. Please check your connection.",
     "serverError": "Server error. Please try again later.",
@@ -269,7 +270,8 @@
       "delete": "Delete Invoice",
       "downloadJson": "Download JSON",
       "refreshStatus": "Refresh Status",
-      "viewRejectionReason": "View Rejection Reason"
+      "viewRejectionReason": "View Rejection Reason",
+      "copyDgiSubmissionId": "Copy DGI Submission ID"
     },
     "details": {
       "title": "Invoice Details",

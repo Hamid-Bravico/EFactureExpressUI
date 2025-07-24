@@ -5,6 +5,12 @@ import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
 import StatusBadge from './StatusBadge';
 import { API_ENDPOINTS } from '../config/api';
+import { 
+  getInvoiceActionPermissions, 
+  canSelectForBulkOperation,
+  UserRole,
+  InvoiceStatus
+} from '../utils/permissions';
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -92,8 +98,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
     amountTo: ''
   });
 
-  const userRole = localStorage.getItem("userRole");
-  const isAdmin = userRole === "Admin";
+  const userRole = localStorage.getItem("userRole") as UserRole || 'Clerk';
 
   // Update handleSort to only allow valid sortField values
   const handleSort = (field: string) => {
@@ -174,9 +179,12 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      // Allow selecting all draft (0) and ready (1) invoices for delete
+      // Allow selecting invoices that can be deleted or submitted based on permissions
       const selectableInvoices = filteredAndSortedInvoices
-        .filter(inv => (userRole === 'Clerk' ? inv.status === 0 : inv.status === 0 || inv.status === 1))
+        .filter(inv => 
+          canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'delete') ||
+          canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'submit')
+        )
         .map(inv => inv.id);
       setSelectedInvoices(new Set(selectableInvoices));
     } else {
@@ -186,8 +194,13 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
   const handleSelectInvoice = (id: number, status: number) => {
     const newSelected = new Set(selectedInvoices);
-    // Allow selecting draft (0) and ready (1) invoices for delete
-    if (status === 0 || status === 1) {
+    const invoiceStatus = status as InvoiceStatus;
+    
+    // Check if invoice can be selected for any bulk operation
+    const canSelectForDelete = canSelectForBulkOperation(userRole, invoiceStatus, 'delete');
+    const canSelectForSubmit = canSelectForBulkOperation(userRole, invoiceStatus, 'submit');
+    
+    if (canSelectForDelete || canSelectForSubmit) {
       if (newSelected.has(id)) {
         newSelected.delete(id);
       } else {
@@ -198,10 +211,10 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   };
 
   const handleBulkSubmit = async () => {
-    // Only allow bulk submit for ready (1) invoices
+    // Only allow bulk submit for invoices that can be submitted based on permissions
     const submitIds = Array.from(selectedInvoices).filter(id => {
       const inv = filteredAndSortedInvoices.find(i => i.id === id);
-      return inv && inv.status === 1;
+      return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'submit');
     });
     if (submitIds.length === 0) return;
     setShowConfirmDialog({
@@ -211,10 +224,10 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
   };
 
   const handleBulkDelete = async () => {
-    // Allow bulk delete for selected draft (0) and ready (1) invoices
+    // Allow bulk delete for invoices that can be deleted based on permissions
     const deleteIds = Array.from(selectedInvoices).filter(id => {
       const inv = filteredAndSortedInvoices.find(i => i.id === id);
-      return inv && (inv.status === 0 || inv.status === 1);
+      return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'delete');
     });
     if (deleteIds.length === 0) return;
     setShowConfirmDialog({
@@ -236,20 +249,20 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
 
     try {
       if (showConfirmDialog.type === 'submit') {
-        // Only submit invoices with status 1 (Ready)
+        // Only submit invoices that can be submitted based on permissions
         const submitIds = Array.from(selectedInvoices).filter(id => {
           const inv = filteredAndSortedInvoices.find(i => i.id === id);
-          return inv && inv.status === 1;
+          return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'submit');
         });
         await Promise.all(
           submitIds.map(id => onSubmit(id))
         );
         toast.success(t('success.bulkInvoicesSubmitted', { count: submitIds.length }), { id: toastId });
       } else {
-        // Delete invoices with status 0 (Draft) or 1 (Ready)
+        // Delete invoices that can be deleted based on permissions
         const deleteIds = Array.from(selectedInvoices).filter(id => {
           const inv = filteredAndSortedInvoices.find(i => i.id === id);
-          return inv && (inv.status === 0 || inv.status === 1);
+          return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'delete');
         });
         await Promise.all(
           deleteIds.map(id => onDelete(id))
@@ -375,7 +388,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
         case 'Rejected':
           toast.error(t('invoice.status.rejected'), { id: toastId });
           const rejectionReason = data.errors.length > 0 
-            ? data.errors.join('; ') 
+            ? data.errors.map(error => error.errorMessage).join('; ') 
             : 'No specific reason provided';
           setRejectionModal({ invoiceId, reason: rejectionReason });
           try {
@@ -399,30 +412,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
     }
   };
 
-  const handleSwitchToDraft = async (invoiceId: number) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token');
-      
-      const res = await fetch(API_ENDPOINTS.INVOICES.UPDATE(invoiceId), {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 0 })
-      });
-      
-      if (!res.ok) throw new Error('Failed to update status');
-      
-      toast.success(t('invoice.status.draft'));
-      setRejectionModal(null);
-      await onRefreshInvoices();
-    } catch (error) {
-      console.error(error);
-      toast.error(t('invoice.dgiStatus.errorChecking'));
-    }
-  };
+
 
   // Format currency based on current language
   const formatCurrency = (amount: number) => {
@@ -568,7 +558,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {isAdmin && (
+              {(userRole === 'Admin' || userRole === 'Manager') && (
                 <button
                   onClick={handleBulkSubmit}
                   disabled={disabled}
@@ -623,7 +613,10 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                     <input
                       type="checkbox"
                       className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      checked={selectedInvoices.size === filteredAndSortedInvoices.filter(inv => (userRole === 'Clerk' ? inv.status === 0 : inv.status === 0 || inv.status === 1)).length}
+                      checked={selectedInvoices.size === filteredAndSortedInvoices.filter(inv => 
+                        canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'delete') ||
+                        canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'submit')
+                      ).length}
                       onChange={handleSelectAll}
                     />
                   </th>
@@ -720,7 +713,8 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                           checked={selectedInvoices.has(invoice.id)}
                           onChange={() => handleSelectInvoice(invoice.id, invoice.status)}
                           disabled={
-                            (userRole === 'Clerk' && invoice.status !== 0) || (invoice.status !== 0 && invoice.status !== 1)
+                            !canSelectForBulkOperation(userRole, invoice.status as InvoiceStatus, 'delete') &&
+                            !canSelectForBulkOperation(userRole, invoice.status as InvoiceStatus, 'submit')
                           }
                         />
                       </td>
@@ -743,12 +737,13 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge 
                           status={invoice.status}
+                          dgiSubmissionId={invoice.dgiSubmissionId}
                           onShowRejectionReason={invoice.status === 4 ? () => {
-                            // For rejected invoices, we would need the rejection reason
-                            // This could be stored in the invoice or fetched separately
-                            setRejectionModal({ invoiceId: invoice.id, reason: 'Rejection reason not available. Please refresh status to get the latest details.' });
+                            // Use the DgiRejectionReason from the invoice if available
+                            const reason = invoice.dgiRejectionReason || 'Rejection reason not available. Please refresh status to get the latest details.';
+                            setRejectionModal({ invoiceId: invoice.id, reason });
                           } : undefined}
-                          onEditInvoice={invoice.status === 4 ? () => handleSwitchToDraft(invoice.id) : undefined}
+                          
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -846,51 +841,55 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
                             </>
                           ) : (
                             <>
-                              {((userRole === 'Admin' || userRole === 'Manager') || (userRole === 'Clerk' && invoice.status === 0)) && (
-                                invoice.status !== 2 && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditInvoice(invoice);
-                                    }}
-                                    className="text-blue-600 hover:text-blue-900"
-                                    title={t('invoice.actions.edit')}
-                                  >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                  </button>
-                                )
-                              )}
-                              {/* Other action buttons here (edit, submit, delete) */}
-                              {isAdmin && invoice.status === 1 && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSubmit(invoice.id);
-                                  }}
-                                  className="text-green-600 hover:text-green-900"
-                                  title={t('invoice.actions.submit')}
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                  </svg>
-                                </button>
-                              )}
-                              {((userRole === 'Admin' || userRole === 'Manager') || (userRole === 'Clerk' && invoice.status === 0)) && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(invoice.id);
-                                  }}
-                                  className={`text-red-600 hover:text-red-900`}
-                                  title={t('invoice.actions.delete')}
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              )}
+                              {(() => {
+                                const permissions = getInvoiceActionPermissions(userRole, invoice.status as InvoiceStatus);
+                                return (
+                                  <>
+                                    {permissions.canEdit && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditInvoice(invoice);
+                                        }}
+                                        className="text-blue-600 hover:text-blue-900"
+                                        title={t('invoice.actions.edit')}
+                                      >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                    {permissions.canSubmit && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSubmit(invoice.id);
+                                        }}
+                                        className="text-green-600 hover:text-green-900"
+                                        title={t('invoice.actions.submit')}
+                                      >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                    {permissions.canDelete && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDelete(invoice.id);
+                                        }}
+                                        className="text-red-600 hover:text-red-900"
+                                        title={t('invoice.actions.delete')}
+                                      >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </>
+                                );
+                              })()}
                               
                               {/* Vertical separator before download dropdown */}
                               <span className="mx-0 h-6 border-l border-gray-200 align-middle inline-block"></span>
@@ -1104,12 +1103,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({
               >
                 {t('common.close')}
               </button>
-              <button
-                onClick={() => handleSwitchToDraft(rejectionModal.invoiceId)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {t('invoice.dgiStatus.switchToDraft')}
-              </button>
+
             </div>
           </div>
         </div>
