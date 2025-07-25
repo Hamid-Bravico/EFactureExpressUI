@@ -22,9 +22,10 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built files from build stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Add healthcheck
+# Install curl and add healthcheck
+RUN apk add --no-cache curl
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget --quiet --tries=1 --spider http://localhost:80/ || exit 1
+  CMD curl --fail http://localhost/ || exit 1
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
