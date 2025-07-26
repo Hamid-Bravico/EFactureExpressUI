@@ -34,5 +34,4 @@ Thumbs.db
 .dockerignore
 
 # Others
-*.log 
-*.sh
+*.log
