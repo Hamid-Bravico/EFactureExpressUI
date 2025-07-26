@@ -484,7 +484,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                   const descError = getLineErrorMessage(descKey);
                   const qtyError = getLineErrorMessage(qtyKey);
                   const priceError = getLineErrorMessage(priceKey);
-                  const taxRateError = getLineErrorMessage(taxRateKey);
 
                   return (
                     <>

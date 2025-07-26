@@ -76,11 +76,13 @@
     "companyProfile": "Profil de l'entreprise",
     "memberSince": "Membre depuis",
     "noAddress": "Aucune adresse fournie",
+    "noICE": "Aucun ICE fourni",
     "copy": "Copier",
     "copied": "Copié !",
     "deletingInvoice": "Suppression de la facture...",
     "downloadingPDF": "Téléchargement du PDF...",
-    "submittingInvoice": "Soumission de la facture..."
+    "submittingInvoice": "Soumission de la facture...",
+    "clear": "Effacer"
   },
   "errors": {
     "invalidCredentials": "Identifiants invalides",
@@ -104,6 +106,7 @@
     "unauthorized": "Accès non autorisé. Veuillez vous reconnecter.",
     "bulkActionFailed": "Échec de {{action}} des factures : {{error}}",
     "unknown": "Erreur inconnue",
+    "invoiceNotFound": "Facture introuvable",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
     "registrationFailed": "Échec de l'inscription. Veuillez réessayer.",
     "emailAlreadyExists": "Cette adresse e-mail est déjà enregistrée.",
@@ -133,6 +136,8 @@
     "invoiceUpdated": "Facture mise à jour avec succès.",
     "invoiceDeleted": "Facture supprimée avec succès.",
     "invoiceSubmitted": "Facture soumise avec succès.",
+    "bulkInvoicesDeleted": "{{count}} facture(s) supprimée(s) avec succès.",
+    "bulkInvoicesSubmitted": "{{count}} facture(s) soumise(s) avec succès.",
     "csvImported": "CSV importé avec succès.",
     "pdfReady": "Le PDF est prêt à être téléchargé.",
     "userCreated": "Utilisateur créé avec succès.",
@@ -284,7 +289,7 @@
       "vat": "TVA"
     },
     "tooltip": {
-      "createdBy": "Créé le {{date}} par {{email}}"
+      "createdBy": "Créé le {{date}} par {{name}} ({{email}})"
     },
     "confirm": {
       "title": "Confirmer {{action}}",

@@ -1,5 +1,6 @@
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { decodeJWT } from '../utils/jwt';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -7,15 +8,19 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { t } = useTranslation();
-  const userRole = localStorage.getItem('userRole');
   const token = localStorage.getItem('token');
-
+  
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+  const decoded = decodeJWT(token);
+  if (!decoded) {
+    localStorage.removeItem('token');
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && decoded.role && !allowedRoles.includes(decoded.role)) {
     return <Navigate to="/" replace />;
   }
 

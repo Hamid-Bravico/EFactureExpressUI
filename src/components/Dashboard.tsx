@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Invoice } from '../types';
@@ -35,7 +35,17 @@ interface DashboardProps {
   onRefresh: () => Promise<void>;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
+// Fade-in animation utility
+const useFadeIn = () => {
+  useEffect(() => {
+    const element = document.querySelector('.animate-fade-in');
+    if (element) {
+      (element as HTMLElement).classList.add('animate-fade-in');
+    }
+  }, []);
+};
+
+const Dashboard: React.FC<DashboardProps> = React.memo(({ 
   invoices, 
   loading, 
   onRefresh
@@ -43,7 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const { t, i18n } = useTranslation();
 
   // Format currency based on current language
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = useCallback((amount: number) => {
     if (i18n.language === 'fr') {
       // French format: 1 234,56 MAD
       return new Intl.NumberFormat('fr-FR', { 
@@ -60,48 +70,74 @@ const Dashboard: React.FC<DashboardProps> = ({
         maximumFractionDigits: 2
       }).format(amount);
     }
-  };
+  }, [i18n.language]);
 
-  // Calculate statistics
-  const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
-  const averageAmount = invoices.length > 0 ? totalAmount / invoices.length : 0;
-  const readyInvoices = invoices.filter(inv => inv.status === 1);
-  const submittedInvoices = invoices.filter(inv => inv.status === 2);
-  const draftInvoices = invoices.filter(inv => inv.status === 0);
-  const readyAmount = readyInvoices.reduce((sum, inv) => sum + inv.total, 0);
-  const submittedAmount = submittedInvoices.reduce((sum, inv) => sum + inv.total, 0);
-  const draftAmount = draftInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  // Calculate statistics for all statuses with useMemo
+  const {
+    draftInvoices,
+    readyInvoices,
+    awaitingClearanceInvoices,
+    validatedInvoices,
+    rejectedInvoices,
+    draftAmount,
+    readyAmount,
+    awaitingClearanceAmount,
+    validatedAmount,
+    rejectedAmount
+  } = useMemo(() => {
+    const draft = invoices.filter(inv => inv.status === 0);
+    const ready = invoices.filter(inv => inv.status === 1);
+    const awaiting = invoices.filter(inv => inv.status === 2);
+    const validated = invoices.filter(inv => inv.status === 3);
+    const rejected = invoices.filter(inv => inv.status === 4);
 
-  // Get monthly statistics
-  const monthlyStats = invoices.reduce((acc, invoice) => {
-    const month = new Date(invoice.date).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
-    if (!acc[month]) {
-      acc[month] = { count: 0, amount: 0 };
-    }
-    acc[month].count++;
-    acc[month].amount += invoice.total;
-    return acc;
-  }, {} as Record<string, { count: number; amount: number }>);
+    return {
+      draftInvoices: draft,
+      readyInvoices: ready,
+      awaitingClearanceInvoices: awaiting,
+      validatedInvoices: validated,
+      rejectedInvoices: rejected,
+      draftAmount: draft.reduce((sum, inv) => sum + inv.total, 0),
+      readyAmount: ready.reduce((sum, inv) => sum + inv.total, 0),
+      awaitingClearanceAmount: awaiting.reduce((sum, inv) => sum + inv.total, 0),
+      validatedAmount: validated.reduce((sum, inv) => sum + inv.total, 0),
+      rejectedAmount: rejected.reduce((sum, inv) => sum + inv.total, 0)
+    };
+  }, [invoices]);
 
-  // Get top customers
-  const customerStats = invoices.reduce((acc, invoice) => {
-    if (!acc[invoice.customer.name]) {
-      acc[invoice.customer.name] = { count: 0, amount: 0 };
-    }
-    acc[invoice.customer.name].count++;
-    acc[invoice.customer.name].amount += invoice.total;
-    return acc;
-  }, {} as Record<string, { count: number; amount: number }>);
+  // Get monthly statistics with useMemo
+  const monthlyStats = useMemo(() => {
+    return invoices.reduce((acc, invoice) => {
+      const month = new Date(invoice.date).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+      if (!acc[month]) {
+        acc[month] = { count: 0, amount: 0 };
+      }
+      acc[month].count++;
+      acc[month].amount += invoice.total;
+      return acc;
+    }, {} as Record<string, { count: number; amount: number }>);
+  }, [invoices, i18n.language]);
 
-  const topCustomers = Object.entries(customerStats)
-    .sort(([, a], [, b]) => b.amount - a.amount)
-    .slice(0, 5);
+  // Get top customers with useMemo
+  const { customerStats, topCustomers } = useMemo(() => {
+    const stats = invoices.reduce((acc, invoice) => {
+      if (!acc[invoice.customer.name]) {
+        acc[invoice.customer.name] = { count: 0, amount: 0 };
+      }
+      acc[invoice.customer.name].count++;
+      acc[invoice.customer.name].amount += invoice.total;
+      return acc;
+    }, {} as Record<string, { count: number; amount: number }>);
 
-  // Calculate total amount for percentage calculations
-  //const totalCustomerAmount = topCustomers.reduce((sum, [, stats]) => sum + stats.amount, 0);
+    const top = Object.entries(stats)
+      .sort(([, a], [, b]) => b.amount - a.amount)
+      .slice(0, 5);
 
-  // Prepare data for monthly line chart
-  const monthlyChartData = {
+    return { customerStats: stats, topCustomers: top };
+  }, [invoices]);
+
+  // Prepare data for monthly line chart with useMemo
+  const monthlyChartData = useMemo(() => ({
     labels: Object.keys(monthlyStats),
     datasets: [
       {
@@ -112,33 +148,60 @@ const Dashboard: React.FC<DashboardProps> = ({
         tension: 0.4,
       },
     ],
-  };
+  }), [monthlyStats, t]);
 
-  // Calculate percentages for status distribution
-  const totalInvoices = draftInvoices.length + readyInvoices.length + submittedInvoices.length;
-  const draftPercentage = totalInvoices > 0 ? (draftInvoices.length / totalInvoices) * 100 : 0;
-  const readyPercentage = totalInvoices > 0 ? (readyInvoices.length / totalInvoices) * 100 : 0;
-  const submittedPercentage = totalInvoices > 0 ? (submittedInvoices.length / totalInvoices) * 100 : 0;
+  // Calculate percentages for status distribution with useMemo
+  const {
+    totalInvoices,
+    draftPercentage,
+    readyPercentage,
+    awaitingClearancePercentage,
+    validatedPercentage,
+    rejectedPercentage
+  } = useMemo(() => {
+    const total = draftInvoices.length + readyInvoices.length + awaitingClearanceInvoices.length + validatedInvoices.length + rejectedInvoices.length;
+    
+    return {
+      totalInvoices: total,
+      draftPercentage: total > 0 ? (draftInvoices.length / total) * 100 : 0,
+      readyPercentage: total > 0 ? (readyInvoices.length / total) * 100 : 0,
+      awaitingClearancePercentage: total > 0 ? (awaitingClearanceInvoices.length / total) * 100 : 0,
+      validatedPercentage: total > 0 ? (validatedInvoices.length / total) * 100 : 0,
+      rejectedPercentage: total > 0 ? (rejectedInvoices.length / total) * 100 : 0
+    };
+  }, [draftInvoices.length, readyInvoices.length, awaitingClearanceInvoices.length, validatedInvoices.length, rejectedInvoices.length]);
 
   // Prepare data for status pie chart
   const statusData = {
     labels: [
       `${t('invoice.status.draft')} (${draftPercentage.toFixed(1)}%)`,
-      `${t('invoice.status.pending')} (${readyPercentage.toFixed(1)}%)`,
-      `${t('invoice.status.submitted')} (${submittedPercentage.toFixed(1)}%)`,
+      `${t('invoice.status.ready')} (${readyPercentage.toFixed(1)}%)`,
+      `${t('invoice.status.awaitingClearance')} (${awaitingClearancePercentage.toFixed(1)}%)`,
+      `${t('invoice.status.validated')} (${validatedPercentage.toFixed(1)}%)`,
+      `${t('invoice.status.rejected')} (${rejectedPercentage.toFixed(1)}%)`,
     ],
     datasets: [
       {
-        data: [draftInvoices.length, readyInvoices.length, submittedInvoices.length],
+        data: [
+          draftInvoices.length,
+          readyInvoices.length,
+          awaitingClearanceInvoices.length,
+          validatedInvoices.length,
+          rejectedInvoices.length
+        ],
         backgroundColor: [
           'rgba(156, 163, 175, 0.8)',  // gray for draft
-          'rgba(234, 179, 8, 0.8)',    // yellow for ready
-          'rgba(34, 197, 94, 0.8)',    // green for submitted
+          'rgba(59, 130, 246, 0.8)',   // blue for ready
+          'rgba(234, 179, 8, 0.8)',    // yellow for awaiting clearance
+          'rgba(34, 197, 94, 0.8)',    // green for validated
+          'rgba(239, 68, 68, 0.8)',    // red for rejected
         ],
         borderColor: [
-          'rgb(156, 163, 175)',  // gray for draft
-          'rgb(234, 179, 8)',    // yellow for ready
-          'rgb(34, 197, 94)',    // green for submitted
+          'rgb(156, 163, 175)',
+          'rgb(59, 130, 246)',
+          'rgb(234, 179, 8)',
+          'rgb(34, 197, 94)',
+          'rgb(239, 68, 68)',
         ],
         borderWidth: 1,
       },
@@ -169,16 +232,23 @@ const Dashboard: React.FC<DashboardProps> = ({
       },
       tooltip: {
         callbacks: {
+          title: () => [],
           label: function(context: any) {
             const dataset = context.dataset;
             const value = context.raw || 0;
             const dataSum = dataset.data.reduce((a: number, b: number) => a + b, 0);
             const percent = dataSum > 0 ? ((value / dataSum) * 100).toFixed(1) : '0.0';
-            return `${context.label}: ${value} (${percent}%)`;
+            // Only show: Label: value (percent%)
+            return `${context.label.split(' (')[0]}: ${value} (${percent}%)`;
           }
         }
       }
     },
+  };
+
+  // Custom number formatter for y-axis
+  const formatYAxisNumber = (value: number) => {
+    return value.toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US').replace(/\s/g, '\u2009');
   };
 
   const barChartOptions = {
@@ -196,6 +266,15 @@ const Dashboard: React.FC<DashboardProps> = ({
           }
         }
       }
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: function(tickValue: string | number) {
+            return formatYAxisNumber(Number(tickValue));
+          },
+        },
+      },
     },
   };
 
@@ -215,7 +294,19 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       }
     },
+    scales: {
+      y: {
+        ticks: {
+          callback: function(tickValue: string | number) {
+            return formatYAxisNumber(Number(tickValue));
+          },
+        },
+      },
+    },
   };
+
+  // Apply fade-in class to status cards
+  useFadeIn();
 
   if (loading) {
     return (
@@ -268,115 +359,129 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Status Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-50 text-blue-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+        {[{
+          label: t('invoice.status.draft'),
+          value: draftInvoices.length,
+          amount: formatCurrency(draftAmount),
+          icon: (
+            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          ),
+          bg: 'bg-gray-50',
+          text: 'text-gray-500',
+          tooltip: t('invoice.status.draftDescription')
+        }, {
+          label: t('invoice.status.ready'),
+          value: readyInvoices.length,
+          amount: formatCurrency(readyAmount),
+          icon: (
+            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ),
+          bg: 'bg-blue-50',
+          text: 'text-blue-500',
+          tooltip: t('invoice.status.readyDescription')
+        }, {
+          label: t('invoice.status.awaitingClearance'),
+          value: awaitingClearanceInvoices.length,
+          amount: formatCurrency(awaitingClearanceAmount),
+          icon: (
+            <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ),
+          bg: 'bg-yellow-50',
+          text: 'text-yellow-600',
+          tooltip: t('invoice.status.awaitingClearanceDescription')
+        }, {
+          label: t('invoice.status.validated'),
+          value: validatedInvoices.length,
+          amount: formatCurrency(validatedAmount),
+          icon: (
+            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ),
+          bg: 'bg-green-50',
+          text: 'text-green-600',
+          tooltip: t('invoice.status.validatedDescription')
+        }, {
+          label: t('invoice.status.rejected'),
+          value: rejectedInvoices.length,
+          amount: formatCurrency(rejectedAmount),
+          icon: (
+            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ),
+          bg: 'bg-red-50',
+          text: 'text-red-500',
+          tooltip: t('invoice.status.rejectedDescription')
+        }].map((card, idx) => (
+          <div
+            key={card.label}
+            className="bg-white rounded-xl shadow px-3 py-3 sm:px-4 sm:py-4 border border-gray-100 flex items-center space-x-2 sm:space-x-3 transition-transform duration-200 hover:scale-[1.035] hover:shadow-lg focus-within:scale-[1.035] animate-fade-in group relative"
+            tabIndex={0}
+            aria-label={card.label}
+            title={card.tooltip}
+            style={{ cursor: 'pointer', animationDelay: `${idx * 60}ms` }}
+          >
+            <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full ${card.bg} relative group/icon`}>
+              {card.icon}
+              {/* Tooltip on hover/focus */}
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-10 hidden group-hover/icon:block group-focus/icon:block pointer-events-none">
+                <div className="bg-black bg-opacity-80 text-xs text-white rounded px-2 py-1 shadow-lg whitespace-nowrap animate-fade-in" style={{fontWeight:400}}>{card.tooltip}</div>
+              </div>
             </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-medium text-gray-600">{t('dashboard.totalInvoices')}</h2>
-              <p className="text-2xl font-semibold text-gray-900">{invoices.length}</p>
-              <p className="text-sm text-gray-500">
-                {formatCurrency(totalAmount)}
-              </p>
+            <div>
+              <div className={`text-xs font-semibold ${card.text} mb-0.5`}>{card.label}</div>
+              <div className="text-xl font-bold text-gray-900 leading-tight">{card.value}</div>
+              <div className="text-xs text-gray-400">{card.amount}</div>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-green-50 text-green-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-medium text-gray-600">{t('invoice.status.submitted')}</h2>
-              <p className="text-2xl font-semibold text-gray-900">{submittedInvoices.length}</p>
-              <p className="text-sm text-gray-500">
-                {formatCurrency(submittedAmount)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-yellow-50 text-yellow-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-medium text-gray-600">{t('invoice.status.pending')}</h2>
-              <p className="text-2xl font-semibold text-gray-900">{readyInvoices.length}</p>
-              <p className="text-sm text-gray-500">
-                {formatCurrency(readyAmount)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-gray-50 text-gray-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-medium text-gray-600">{t('invoice.status.draft')}</h2>
-              <p className="text-2xl font-semibold text-gray-900">{draftInvoices.length}</p>
-              <p className="text-sm text-gray-500">
-                {formatCurrency(draftAmount)}
-              </p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
-
+      {/* Gradient divider */}
+      <div className="h-1 w-full my-2 rounded-full bg-gradient-to-r from-blue-100 via-indigo-100 to-transparent opacity-70" />
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mt-4">
         {/* Monthly Trend Chart */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">{t('dashboard.monthlyTrend')}</h2>
+        <div className="bg-white rounded-xl shadow px-3 py-3 sm:px-4 sm:py-4 border border-gray-100 flex flex-col animate-fade-in" style={{animationDelay:'100ms'}}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900">{t('dashboard.monthlyTrend')}</h2>
           </div>
-          <div className="p-6" style={{ height: '300px' }}>
+          <div className="flex-1 min-h-[260px]">
             <Line options={lineChartOptions} data={monthlyChartData} />
           </div>
         </div>
-
         {/* Status Distribution Chart */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">{t('dashboard.statusDistribution')}</h2>
+        <div className="bg-white rounded-xl shadow px-3 py-3 sm:px-4 sm:py-4 border border-gray-100 flex flex-col animate-fade-in" style={{animationDelay:'160ms'}}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900">{t('dashboard.statusDistribution')}</h2>
           </div>
-          <div className="p-6" style={{ height: '300px' }}>
+          <div className="flex-1 min-h-[260px]">
             <Pie options={pieChartOptions} data={statusData} />
           </div>
         </div>
-
         {/* Top Customers Chart */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">{t('dashboard.topCustomersByAmount')}</h2>
+        <div className="bg-white rounded-xl shadow px-3 py-3 sm:px-4 sm:py-4 border border-gray-100 flex flex-col animate-fade-in" style={{animationDelay:'220ms'}}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900">{t('dashboard.topCustomersByAmount')}</h2>
           </div>
-          <div className="p-6" style={{ height: '300px' }}>
+          <div className="flex-1 min-h-[260px]">
             <Bar options={barChartOptions} data={topCustomersChartData} />
           </div>
         </div>
-
         {/* Recent Invoices */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900">{t('dashboard.recentInvoices')}</h2>
+        <div className="bg-white rounded-xl shadow px-3 py-3 sm:px-4 sm:py-4 border border-gray-100 flex flex-col animate-fade-in" style={{animationDelay:'280ms'}}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900">{t('dashboard.recentInvoices')}</h2>
             <Link 
               to="/invoices" 
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1"
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1"
             >
               {t('dashboard.viewAll')}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,24 +489,22 @@ const Dashboard: React.FC<DashboardProps> = ({
               </svg>
             </Link>
           </div>
-          <div className="divide-y divide-gray-200">
-            {invoices.slice(0, 5).map((invoice) => (
-              <div key={invoice.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {t('common.invoiceNumber')} {invoice.invoiceNumber}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(invoice.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">
-                      {formatCurrency(invoice.total)}
-                    </p>
-                    <p className="text-sm text-gray-500">{invoice.customer.name}</p>
-                  </div>
+          <div className="divide-y divide-gray-100">
+            {invoices.slice(0, 5).map((invoice, idx) => (
+              <div key={invoice.id} className="flex items-center justify-between py-3 px-1 hover:bg-blue-50/40 transition-all duration-200 rounded cursor-pointer animate-fade-in" style={{animationDelay:`${320+idx*40}ms`}}>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {t('common.invoiceNumber')} {invoice.invoiceNumber}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(invoice.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-gray-900">
+                    {formatCurrency(invoice.total)}
+                  </p>
+                  <p className="text-xs text-gray-400">{invoice.customer.name}</p>
                 </div>
               </div>
             ))}
@@ -410,6 +513,6 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default Dashboard; 

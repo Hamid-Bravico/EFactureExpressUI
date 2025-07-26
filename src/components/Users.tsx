@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { API_ENDPOINTS } from '../config/api';
@@ -26,7 +26,7 @@ interface UsersProps {
   token: string | null;
 }
 
-const Users = ({ token }: UsersProps) => {
+const Users = React.memo(({ token }: UsersProps) => {
   const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ const Users = ({ token }: UsersProps) => {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -68,7 +68,7 @@ const Users = ({ token }: UsersProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -81,7 +81,7 @@ const Users = ({ token }: UsersProps) => {
         setCurrentUserRole('');
       }
     }
-  }, [token]);
+  }, [token, fetchUsers]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -634,6 +634,6 @@ const Users = ({ token }: UsersProps) => {
       )}
     </div>
   );
-};
+});
 
 export default Users; 

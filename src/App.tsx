@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import { Invoice, NewInvoice, Company } from "./types";
 import Dashboard from "./components/Dashboard";
@@ -64,7 +64,7 @@ function App() {
   useEffect(() => {
     localStorage.setItem('language', language);
     i18n.changeLanguage(language);
-  }, [language]);
+  }, [language, i18n]);
 
   // ─── ACCOUNT DROPDOWN ──────────────────────────────────────────────────────
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -81,12 +81,54 @@ function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownOpen]);
 
-  const decoded = token ? decodeJWT(token) : null;
-  const userEmail = decoded?.email || '';
-  const userRole = decoded?.role || localStorage.getItem('userRole');
+  const decoded = useMemo(() => token ? decodeJWT(token) : null, [token]);
+  const userEmail = useMemo(() => decoded?.email || '', [decoded]);
+  const userRole = useMemo(() => decoded?.role || localStorage.getItem('userRole'), [decoded]);
+
+  // ─── OPTIMISTIC UPDATES ───────────────────────────────────────────────────
+  const optimisticallyUpdateInvoice = useCallback((updatedInvoice: Invoice) => {
+    try {
+      setInvoices(prev => prev.map(inv => inv.id === updatedInvoice.id ? updatedInvoice : inv));
+    } catch (error) {
+      console.error('Error updating invoice optimistically:', error);
+    }
+  }, []);
+
+  const optimisticallyRemoveInvoice = useCallback((id: number) => {
+    try {
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+    } catch (error) {
+      console.error('Error removing invoice optimistically:', error);
+    }
+  }, []);
+
+  const optimisticallyAddInvoice = useCallback((newInvoice: Invoice) => {
+    try {
+      setInvoices(prev => [newInvoice, ...prev]);
+    } catch (error) {
+      console.error('Error adding invoice optimistically:', error);
+    }
+  }, []);
+
+  const optimisticallyUpdateInvoiceStatus = useCallback((id: number, newStatus: number, dgiSubmissionId?: string, dgiRejectionReason?: string) => {
+    try {
+      setInvoices(prev => prev.map(inv => 
+        inv.id === id 
+          ? { 
+              ...inv, 
+              status: newStatus, 
+              dgiSubmissionId: dgiSubmissionId || inv.dgiSubmissionId,
+              dgiRejectionReason: dgiRejectionReason || inv.dgiRejectionReason
+            }
+          : inv
+      ));
+    } catch (error) {
+      console.error('Error updating invoice status optimistically:', error);
+    }
+  }, []);
 
   // ─── FETCH LIST ────────────────────────────────────────────────────────────
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(API_ENDPOINTS.INVOICES.LIST, {
@@ -121,16 +163,16 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, t]);
 
   useEffect(() => {
     if (token) {
       fetchInvoices();
     }
-  }, [token]);
+  }, [token, fetchInvoices]);
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = useCallback(async (email: string, password: string) => {
     const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -167,19 +209,49 @@ function App() {
       setCompany(data.company);
     }
     setToken(data.token);    
-  };
+  }, [t]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");
     localStorage.removeItem("userId");
     localStorage.removeItem("company");
     setToken(null);
     setCompany(null);
-  };
+  }, []);
 
-  const handleCreateInvoice = async (newInvoice: NewInvoice) => {
+  const handleCreateInvoice = useCallback(async (newInvoice: NewInvoice) => {
     try {
+      console.log('Creating invoice:', newInvoice);
+      // Optimistically add a temporary invoice
+      const tempInvoice: Invoice = {
+        id: Date.now(), // Temporary ID
+        invoiceNumber: newInvoice.invoiceNumber,
+        date: newInvoice.date,
+        customer: { id: newInvoice.customerId, name: 'Loading...' }, // Will be filled by server
+        subTotal: newInvoice.subTotal,
+        vat: newInvoice.vat,
+        total: newInvoice.total,
+        status: newInvoice.status,
+        lines: newInvoice.lines.map(line => ({
+          id: Date.now() + Math.random(), // Temporary ID
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          total: line.quantity * line.unitPrice,
+          invoiceId: Date.now(), // Temporary invoice ID
+          taxRate: line.taxRate
+        })),
+        createdAt: new Date().toISOString(),
+        createdBy: {
+          createdById: '',
+          name: userEmail.split('@')[0] || 'User', // Use email prefix as name
+          email: userEmail
+        }
+      };
+      
+      optimisticallyAddInvoice(tempInvoice);
+
       const response = await fetch(API_ENDPOINTS.INVOICES.CREATE, {
         method: "POST",
         headers: {
@@ -192,29 +264,90 @@ function App() {
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
+        // Revert optimistic update
+        optimisticallyRemoveInvoice(tempInvoice.id);
         return;
       }
 
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        // Revert optimistic update
+        optimisticallyRemoveInvoice(tempInvoice.id);
         throw errorData;
       }
       
-      await fetchInvoices();
+      // Check if response has content before trying to parse
+      const responseText = await response.text();
+      console.log('Server response text:', responseText);
+      
+      if (responseText.trim()) {
+        try {
+          const createdInvoice = JSON.parse(responseText);
+          console.log('Parsed created invoice:', createdInvoice);
+          // Replace temporary invoice with real one
+          optimisticallyRemoveInvoice(tempInvoice.id);
+          optimisticallyAddInvoice(createdInvoice);
+        } catch (parseError) {
+          console.warn('Failed to parse server response:', parseError);
+          // If response is not valid JSON, just remove the temporary invoice
+          optimisticallyRemoveInvoice(tempInvoice.id);
+        }
+      } else {
+        console.warn('Server response was empty');
+        // If response is empty, just remove the temporary invoice
+        optimisticallyRemoveInvoice(tempInvoice.id);
+      }
+      
       toast.success(t('success.invoiceCreated'));
-      //TODO the created invoice contains an attribue Warnings table
     } catch (err: any) {
+      console.error('Error creating invoice:', err);
+      // Revert any optimistic updates that might have been applied
+      if (err.tempInvoiceId) {
+        optimisticallyRemoveInvoice(err.tempInvoiceId);
+      }
       throw err;
     }
-  };
+  }, [token, userEmail, t, optimisticallyAddInvoice, optimisticallyRemoveInvoice]);
 
-  const handleUpdateInvoice = async (invoice: NewInvoice) => {
+  const handleUpdateInvoice = useCallback(async (invoice: NewInvoice) => {
     if (!invoice.id) {
       toast.error(t('errors.failedToUpdateInvoice'));
       return;
     }
 
     try {
+      // Store original invoice for rollback
+      const originalInvoice = invoices.find(inv => inv.id === invoice.id);
+      if (!originalInvoice) throw new Error('Invoice not found');
+
+      // Optimistically update the invoice
+      const updatedInvoice: Invoice = {
+        ...originalInvoice,
+        invoiceNumber: invoice.invoiceNumber,
+        date: invoice.date,
+        customer: { ...originalInvoice.customer, id: invoice.customerId },
+        subTotal: invoice.subTotal,
+        vat: invoice.vat,
+        total: invoice.total,
+        status: invoice.status,
+        lines: invoice.lines.map(line => ({
+          id: Date.now() + Math.random(), // Temporary ID for new lines
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          total: line.quantity * line.unitPrice,
+          invoiceId: invoice.id!, // Use the invoice ID
+          taxRate: line.taxRate
+        }))
+      };
+      
+      optimisticallyUpdateInvoice(updatedInvoice);
+
       const response = await fetch(API_ENDPOINTS.INVOICES.UPDATE(invoice.id), {
         method: "PUT",
         headers: {
@@ -227,25 +360,60 @@ function App() {
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
+        // Revert optimistic update
+        optimisticallyUpdateInvoice(originalInvoice);
         return;
       }
 
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        // Revert optimistic update
+        optimisticallyUpdateInvoice(originalInvoice);
         throw errorData;
       }
       
-      await fetchInvoices();
+      // Check if response has content before trying to parse
+      const responseText = await response.text();
+      if (responseText.trim()) {
+        try {
+          const serverUpdatedInvoice = JSON.parse(responseText);
+          // Update with server response to ensure consistency
+          optimisticallyUpdateInvoice(serverUpdatedInvoice);
+        } catch (parseError) {
+          console.warn('Failed to parse server response:', parseError);
+          // If response is not valid JSON, keep the optimistic update
+          console.warn('Server response was not valid JSON, keeping optimistic update');
+        }
+      } else {
+        // If response is empty, keep the optimistic update
+        console.warn('Server response was empty, keeping optimistic update');
+      }
+      
       toast.success(t('success.invoiceUpdated'));
-      //TODO the updated invoice contains an attribue Warnings Results.Ok(new { message = ""})" if any
     } catch (err: any) {
       throw err;
     }
-  };
+  }, [token, invoices, t, optimisticallyUpdateInvoice]);
 
-  const handleDeleteInvoice = async (id: number) => {
+  const handleDeleteInvoice = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.deletingInvoice'));
+    
+    // Store original invoice for rollback
+    const originalInvoice = invoices.find(inv => inv.id === id);
+    if (!originalInvoice) {
+      toast.error(t('errors.invoiceNotFound'), { id: toastId });
+      return;
+    }
+
     try {
+      // Optimistically remove the invoice
+      optimisticallyRemoveInvoice(id);
+
       const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
         method: "DELETE",
         headers: { Authorization: token ? `Bearer ${token}` : "" },
@@ -254,24 +422,27 @@ function App() {
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
+        // Revert optimistic update
+        optimisticallyAddInvoice(originalInvoice);
         toast.error(t('errors.sessionExpired'), { id: toastId });
         return;
       }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
+        // Revert optimistic update
+        optimisticallyAddInvoice(originalInvoice);
         throw new Error(errorData.message || t('errors.failedToDeleteInvoice'));
       }
       
-      await fetchInvoices();
       toast.success(t('success.invoiceDeleted'), { id: toastId });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
     }
-  };
+  }, [token, invoices, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
 
-  const handleDownloadPdf = async (id: number) => {
+  const handleDownloadPdf = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.downloadingPDF'));
     try {
       const response = await fetch(API_ENDPOINTS.INVOICES.PDF(id), {
@@ -296,11 +467,22 @@ function App() {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
     }
-  };
+  }, [token, t]);
 
-  const handleSubmitInvoice = async (id: number) => {
+  const handleSubmitInvoice = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.submittingInvoice'));
+    
+    // Store original invoice for rollback
+    const originalInvoice = invoices.find(inv => inv.id === id);
+    if (!originalInvoice) {
+      toast.error(t('errors.invoiceNotFound'), { id: toastId });
+      return;
+    }
+
     try {
+      // Optimistically update status to "Awaiting Clearance"
+      optimisticallyUpdateInvoiceStatus(id, 2);
+
       const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
         method: "POST",
         headers: { Authorization: token ? `Bearer ${token}` : "" },
@@ -309,25 +491,51 @@ function App() {
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
+        // Revert optimistic update
+        optimisticallyUpdateInvoice(originalInvoice);
         toast.error(t('errors.sessionExpired'), { id: toastId });
         return;
       }
 
       if (!response.ok) {
-        var res = await response.json();
-        const errorData = res.catch(() => ({ message: t('errors.failedToSubmitInvoice') }));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        // Revert optimistic update
+        optimisticallyUpdateInvoice(originalInvoice);
         throw new Error(errorData.message || t('errors.failedToSubmitInvoice'));
       }
       
-      await fetchInvoices();
+      // Check if response has content before trying to parse
+      const responseText = await response.text();
+      if (responseText.trim()) {
+        try {
+          const result = JSON.parse(responseText);
+          // Update with server response to get the DGI submission ID
+          if (result && result.dgiSubmissionId) {
+            optimisticallyUpdateInvoiceStatus(id, 2, result.dgiSubmissionId);
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse server response:', parseError);
+          // If response is not valid JSON, keep the optimistic update
+          console.warn('Server response was not valid JSON, keeping optimistic update');
+        }
+      } else {
+        // If response is empty, keep the optimistic update
+        console.warn('Server response was empty, keeping optimistic update');
+      }
+      
       toast.success(t('success.invoiceSubmitted'), { id: toastId });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
     }
-  };
+  }, [token, invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
 
-  const handleImportCSV = async (file: File) => {
+  const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
     const toastId = toast.loading(t('common.importingCSV'));
     try {
@@ -386,23 +594,134 @@ function App() {
     } finally {
       setImportLoading(false);
     }
-  };
+  }, [token, t, fetchInvoices]);
 
-  const toggleLanguage = () => {
+  const handleBulkDelete = useCallback(async (ids: number[]) => {
+    const toastId = toast.loading(t('invoice.bulk.deleting', { count: ids.length }));
+    
+    // Store original invoices for rollback
+    const originalInvoices = invoices.filter(inv => ids.includes(inv.id));
+    
+    try {
+      // Optimistically remove all invoices
+      ids.forEach(id => optimisticallyRemoveInvoice(id));
+
+      // Perform all delete operations
+      await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
+            method: "DELETE",
+            headers: { Authorization: token ? `Bearer ${token}` : "" },
+          });
+
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            setToken(null);
+            throw new Error('Session expired');
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
+            throw new Error(errorData.message || t('errors.failedToDeleteInvoice'));
+          }
+        })
+      );
+      
+      toast.success(t('success.bulkInvoicesDeleted', { count: ids.length }), { id: toastId });
+    } catch (err) {
+      // Revert all optimistic updates
+      originalInvoices.forEach(invoice => optimisticallyAddInvoice(invoice));
+      
+      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
+      toast.error(errorMessage, { id: toastId });
+    }
+  }, [token, invoices, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
+
+  const handleBulkSubmit = useCallback(async (ids: number[]) => {
+    const toastId = toast.loading(t('invoice.bulk.submitting', { count: ids.length }));
+    
+    // Store original invoices for rollback
+    const originalInvoices = invoices.filter(inv => ids.includes(inv.id));
+    
+    try {
+      // Optimistically update all invoices to "Awaiting Clearance"
+      ids.forEach(id => optimisticallyUpdateInvoiceStatus(id, 2));
+
+      // Perform all submit operations
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
+            method: "POST",
+            headers: { Authorization: token ? `Bearer ${token}` : "" },
+          });
+
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            setToken(null);
+            throw new Error('Session expired');
+          }
+
+          if (!response.ok) {
+            let errorData;
+            try {
+              errorData = await response.json();
+            } catch {
+              errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+            }
+            throw new Error(errorData.message || t('errors.failedToSubmitInvoice'));
+          }
+
+          // Check if response has content before trying to parse
+          const responseText = await response.text();
+          if (responseText.trim()) {
+            try {
+              const result = JSON.parse(responseText);
+              return result;
+            } catch (parseError) {
+              console.warn('Failed to parse server response:', parseError);
+              // If response is not valid JSON, return empty object
+              return {};
+            }
+          } else {
+            // If response is empty, return empty object
+            return {};
+          }
+        })
+      );
+      
+      // Update with server responses to get DGI submission IDs
+      results.forEach((result, index) => {
+        if (result.dgiSubmissionId) {
+          optimisticallyUpdateInvoiceStatus(ids[index], 2, result.dgiSubmissionId);
+        }
+      });
+      
+      toast.success(t('success.bulkInvoicesSubmitted', { count: ids.length }), { id: toastId });
+    } catch (err) {
+      // Revert all optimistic updates
+      originalInvoices.forEach(invoice => optimisticallyUpdateInvoice(invoice));
+      
+      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
+      toast.error(errorMessage, { id: toastId });
+    }
+  }, [token, invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
+
+  const toggleLanguage = useCallback(() => {
     const newLang = i18n.language === 'en' ? 'fr' : 'en';
     i18n.changeLanguage(newLang);
-  };
+  }, [i18n]);
 
   // ─── RENDER NAVBAR ─────────────────────────────────────────────────────────
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const renderNavbar = () => {
     const isAdmin = userRole === 'Admin';
     const isManager = userRole === 'Manager';
     const canAccessUsers = isAdmin || isManager;
 
     return (
-      <nav className="bg-gradient-to-r from-white to-blue-50 shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+      <nav className="sticky top-0 z-40 bg-gradient-to-r from-white/90 via-blue-50/80 to-white/90 backdrop-blur border-b border-gray-200 shadow-sm rounded-b-2xl">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
                 <img
@@ -412,76 +731,154 @@ function App() {
                 />
               </div>
               {token && (
-                <div className="hidden sm:ml-8 sm:flex sm:space-x-2">
-                  <NavLink
-                    to="/"
-                    className={({ isActive }) =>
-                      `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
-                        isActive
-                          ? "bg-blue-50 text-blue-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`
-                    }
+                <>
+                  <button
+                    className="sm:hidden ml-2 p-2 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={() => setMobileMenuOpen((open) => !open)}
+                    aria-label="Toggle navigation menu"
                   >
-                    <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
-                    {t('common.dashboard')}
-                  </NavLink>
-                  <NavLink
-                    to="/invoices"
-                    className={({ isActive }) =>
-                      `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
-                        isActive
-                          ? "bg-blue-50 text-blue-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`
-                    }
-                  >
-                    <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    {t('common.invoices')}
-                  </NavLink>
-                  <NavLink
-                    to="/customers"
-                    className={({ isActive }) =>
-                      `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
-                        isActive
-                          ? "bg-blue-50 text-blue-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`
-                    }
-                  >
-                    <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    {t('common.customers')}
-                  </NavLink>
-                  {canAccessUsers && (
+                  </button>
+                  <div className={`hidden sm:flex sm:ml-8 sm:space-x-2 transition-all duration-200`}>
                     <NavLink
-                      to="/users"
+                      to="/"
                       className={({ isActive }) =>
-                        `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
-                          isActive
-                            ? "bg-blue-50 text-blue-700 shadow-sm"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                        }`
+                        `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
+                        ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                        after:absolute after:left-3 after:right-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-blue-500 after:scale-x-0 after:transition-transform after:duration-200
+                        hover:after:scale-x-100 focus:after:scale-x-100 ${isActive ? 'after:scale-x-100' : ''}`
                       }
                     >
                       <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                       </svg>
-                      {t('common.users')}
+                      {t('common.dashboard')}
                     </NavLink>
+                    <NavLink
+                      to="/invoices"
+                      className={({ isActive }) =>
+                        `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
+                        ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                        after:absolute after:left-3 after:right-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-blue-500 after:scale-x-0 after:transition-transform after:duration-200
+                        hover:after:scale-x-100 focus:after:scale-x-100 ${isActive ? 'after:scale-x-100' : ''}`
+                      }
+                    >
+                      <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {t('common.invoices')}
+                    </NavLink>
+                    <NavLink
+                      to="/customers"
+                      className={({ isActive }) =>
+                        `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
+                        ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                        after:absolute after:left-3 after:right-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-blue-500 after:scale-x-0 after:transition-transform after:duration-200
+                        hover:after:scale-x-100 focus:after:scale-x-100 ${isActive ? 'after:scale-x-100' : ''}`
+                      }
+                    >
+                      <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      {t('common.customers')}
+                    </NavLink>
+                    {canAccessUsers && (
+                      <NavLink
+                        to="/users"
+                        className={({ isActive }) =>
+                          `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
+                          ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                          after:absolute after:left-3 after:right-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-blue-500 after:scale-x-0 after:transition-transform after:duration-200
+                          hover:after:scale-x-100 focus:after:scale-x-100 ${isActive ? 'after:scale-x-100' : ''}`
+                        }
+                      >
+                        <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        {t('common.users')}
+                      </NavLink>
+                    )}
+                  </div>
+                  {/* Mobile menu */}
+                  {mobileMenuOpen && (
+                    <div className="absolute left-0 top-16 w-full bg-white/95 shadow-lg rounded-b-2xl border-t border-gray-200 flex flex-col space-y-1 py-2 px-2 sm:hidden animate-fade-in z-50 transition-all duration-300">
+                      <NavLink
+                        to="/"
+                        className={({ isActive }) =>
+                          `inline-flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${
+                            isActive
+                              ? "bg-blue-50 text-blue-700 shadow-sm"
+                              : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                          }`
+                        }
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        {t('common.dashboard')}
+                      </NavLink>
+                      <NavLink
+                        to="/invoices"
+                        className={({ isActive }) =>
+                          `inline-flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${
+                            isActive
+                              ? "bg-blue-50 text-blue-700 shadow-sm"
+                              : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                          }`
+                        }
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {t('common.invoices')}
+                      </NavLink>
+                      <NavLink
+                        to="/customers"
+                        className={({ isActive }) =>
+                          `inline-flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${
+                            isActive
+                              ? "bg-blue-50 text-blue-700 shadow-sm"
+                              : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                          }`
+                        }
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        {t('common.customers')}
+                      </NavLink>
+                      {canAccessUsers && (
+                        <NavLink
+                          to="/users"
+                          className={({ isActive }) =>
+                            `inline-flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${
+                              isActive
+                                ? "bg-blue-50 text-blue-700 shadow-sm"
+                                : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                            }`
+                          }
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                          {t('common.users')}
+                        </NavLink>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <button
                 onClick={toggleLanguage}
-                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white/80 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transform hover:scale-105"
               >
                 {i18n.language === 'en' ? 'FR' : 'EN'}
               </button>
@@ -489,7 +886,7 @@ function App() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen((open) => !open)}
-                    className="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="flex items-center space-x-2 sm:space-x-3 px-3 py-2 text-sm font-medium text-gray-700 bg-white/80 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transform hover:scale-105"
                     aria-haspopup="true"
                     aria-expanded={dropdownOpen}
                   >
@@ -498,13 +895,13 @@ function App() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
-                    <span className="max-w-[150px] truncate">{userEmail}</span>
+                    <span className="max-w-[110px] sm:max-w-[150px] truncate">{userEmail}</span>
                     <svg className={`w-5 h-5 text-gray-400 transition-transform duration-150 ${dropdownOpen ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                   {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 animate-fadeIn">
+                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 py-1 animate-fadeIn">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <div className="font-medium text-gray-900 truncate">{userEmail}</div>
                         <div className="text-sm text-gray-500 mt-0.5 flex items-center">
@@ -529,7 +926,7 @@ function App() {
                               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                               <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
                             </svg>
-                            <span className="truncate">{`ICE: ${company.ICE}`}</span>
+                            <span className="truncate">{company.ICE ? `ICE: ${company.ICE}` : 'ICE:'}</span>
                           </div>
                         </div>
                       )}
@@ -637,19 +1034,22 @@ function App() {
                         </div>
 
                         <div className="bg-white rounded-lg border border-gray-200">
-                          <InvoiceList 
-                            invoices={invoices} 
-                            loading={loading} 
-                            onDelete={handleDeleteInvoice}
-                            onDownloadPdf={handleDownloadPdf}
-                            onSubmit={handleSubmitInvoice}
-                            onCreateInvoice={handleCreateInvoice}
-                            onUpdateInvoice={handleUpdateInvoice}
-                            onRefreshInvoices={fetchInvoices}
-                            disabled={importLoading}
-                            importLoading={importLoading}
-                            onImportCSV={handleImportCSV}
-                          />
+                                                      <InvoiceList
+                              invoices={invoices}
+                              loading={loading}
+                              onDelete={handleDeleteInvoice}
+                              onDownloadPdf={handleDownloadPdf}
+                              onSubmit={handleSubmitInvoice}
+                              onCreateInvoice={handleCreateInvoice}
+                              onUpdateInvoice={handleUpdateInvoice}
+                              onRefreshInvoices={fetchInvoices}
+                              disabled={importLoading}
+                              importLoading={importLoading}
+                              onImportCSV={handleImportCSV}
+                              onBulkDelete={handleBulkDelete}
+                              onBulkSubmit={handleBulkSubmit}
+                              onUpdateInvoiceStatus={optimisticallyUpdateInvoiceStatus}
+                            />
                         </div>
 
                         {showInvoiceForm && (

@@ -74,13 +74,15 @@
     "companyProfile": "Company Profile",
     "memberSince": "Member Since",
     "noAddress": "No address provided",
+    "noICE": "No ICE provided",
     "copy": "Copy",
     "copied": "Copied!",
     "deletingInvoice": "Deleting invoice...",
     "downloadingPDF": "Downloading PDF...",
     "submittingInvoice": "Submitting invoice...",
     "ICE": "ICE",
-    "ICEPlaceholder": "Enter your company ICE"
+    "ICEPlaceholder": "Enter your company ICE",
+    "clear": "Clear"
   },
   "errors": {
     "invalidCredentials": "Invalid credentials",
@@ -105,6 +107,7 @@
     "unauthorized": "Unauthorized access. Please log in again.",
     "bulkActionFailed": "Failed to {{action}} invoices: {{error}}",
     "unknown": "Unknown error",
+    "invoiceNotFound": "Invoice not found",
     "passwordsDoNotMatch": "Passwords do not match",
     "registrationFailed": "Registration failed. Please try again.",
     "emailAlreadyExists": "This email address is already registered.",
@@ -132,6 +135,8 @@
     "invoiceUpdated": "Invoice updated successfully.",
     "invoiceDeleted": "Invoice deleted successfully.",
     "invoiceSubmitted": "Invoice submitted successfully.",
+    "bulkInvoicesDeleted": "{{count}} invoices deleted successfully.",
+    "bulkInvoicesSubmitted": "{{count}} invoices submitted successfully.",
     "csvImported": "CSV imported successfully.",
     "pdfReady": "PDF is ready for download.",
     "userCreated": "User created successfully.",
@@ -284,7 +289,7 @@
       "grandTotal": "Grand Total"
     },
     "tooltip": {
-      "createdBy": "Created on {{date}} by {{email}}"
+      "createdBy": "Created on {{date}} by {{name}} ({{email}})"
     },
     "confirm": {
       "title": "Confirm {{action}}",
