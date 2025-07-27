@@ -44,6 +44,8 @@
     "warning": "Avertissement",
     "info": "Information",
     "saving": "Enregistrement...",
+    "updating": "Mise à jour...",
+    "creating": "Création...",
     "saveChanges": "Enregistrer les modifications",
     "createInvoice": "Créer une facture",
     "welcomeMessage": "Bienvenue sur EFacture Express - Votre système de gestion de factures",
@@ -77,12 +79,19 @@
     "memberSince": "Membre depuis",
     "noAddress": "Aucune adresse fournie",
     "noICE": "Aucun ICE fourni",
+    "noIdentifiantFiscal": "Aucun identifiant fiscal fourni",
     "copy": "Copier",
     "copied": "Copié !",
     "deletingInvoice": "Suppression de la facture...",
     "downloadingPDF": "Téléchargement du PDF...",
     "submittingInvoice": "Soumission de la facture...",
-    "clear": "Effacer"
+    "clear": "Effacer",
+    "showing": "Affichage de",
+    "to": "à",
+    "of": "sur",
+    "results": "résultats",
+    "show": "Afficher",
+    "perPage": "par page"
   },
   "errors": {
     "invalidCredentials": "Identifiants invalides",
@@ -93,6 +102,7 @@
     "failedToSubmitInvoice": "Échec de la soumission de la facture",
     "failedToImportCSV": "Échec de l'importation du CSV",
     "failedToUpdateInvoice": "Impossible de mettre à jour la facture : ID manquant",
+    "failedToFetchInvoice": "Échec de la récupération des détails de la facture",
     "applicationError": "Erreur d'application",
     "somethingWentWrong": "Une erreur est survenue. Veuillez réessayer.",
     "invalidFileType": "Type de fichier invalide. Veuillez télécharger un fichier CSV.",
@@ -240,6 +250,7 @@
       "title": "Filtres",
       "show": "Afficher les filtres",
       "hide": "Masquer les filtres",
+      "apply": "Appliquer les filtres",
       "reset": "Réinitialiser",
       "dateRange": "Période",
       "customerName": "Nom du client",
@@ -289,7 +300,7 @@
       "vat": "TVA"
     },
     "tooltip": {
-      "createdBy": "Créé le {{date}} par {{name}} ({{email}})"
+      "createdBy": "Créé le {{date}} par {{name}}"
     },
     "confirm": {
       "title": "Confirmer {{action}}",

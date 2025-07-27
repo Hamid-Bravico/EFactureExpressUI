@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { APP_CONFIG } from '../config/app';
-import axios from 'axios';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, getJsonHeaders } from '../config/api';
 
 interface RegisterPageProps {
   onToggleLanguage: () => void;
@@ -83,22 +82,28 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     setLoading(true);
 
     try {
-      const response = await axios.post(API_ENDPOINTS.AUTH.REGISTER, {
-        companyName: formData.companyName.trim(),
-        ICE: formData.ICE.trim(),
-        identifiantFiscal: formData.identifiantFiscal.trim(),
-        address: formData.address.trim(),
-        email: formData.email.trim(),
-        password: formData.password
+      const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
+        method: 'POST',
+        headers: getJsonHeaders(),
+        body: JSON.stringify({
+          companyName: formData.companyName.trim(),
+          ICE: formData.ICE.trim(),
+          identifiantFiscal: formData.identifiantFiscal.trim(),
+          address: formData.address.trim(),
+          email: formData.email.trim(),
+          password: formData.password
+        })
       });
 
-      if (response.status === 200) {
+      if (response.ok) {
         navigate('/login');
+        return;
       }
-    } catch (err: any) {
-      if (err.response?.status === 409) {
+
+      // Handle different response statuses
+      if (response.status === 409) {
         // Handle conflict errors (duplicate email or tax ID)
-        const errorData = err.response.data;
+        const errorData = await response.json();
         if (errorData.field === 'email') {
           setError(t('errors.emailAlreadyExists'));
         } else if (errorData.field === 'ICE') {
@@ -106,20 +111,22 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
         } else {
           setError(errorData.error || t('errors.registrationFailed'));
         }
-      } else if (err.response?.status === 400) {
+      } else if (response.status === 400) {
         // Handle validation errors
-        const errorData = err.response.data;
+        const errorData = await response.json();
         if (errorData.errors) {
           setFieldErrors(errorData.errors);
           setError(t('errors.validationFailed'));
         } else {
           setError(t('errors.registrationFailed'));
         }
-      } else if (err.response?.status === 500) {
+      } else if (response.status === 500) {
         setError(t('errors.serverError'));
       } else {
         setError(t('errors.registrationFailed'));
       }
+        } catch (err: any) {
+      setError(t('errors.registrationFailed'));
     } finally {
       setLoading(false);
     }

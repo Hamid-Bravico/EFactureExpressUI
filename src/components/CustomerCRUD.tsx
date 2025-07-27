@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, getAuthHeaders, getJsonHeaders } from '../config/api';
 import { Customer } from '../types';
 import { decodeJWT } from '../utils/jwt';
 import { useTranslation } from 'react-i18next';
@@ -33,7 +33,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     setError('');
     try {
       const res = await fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        headers: getAuthHeaders(token),
       });
       if (!res.ok) throw new Error('Failed to fetch customers');
       setCustomers(await res.json());
@@ -83,23 +83,24 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
         : API_ENDPOINTS.CUSTOMERS.CREATE;
       const res = await fetch(url, {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : ""
-        },
+        headers: getJsonHeaders(token),
         body: JSON.stringify(form),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        if (errorData.errors) {
-          setFieldErrors(errorData.errors);
-          throw new Error(errorData.title || t('errors.validationFailed'));
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await res.json();
+          if (errorData.errors) {
+            setFieldErrors(errorData.errors);
+            throw new Error(errorData.title || t('errors.validationFailed'));
+          }
         }
         throw new Error(t('errors.failedToSaveCustomer'));
       }
 
-      const responseData = await res.json();
+      const contentType = res.headers.get('content-type');
+      const responseData = contentType && contentType.includes('application/json') ? await res.json() : null;
       setShowForm(false);
       setEditingCustomer(null);
       setForm({});
@@ -113,7 +114,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
               : c
           )
         );
-      } else {
+      } else if (responseData && responseData.id) {
         const newCustomer = { ...form, id: responseData.id } as Customer;
         setCustomers(prevCustomers => [newCustomer, ...prevCustomers]);
       }
@@ -141,7 +142,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     try {
       const res = await fetch(API_ENDPOINTS.CUSTOMERS.DELETE(id), { 
         method: 'DELETE',
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        headers: getAuthHeaders(token),
       });
       if (!res.ok) throw new Error(t('errors.failedToDeleteCustomer'));
       toast.success(t('success.customerDeleted'), { id: toastId });
@@ -224,7 +225,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-50">
               {customers.map(c => (
-                <tr key={c.id} className="hover:bg-blue-50/40 transition-all duration-300 group animate-slide-in">
+                <tr key={c.id} className="hover:bg-blue-50/40 transition-all duration-300 group">
                   <td className="px-4 py-2 whitespace-nowrap">
                     <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center">
                       <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

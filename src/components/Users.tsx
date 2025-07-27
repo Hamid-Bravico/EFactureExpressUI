@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, getAuthHeaders, getJsonHeaders } from '../config/api';
 import { decodeJWT } from '../utils/jwt';
 
 interface User {
@@ -51,7 +51,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     setError('');
     try {
       const response = await fetch(API_ENDPOINTS.AUTH.USERS, {
-        headers: { Authorization: token ? `Bearer ${token}` : '' },
+        headers: getAuthHeaders(token),
       });
 
       if (response.status === 401) {
@@ -94,10 +94,7 @@ const Users = React.memo(({ token }: UsersProps) => {
       
       const response = await fetch(API_ENDPOINTS.AUTH.USERS, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
-        },
+        headers: getJsonHeaders(token),
         body: JSON.stringify(trimmedUser),
       });
 
@@ -150,10 +147,7 @@ const Users = React.memo(({ token }: UsersProps) => {
           // Allow Admin to reset their own password only
           const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: token ? `Bearer ${token}` : '',
-            },
+            headers: getJsonHeaders(token),
             body: JSON.stringify({ 
               password: updates.password.trim(),
               email: null,
@@ -215,10 +209,7 @@ const Users = React.memo(({ token }: UsersProps) => {
 
       const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
-        },
+        headers: getJsonHeaders(token),
         body: JSON.stringify(payload),
       });
 
@@ -242,7 +233,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     try {
       const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
         method: 'DELETE',
-        headers: { Authorization: token ? `Bearer ${token}` : '' },
+        headers: getAuthHeaders(token),
       });
 
       if (!response.ok) throw new Error('Failed to delete user');

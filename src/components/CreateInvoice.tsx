@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { NewInvoice, NewLine, Customer } from '../types';
+import { API_ENDPOINTS, getAuthHeaders } from '../config/api';
 
 interface CreateInvoiceProps {
-  onSubmit: (invoice: NewInvoice) => Promise<void>;
+  onSubmit: (invoice: NewInvoice, customerName?: string) => Promise<void>;
   disabled?: boolean;
 }
 
@@ -46,7 +47,10 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
 
   // Fetch customers for dropdown
   React.useEffect(() => {
-    fetch('/api/customers')
+    const token = localStorage.getItem('token');
+    fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
+      headers: getAuthHeaders(token),
+    })
       .then(res => res.json())
       .then(setCustomers)
       .catch(() => setCustomers([]));
@@ -59,6 +63,7 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
     const { subTotal, vat, total } = computeTotals();
     if (!customerId) return;
 
+    const selectedCustomer = customers.find(c => c.id === customerId);
     const newInvoice: NewInvoice = {
       invoiceNumber,
       date,
@@ -75,7 +80,7 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
       })),
     };
 
-    await onSubmit(newInvoice);
+    await onSubmit(newInvoice, selectedCustomer?.name);
     
     // Reset form
     setInvoiceNumber("");

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NewInvoice, NewLine, Invoice, Customer } from '../types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, getAuthHeaders } from '../config/api';
 import { 
   getValidStatusTransitions, 
   canChangeInvoiceStatus,
@@ -12,7 +12,7 @@ import {
 } from '../utils/permissions';
 
 interface InvoiceFormProps {
-  onSubmit: (invoice: NewInvoice) => Promise<void>;
+  onSubmit: (invoice: NewInvoice, customerName?: string) => Promise<void>;
   onClose: () => void;
   invoice?: Invoice;
   disabled?: boolean;
@@ -54,7 +54,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
   useEffect(() => {
     fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
-      headers: { Authorization: localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '' },
+      headers: getAuthHeaders(localStorage.getItem('token')),
     })
       .then(res => res.json())
       .then(setCustomers)
@@ -217,6 +217,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     try {
       const { subTotal, vat, total } = computeTotals();
 
+      const selectedCustomer = customers.find(c => c.id === customerId);
       const newInvoice: NewInvoice = {
         ...(invoice?.id && { id: invoice.id }),
         invoiceNumber: invoiceNumber.trim(),
@@ -234,7 +235,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
         })),
       };
 
-      await onSubmit(newInvoice);
+      // Pass customer name along with the invoice for optimistic updates
+      await onSubmit(newInvoice, selectedCustomer?.name);
       onClose();
     } catch (error: any) {
       console.error('Form submission error:', error);

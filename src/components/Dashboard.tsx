@@ -29,8 +29,28 @@ ChartJS.register(
   Legend
 );
 
+interface DashboardStats {
+  monthlyStats: { [monthName: string]: { count: number; amount: number; } };
+  topCustomers: Array<{ customerName: string; count: number; amount: number; }>;
+  statusDistribution: {
+    totalInvoices: number;
+    draft: { count: number; amount: number; percentage: number };
+    ready: { count: number; amount: number; percentage: number };
+    awaitingClearance: { count: number; amount: number; percentage: number };
+    validated: { count: number; amount: number; percentage: number };
+    rejected: { count: number; amount: number; percentage: number };
+  };
+  recentInvoices: Array<{
+    id: number;
+    invoiceNumber: string;
+    date: string;
+    total: number;
+    customerName: string;
+  }>;
+}
+
 interface DashboardProps {
-  invoices: Invoice[];
+  stats: DashboardStats | null;
   loading: boolean;
   onRefresh: () => Promise<void>;
 }
@@ -46,7 +66,7 @@ const useFadeIn = () => {
 };
 
 const Dashboard: React.FC<DashboardProps> = React.memo(({ 
-  invoices, 
+  stats, 
   loading, 
   onRefresh
 }) => {
@@ -72,123 +92,42 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
     }
   }, [i18n.language]);
 
-  // Calculate statistics for all statuses with useMemo
-  const {
-    draftInvoices,
-    readyInvoices,
-    awaitingClearanceInvoices,
-    validatedInvoices,
-    rejectedInvoices,
-    draftAmount,
-    readyAmount,
-    awaitingClearanceAmount,
-    validatedAmount,
-    rejectedAmount
-  } = useMemo(() => {
-    const draft = invoices.filter(inv => inv.status === 0);
-    const ready = invoices.filter(inv => inv.status === 1);
-    const awaiting = invoices.filter(inv => inv.status === 2);
-    const validated = invoices.filter(inv => inv.status === 3);
-    const rejected = invoices.filter(inv => inv.status === 4);
-
-    return {
-      draftInvoices: draft,
-      readyInvoices: ready,
-      awaitingClearanceInvoices: awaiting,
-      validatedInvoices: validated,
-      rejectedInvoices: rejected,
-      draftAmount: draft.reduce((sum, inv) => sum + inv.total, 0),
-      readyAmount: ready.reduce((sum, inv) => sum + inv.total, 0),
-      awaitingClearanceAmount: awaiting.reduce((sum, inv) => sum + inv.total, 0),
-      validatedAmount: validated.reduce((sum, inv) => sum + inv.total, 0),
-      rejectedAmount: rejected.reduce((sum, inv) => sum + inv.total, 0)
-    };
-  }, [invoices]);
-
-  // Get monthly statistics with useMemo
-  const monthlyStats = useMemo(() => {
-    return invoices.reduce((acc, invoice) => {
-      const month = new Date(invoice.date).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
-      if (!acc[month]) {
-        acc[month] = { count: 0, amount: 0 };
-      }
-      acc[month].count++;
-      acc[month].amount += invoice.total;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
-  }, [invoices, i18n.language]);
-
-  // Get top customers with useMemo
-  const { customerStats, topCustomers } = useMemo(() => {
-    const stats = invoices.reduce((acc, invoice) => {
-      if (!acc[invoice.customer.name]) {
-        acc[invoice.customer.name] = { count: 0, amount: 0 };
-      }
-      acc[invoice.customer.name].count++;
-      acc[invoice.customer.name].amount += invoice.total;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
-
-    const top = Object.entries(stats)
-      .sort(([, a], [, b]) => b.amount - a.amount)
-      .slice(0, 5);
-
-    return { customerStats: stats, topCustomers: top };
-  }, [invoices]);
-
   // Prepare data for monthly line chart with useMemo
-  const monthlyChartData = useMemo(() => ({
-    labels: Object.keys(monthlyStats),
-    datasets: [
-      {
-        label: t('dashboard.monthlyAmount'),
-        data: Object.values(monthlyStats).map(stats => stats.amount),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-        tension: 0.4,
-      },
-    ],
-  }), [monthlyStats, t]);
-
-  // Calculate percentages for status distribution with useMemo
-  const {
-    totalInvoices,
-    draftPercentage,
-    readyPercentage,
-    awaitingClearancePercentage,
-    validatedPercentage,
-    rejectedPercentage
-  } = useMemo(() => {
-    const total = draftInvoices.length + readyInvoices.length + awaitingClearanceInvoices.length + validatedInvoices.length + rejectedInvoices.length;
+  const monthlyChartData = useMemo(() => {
+    if (!stats) return { labels: [], datasets: [] };
     
     return {
-      totalInvoices: total,
-      draftPercentage: total > 0 ? (draftInvoices.length / total) * 100 : 0,
-      readyPercentage: total > 0 ? (readyInvoices.length / total) * 100 : 0,
-      awaitingClearancePercentage: total > 0 ? (awaitingClearanceInvoices.length / total) * 100 : 0,
-      validatedPercentage: total > 0 ? (validatedInvoices.length / total) * 100 : 0,
-      rejectedPercentage: total > 0 ? (rejectedInvoices.length / total) * 100 : 0
+      labels: Object.keys(stats.monthlyStats),
+      datasets: [
+        {
+          label: t('dashboard.monthlyAmount'),
+          data: Object.values(stats.monthlyStats).map(monthStats => monthStats.amount),
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+          tension: 0.4,
+        },
+      ],
     };
-  }, [draftInvoices.length, readyInvoices.length, awaitingClearanceInvoices.length, validatedInvoices.length, rejectedInvoices.length]);
+  }, [stats, t]);
 
   // Prepare data for status pie chart
   const statusData = {
-    labels: [
-      `${t('invoice.status.draft')} (${draftPercentage.toFixed(1)}%)`,
-      `${t('invoice.status.ready')} (${readyPercentage.toFixed(1)}%)`,
-      `${t('invoice.status.awaitingClearance')} (${awaitingClearancePercentage.toFixed(1)}%)`,
-      `${t('invoice.status.validated')} (${validatedPercentage.toFixed(1)}%)`,
-      `${t('invoice.status.rejected')} (${rejectedPercentage.toFixed(1)}%)`,
-    ],
+    labels: stats ? [
+      `${t('invoice.status.draft')} (${stats.statusDistribution.draft.percentage.toFixed(1)}%)`,
+      `${t('invoice.status.ready')} (${stats.statusDistribution.ready.percentage.toFixed(1)}%)`,
+      `${t('invoice.status.awaitingClearance')} (${stats.statusDistribution.awaitingClearance.percentage.toFixed(1)}%)`,
+      `${t('invoice.status.validated')} (${stats.statusDistribution.validated.percentage.toFixed(1)}%)`,
+      `${t('invoice.status.rejected')} (${stats.statusDistribution.rejected.percentage.toFixed(1)}%)`,
+    ] : [],
     datasets: [
       {
-        data: [
-          draftInvoices.length,
-          readyInvoices.length,
-          awaitingClearanceInvoices.length,
-          validatedInvoices.length,
-          rejectedInvoices.length
-        ],
+        data: stats ? [
+          stats.statusDistribution.draft.count,
+          stats.statusDistribution.ready.count,
+          stats.statusDistribution.awaitingClearance.count,
+          stats.statusDistribution.validated.count,
+          stats.statusDistribution.rejected.count
+        ] : [],
         backgroundColor: [
           'rgba(156, 163, 175, 0.8)',  // gray for draft
           'rgba(59, 130, 246, 0.8)',   // blue for ready
@@ -210,11 +149,11 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
 
   // Prepare data for top customers bar chart
   const topCustomersChartData = {
-    labels: topCustomers.map(([customer]) => customer),
+    labels: stats ? stats.topCustomers.map(customer => customer.customerName) : [],
     datasets: [
       {
         label: t('dashboard.customerAmount'),
-        data: topCustomers.map(([, stats]) => stats.amount),
+        data: stats ? stats.topCustomers.map(customer => customer.amount) : [],
         backgroundColor: 'rgba(99, 102, 241, 0.8)',
         borderColor: 'rgb(99, 102, 241)',
         borderWidth: 1,
@@ -316,7 +255,16 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
     );
   }
 
-  if (invoices.length === 0) {
+  // Early return if no stats available
+  if (!stats) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (stats.statusDistribution.totalInvoices === 0) {
     return (
       <div className="text-center py-12">
         <div className="bg-white rounded-lg p-8 max-w-md mx-auto shadow-sm border border-gray-200">
@@ -362,8 +310,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         {[{
           label: t('invoice.status.draft'),
-          value: draftInvoices.length,
-          amount: formatCurrency(draftAmount),
+          value: stats.statusDistribution.draft.count,
+          amount: formatCurrency(stats.statusDistribution.draft.amount),
           icon: (
             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -374,8 +322,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
           tooltip: t('invoice.status.draftDescription')
         }, {
           label: t('invoice.status.ready'),
-          value: readyInvoices.length,
-          amount: formatCurrency(readyAmount),
+          value: stats.statusDistribution.ready.count,
+          amount: formatCurrency(stats.statusDistribution.ready.amount),
           icon: (
             <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -386,8 +334,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
           tooltip: t('invoice.status.readyDescription')
         }, {
           label: t('invoice.status.awaitingClearance'),
-          value: awaitingClearanceInvoices.length,
-          amount: formatCurrency(awaitingClearanceAmount),
+          value: stats.statusDistribution.awaitingClearance.count,
+          amount: formatCurrency(stats.statusDistribution.awaitingClearance.amount),
           icon: (
             <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -398,8 +346,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
           tooltip: t('invoice.status.awaitingClearanceDescription')
         }, {
           label: t('invoice.status.validated'),
-          value: validatedInvoices.length,
-          amount: formatCurrency(validatedAmount),
+          value: stats.statusDistribution.validated.count,
+          amount: formatCurrency(stats.statusDistribution.validated.amount),
           icon: (
             <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -410,8 +358,8 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
           tooltip: t('invoice.status.validatedDescription')
         }, {
           label: t('invoice.status.rejected'),
-          value: rejectedInvoices.length,
-          amount: formatCurrency(rejectedAmount),
+          value: stats.statusDistribution.rejected.count,
+          amount: formatCurrency(stats.statusDistribution.rejected.amount),
           icon: (
             <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -490,7 +438,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
             </Link>
           </div>
           <div className="divide-y divide-gray-100">
-            {invoices.slice(0, 5).map((invoice, idx) => (
+            {stats.recentInvoices.map((invoice, idx) => (
               <div key={invoice.id} className="flex items-center justify-between py-3 px-1 hover:bg-blue-50/40 transition-all duration-200 rounded cursor-pointer animate-fade-in" style={{animationDelay:`${320+idx*40}ms`}}>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
@@ -504,7 +452,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
                   <p className="text-sm font-bold text-gray-900">
                     {formatCurrency(invoice.total)}
                   </p>
-                  <p className="text-xs text-gray-400">{invoice.customer.name}</p>
+                  <p className="text-xs text-gray-400">{invoice.customerName}</p>
                 </div>
               </div>
             ))}

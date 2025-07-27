@@ -44,6 +44,8 @@
     "warning": "Warning",
     "info": "Information",
     "saving": "Saving...",
+    "updating": "Updating...",
+    "creating": "Creating...",
     "saveChanges": "Save Changes",
     "createInvoice": "Create Invoice",
     "welcomeMessage": "Welcome to EFacture Express - Your Invoice Management System",
@@ -75,6 +77,7 @@
     "memberSince": "Member Since",
     "noAddress": "No address provided",
     "noICE": "No ICE provided",
+    "noIdentifiantFiscal": "No Identifiant Fiscal provided",
     "copy": "Copy",
     "copied": "Copied!",
     "deletingInvoice": "Deleting invoice...",
@@ -82,7 +85,13 @@
     "submittingInvoice": "Submitting invoice...",
     "ICE": "ICE",
     "ICEPlaceholder": "Enter your company ICE",
-    "clear": "Clear"
+    "clear": "Clear",
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "results": "results",
+    "show": "Show",
+    "perPage": "per page"
   },
   "errors": {
     "invalidCredentials": "Invalid credentials",
@@ -93,6 +102,7 @@
     "failedToSubmitInvoice": "Failed to submit invoice",
     "failedToImportCSV": "Failed to import CSV",
     "failedToUpdateInvoice": "Cannot update invoice: Missing invoice ID",
+    "failedToFetchInvoice": "Failed to fetch invoice details",
     "applicationError": "Application Error",
     "somethingWentWrong": "Something went wrong. Please try again.",
     "invalidFileType": "Invalid file type. Please upload a CSV file.",
@@ -239,6 +249,7 @@
       "title": "Filters",
       "show": "Show Filters",
       "hide": "Hide Filters",
+      "apply": "Apply Filters",
       "reset": "Reset",
       "dateRange": "Date Range",
       "customerName": "Customer Name",
@@ -289,7 +300,7 @@
       "grandTotal": "Grand Total"
     },
     "tooltip": {
-      "createdBy": "Created on {{date}} by {{name}} ({{email}})"
+      "createdBy": "Created on {{date}} by {{name}}"
     },
     "confirm": {
       "title": "Confirm {{action}}",

@@ -9,7 +9,7 @@ import InvoiceForm from "./components/InvoiceForm";
 import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import Users from "./components/Users";
-import { API_ENDPOINTS } from "./config/api";
+import { API_ENDPOINTS, API_BASE_URL, getAuthHeaders, getJsonHeaders } from "./config/api";
 import { APP_CONFIG } from "./config/app";
 import { Toaster, toast } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -51,7 +51,10 @@ function App() {
 
   // ─── LISTING STATE ─────────────────────────────────────────────────────────
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoiceListData, setInvoiceListData] = useState<any>(null);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
 
@@ -112,6 +115,7 @@ function App() {
 
   const optimisticallyUpdateInvoiceStatus = useCallback((id: number, newStatus: number, dgiSubmissionId?: string, dgiRejectionReason?: string) => {
     try {
+      // Update the invoices state
       setInvoices(prev => prev.map(inv => 
         inv.id === id 
           ? { 
@@ -122,21 +126,131 @@ function App() {
             }
           : inv
       ));
+      
+      // Also update the invoiceListData state
+      setInvoiceListData((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          invoices: prev.invoices.map((inv: any) => 
+            inv.id === id 
+              ? { 
+                  ...inv, 
+                  status: newStatus, 
+                  dgiSubmissionId: dgiSubmissionId || inv.dgiSubmissionId,
+                  dgiRejectionReason: dgiRejectionReason || inv.dgiRejectionReason
+                }
+              : inv
+          )
+        };
+      });
     } catch (error) {
       console.error('Error updating invoice status optimistically:', error);
     }
   }, []);
 
-  // ─── FETCH LIST ────────────────────────────────────────────────────────────
-  const fetchInvoices = useCallback(async () => {
-    setLoading(true);
+  // Silent update functions that preserve sorting/filtering
+  const silentlyUpdateInvoiceInList = useCallback((updatedInvoice: any) => {
+    setInvoiceListData((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        invoices: prev.invoices.map((inv: any) => 
+          inv.id === updatedInvoice.id ? updatedInvoice : inv
+        )
+      };
+    });
+  }, []);
+
+  const silentlyAddInvoiceToList = useCallback((newInvoice: any) => {
+    setInvoiceListData((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        invoices: [newInvoice, ...prev.invoices],
+        pagination: {
+          ...prev.pagination,
+          totalItems: prev.pagination.totalItems + 1,
+          totalPages: Math.ceil((prev.pagination.totalItems + 1) / prev.pagination.pageSize)
+        }
+      };
+    });
+  }, []);
+
+  const silentlyRemoveInvoiceFromList = useCallback((id: number) => {
+    setInvoiceListData((prev: any) => {
+      if (!prev) return prev;
+      const updatedInvoices = prev.invoices.filter((inv: any) => inv.id !== id);
+      return {
+        ...prev,
+        invoices: updatedInvoices,
+        pagination: {
+          ...prev.pagination,
+          totalItems: prev.pagination.totalItems - 1,
+          totalPages: Math.ceil((prev.pagination.totalItems - 1) / prev.pagination.pageSize)
+        }
+      };
+    });
+  }, []);
+
+  // ─── FETCH DASHBOARD STATS ─────────────────────────────────────────────────
+  const fetchDashboardStats = useCallback(async () => {
+    setDashboardLoading(true);
     try {
-      const response = await fetch(API_ENDPOINTS.INVOICES.LIST, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+        headers: getAuthHeaders(token),
       });
       
       if (response.status === 401) {
-        // Token is invalid or expired
+        localStorage.removeItem("token");
+        setToken(null);
+        return;
+      }
+      
+      if (!response.ok) throw new Error("Failed to fetch dashboard stats");
+      const data = await response.json();
+      setDashboardStats(data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, [token, t]);
+
+  // ─── FETCH LIST ────────────────────────────────────────────────────────────
+  const fetchInvoices = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams();
+      
+      // Add filters
+      if (filters) {
+        if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
+        if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+        if (filters.customerName) queryParams.append('customerName', filters.customerName);
+        if (filters.status !== 'all') queryParams.append('status', filters.status);
+        if (filters.amountFrom) queryParams.append('amountFrom', filters.amountFrom);
+        if (filters.amountTo) queryParams.append('amountTo', filters.amountTo);
+      }
+      
+      // Add sorting
+      if (sort) {
+        queryParams.append('sortField', sort.sortField);
+        queryParams.append('sortDirection', sort.sortDirection);
+      }
+      
+      // Add pagination
+      if (pagination) {
+        queryParams.append('page', pagination.page.toString());
+        queryParams.append('pageSize', pagination.pageSize.toString());
+      }
+      
+      const url = `${API_ENDPOINTS.INVOICES.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await fetch(url, {
+        headers: getAuthHeaders(token),
+      });
+      
+      if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
         return;
@@ -144,20 +258,10 @@ function App() {
       
       if (!response.ok) throw new Error("Failed to fetch invoices");
       const data = await response.json();
-      // Patch: Recalculate subTotal, vat, and total for each invoice to ensure consistency
-      const patchedInvoices = data.map((invoice: any) => {
-        const subTotal = invoice.lines.reduce((sum: number, line: any) => sum + (line.quantity * line.unitPrice), 0);
-        const vatRate = invoice.vatRate !== undefined ? invoice.vatRate : 20;
-        const vat = +(subTotal * (vatRate / 100)).toFixed(2);
-        const total = +(subTotal + vat).toFixed(2);
-        return {
-          ...invoice,
-          subTotal: +subTotal.toFixed(2),
-          vat,
-          total
-        };
-      });
-      setInvoices(patchedInvoices);
+      setInvoiceListData(data);
+      
+      // Keep the old invoices state for backward compatibility
+      setInvoices(data.invoices || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
     } finally {
@@ -168,14 +272,15 @@ function App() {
   useEffect(() => {
     if (token) {
       fetchInvoices();
+      fetchDashboardStats();
     }
-  }, [token, fetchInvoices]);
+  }, [token, fetchInvoices, fetchDashboardStats]);
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
   const handleLogin = useCallback(async (email: string, password: string) => {
     const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getJsonHeaders(),
       body: JSON.stringify({ email, password }),
     });
 
@@ -220,7 +325,7 @@ function App() {
     setCompany(null);
   }, []);
 
-  const handleCreateInvoice = useCallback(async (newInvoice: NewInvoice) => {
+  const handleCreateInvoice = useCallback(async (newInvoice: NewInvoice, customerName?: string) => {
     try {
       console.log('Creating invoice:', newInvoice);
       // Optimistically add a temporary invoice
@@ -228,7 +333,7 @@ function App() {
         id: Date.now(), // Temporary ID
         invoiceNumber: newInvoice.invoiceNumber,
         date: newInvoice.date,
-        customer: { id: newInvoice.customerId, name: 'Loading...' }, // Will be filled by server
+        customer: { id: newInvoice.customerId, name: customerName || 'Unknown Customer' }, // Use actual customer name
         subTotal: newInvoice.subTotal,
         vat: newInvoice.vat,
         total: newInvoice.total,
@@ -254,10 +359,7 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.CREATE, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
+        headers: getJsonHeaders(token),
         body: JSON.stringify(newInvoice),
       });
 
@@ -292,6 +394,8 @@ function App() {
           // Replace temporary invoice with real one
           optimisticallyRemoveInvoice(tempInvoice.id);
           optimisticallyAddInvoice(createdInvoice);
+          // Silently add to the list data to preserve sorting/filtering
+          silentlyAddInvoiceToList(createdInvoice);
         } catch (parseError) {
           console.warn('Failed to parse server response:', parseError);
           // If response is not valid JSON, just remove the temporary invoice
@@ -312,7 +416,7 @@ function App() {
       }
       throw err;
     }
-  }, [token, userEmail, t, optimisticallyAddInvoice, optimisticallyRemoveInvoice]);
+  }, [token, userEmail, t, optimisticallyAddInvoice, optimisticallyRemoveInvoice, silentlyAddInvoiceToList]);
 
   const handleUpdateInvoice = useCallback(async (invoice: NewInvoice) => {
     if (!invoice.id) {
@@ -350,10 +454,7 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.UPDATE(invoice.id), {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
+        headers: getJsonHeaders(token),
         body: JSON.stringify(invoice),
       });
 
@@ -384,55 +485,108 @@ function App() {
           const serverUpdatedInvoice = JSON.parse(responseText);
           // Update with server response to ensure consistency
           optimisticallyUpdateInvoice(serverUpdatedInvoice);
+          // Silently update the list data to preserve sorting/filtering
+          silentlyUpdateInvoiceInList(serverUpdatedInvoice);
         } catch (parseError) {
           console.warn('Failed to parse server response:', parseError);
           // If response is not valid JSON, keep the optimistic update
           console.warn('Server response was not valid JSON, keeping optimistic update');
+          // Still update the list data with our optimistic update
+          silentlyUpdateInvoiceInList(updatedInvoice);
         }
       } else {
         // If response is empty, keep the optimistic update
         console.warn('Server response was empty, keeping optimistic update');
+        // Still update the list data with our optimistic update
+        silentlyUpdateInvoiceInList(updatedInvoice);
       }
       
       toast.success(t('success.invoiceUpdated'));
     } catch (err: any) {
       throw err;
     }
-  }, [token, invoices, t, optimisticallyUpdateInvoice]);
+  }, [token, invoices, t, optimisticallyUpdateInvoice, silentlyUpdateInvoiceInList]);
 
   const handleDeleteInvoice = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.deletingInvoice'));
     
-    // Store original invoice for rollback
+    // Store original data for rollback
+    const originalData = invoiceListData;
     const originalInvoice = invoices.find(inv => inv.id === id);
     if (!originalInvoice) {
       toast.error(t('errors.invoiceNotFound'), { id: toastId });
       return;
     }
 
+    // Check if this deletion will make the page incomplete
+    const willPageBeIncomplete = invoiceListData && 
+      invoiceListData.invoices.length === invoiceListData.pagination.pageSize && 
+      invoiceListData.pagination.page < invoiceListData.pagination.totalPages;
+
     try {
-      // Optimistically remove the invoice
+      // Optimistically remove the invoice from both states
       optimisticallyRemoveInvoice(id);
+      
+      // Optimistically update the server-side data
+      if (invoiceListData) {
+        setInvoiceListData((prev: any) => {
+          if (!prev) return prev;
+          const updatedInvoices = prev.invoices.filter((inv: any) => inv.id !== id);
+          
+          return {
+            ...prev,
+            invoices: updatedInvoices,
+            pagination: {
+              ...prev.pagination,
+              totalItems: prev.pagination.totalItems - 1,
+              totalPages: Math.ceil((prev.pagination.totalItems - 1) / prev.pagination.pageSize)
+            }
+          };
+        });
+      }
 
       const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
         method: "DELETE",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        headers: getAuthHeaders(token),
       });
 
       if (response.status === 401) {
         localStorage.removeItem("token");
         setToken(null);
-        // Revert optimistic update
+        // Revert optimistic updates
         optimisticallyAddInvoice(originalInvoice);
+        setInvoiceListData(originalData);
         toast.error(t('errors.sessionExpired'), { id: toastId });
         return;
       }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
-        // Revert optimistic update
+        // Revert optimistic updates
         optimisticallyAddInvoice(originalInvoice);
+        setInvoiceListData(originalData);
         throw new Error(errorData.message || t('errors.failedToDeleteInvoice'));
+      }
+      
+      // If the page will be incomplete, refresh the current page data
+      if (willPageBeIncomplete) {
+        // Silently refresh the current page to get the missing items
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', invoiceListData!.pagination.page.toString());
+        queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
+        
+        try {
+          const response = await fetch(`${API_ENDPOINTS.INVOICES.LIST}?${queryParams.toString()}`, {
+            headers: getAuthHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setInvoiceListData(refreshedData);
+          }
+        } catch (error) {
+          console.warn('Failed to refresh page data:', error);
+        }
       }
       
       toast.success(t('success.invoiceDeleted'), { id: toastId });
@@ -440,13 +594,13 @@ function App() {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
     }
-  }, [token, invoices, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
+  }, [token, invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
 
   const handleDownloadPdf = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.downloadingPDF'));
     try {
       const response = await fetch(API_ENDPOINTS.INVOICES.PDF(id), {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        headers: getAuthHeaders(token),
       });
 
       if (response.status === 401) {
@@ -485,7 +639,7 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
         method: "POST",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        headers: getAuthHeaders(token),
       });
 
       if (response.status === 401) {
@@ -544,7 +698,7 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.IMPORT, {
         method: "POST",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        headers: getAuthHeaders(token),
         body: formData,
       });
 
@@ -599,19 +753,43 @@ function App() {
   const handleBulkDelete = useCallback(async (ids: number[]) => {
     const toastId = toast.loading(t('invoice.bulk.deleting', { count: ids.length }));
     
-    // Store original invoices for rollback
+    // Store original data for rollback
+    const originalData = invoiceListData;
     const originalInvoices = invoices.filter(inv => ids.includes(inv.id));
     
+    // Check if this bulk deletion will make the page incomplete
+    const willPageBeIncomplete = invoiceListData && 
+      invoiceListData.invoices.length === invoiceListData.pagination.pageSize && 
+      ids.length > 0 && 
+      invoiceListData.pagination.page < invoiceListData.pagination.totalPages;
+    
     try {
-      // Optimistically remove all invoices
+      // Optimistically remove all invoices from both states
       ids.forEach(id => optimisticallyRemoveInvoice(id));
+      
+      // Optimistically update the server-side data
+      if (invoiceListData) {
+        setInvoiceListData((prev: any) => {
+          if (!prev) return prev;
+          const updatedInvoices = prev.invoices.filter((inv: any) => !ids.includes(inv.id));
+          return {
+            ...prev,
+            invoices: updatedInvoices,
+            pagination: {
+              ...prev.pagination,
+              totalItems: prev.pagination.totalItems - ids.length,
+              totalPages: Math.ceil((prev.pagination.totalItems - ids.length) / prev.pagination.pageSize)
+            }
+          };
+        });
+      }
 
       // Perform all delete operations
       await Promise.all(
         ids.map(async (id) => {
           const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
             method: "DELETE",
-            headers: { Authorization: token ? `Bearer ${token}` : "" },
+            headers: getAuthHeaders(token),
           });
 
           if (response.status === 401) {
@@ -627,15 +805,37 @@ function App() {
         })
       );
       
+      // If the page will be incomplete, refresh the current page data
+      if (willPageBeIncomplete) {
+        // Silently refresh the current page to get the missing items
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', invoiceListData!.pagination.page.toString());
+        queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
+        
+        try {
+          const response = await fetch(`${API_ENDPOINTS.INVOICES.LIST}?${queryParams.toString()}`, {
+            headers: getAuthHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setInvoiceListData(refreshedData);
+          }
+        } catch (error) {
+          console.warn('Failed to refresh page data:', error);
+        }
+      }
+      
       toast.success(t('success.bulkInvoicesDeleted', { count: ids.length }), { id: toastId });
     } catch (err) {
       // Revert all optimistic updates
       originalInvoices.forEach(invoice => optimisticallyAddInvoice(invoice));
+      setInvoiceListData(originalData);
       
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
     }
-  }, [token, invoices, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
+  }, [token, invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
 
   const handleBulkSubmit = useCallback(async (ids: number[]) => {
     const toastId = toast.loading(t('invoice.bulk.submitting', { count: ids.length }));
@@ -652,7 +852,7 @@ function App() {
         ids.map(async (id) => {
           const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
             method: "POST",
-            headers: { Authorization: token ? `Bearer ${token}` : "" },
+            headers: getAuthHeaders(token),
           });
 
           if (response.status === 401) {
@@ -1006,9 +1206,9 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Dashboard
-                        invoices={invoices}
-                        loading={loading}
-                        onRefresh={fetchInvoices}
+                        stats={dashboardStats}
+                        loading={dashboardLoading}
+                        onRefresh={fetchDashboardStats}
                       />
                     </ProtectedRoute>
                   }
@@ -1034,22 +1234,22 @@ function App() {
                         </div>
 
                         <div className="bg-white rounded-lg border border-gray-200">
-                                                      <InvoiceList
-                              invoices={invoices}
-                              loading={loading}
-                              onDelete={handleDeleteInvoice}
-                              onDownloadPdf={handleDownloadPdf}
-                              onSubmit={handleSubmitInvoice}
-                              onCreateInvoice={handleCreateInvoice}
-                              onUpdateInvoice={handleUpdateInvoice}
-                              onRefreshInvoices={fetchInvoices}
-                              disabled={importLoading}
-                              importLoading={importLoading}
-                              onImportCSV={handleImportCSV}
-                              onBulkDelete={handleBulkDelete}
-                              onBulkSubmit={handleBulkSubmit}
-                              onUpdateInvoiceStatus={optimisticallyUpdateInvoiceStatus}
-                            />
+                          <InvoiceList
+                            data={invoiceListData}
+                            loading={loading}
+                            onDelete={handleDeleteInvoice}
+                            onDownloadPdf={handleDownloadPdf}
+                            onSubmit={handleSubmitInvoice}
+                            onCreateInvoice={handleCreateInvoice}
+                            onUpdateInvoice={handleUpdateInvoice}
+                            onRefreshInvoices={fetchInvoices}
+                            disabled={importLoading}
+                            importLoading={importLoading}
+                            onImportCSV={handleImportCSV}
+                            onBulkDelete={handleBulkDelete}
+                            onBulkSubmit={handleBulkSubmit}
+                            onUpdateInvoiceStatus={optimisticallyUpdateInvoiceStatus}
+                          />
                         </div>
 
                         {showInvoiceForm && (
