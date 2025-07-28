@@ -297,7 +297,21 @@
       "unitPrice": "Prix unitaire",
       "total": "Total",
       "subtotal": "Sous-total",
-      "vat": "TVA"
+      "vat": "TVA",
+      "invoiceInfo": "Informations de la facture",
+      "invoiceNumber": "Numéro de facture",
+      "date": "Date",
+      "status": "Statut",
+      "customerInfo": "Informations client",
+      "customerName": "Nom du client",
+      "ice": "ICE",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "dgiSubmissionId": "ID de soumission DGI",
+      "warnings": "Avertissements",
+      "taxRate": "Taux de TVA",
+      "createdBy": "Créé par",
+      "createdAt": "Créé le"
     },
     "tooltip": {
       "createdBy": "Créé le {{date}} par {{name}}"

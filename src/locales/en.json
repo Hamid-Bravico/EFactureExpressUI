@@ -297,7 +297,21 @@
       "total": "Total",
       "subtotal": "Subtotal",
       "vat": "VAT",
-      "grandTotal": "Grand Total"
+      "grandTotal": "Grand Total",
+      "invoiceInfo": "Invoice Information",
+      "invoiceNumber": "Invoice Number",
+      "date": "Date",
+      "status": "Status",
+      "customerInfo": "Customer Information",
+      "customerName": "Customer Name",
+      "ice": "ICE",
+      "email": "Email",
+      "phone": "Phone",
+      "dgiSubmissionId": "DGI Submission ID",
+      "warnings": "Warnings",
+      "taxRate": "Tax Rate",
+      "createdBy": "Created By",
+      "createdAt": "Created At"
     },
     "tooltip": {
       "createdBy": "Created on {{date}} by {{name}}"
