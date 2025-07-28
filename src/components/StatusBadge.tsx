@@ -84,7 +84,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = '', onSho
         await navigator.clipboard.writeText(dgiSubmissionId);
         toast.success(t('common.copied'));
       } catch (err) {
-        console.error('Failed to copy DGI Submission ID:', err);
         toast.error(t('errors.copyFailed'));
       } finally {
         setIsCopying(false);

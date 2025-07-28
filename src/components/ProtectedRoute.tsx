@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { decodeJWT } from '../utils/jwt';
+import { tokenManager } from '../utils/tokenManager';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const token = localStorage.getItem('token');
+  const token = tokenManager.getToken();
   
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -16,7 +17,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
   const decoded = decodeJWT(token);
   if (!decoded) {
-    localStorage.removeItem('token');
+    tokenManager.clearAuthData();
     return <Navigate to="/login" replace />;
   }
 

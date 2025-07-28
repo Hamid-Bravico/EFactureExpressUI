@@ -93,6 +93,10 @@
     "show": "Afficher",
     "perPage": "par page"
   },
+  "auth": {
+    "tokenRefreshed": "Session actualisée avec succès",
+    "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter."
+  },
   "errors": {
     "invalidCredentials": "Identifiants invalides",
     "anErrorOccurred": "Une erreur est survenue",

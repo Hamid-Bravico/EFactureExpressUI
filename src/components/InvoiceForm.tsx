@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NewInvoice, NewLine, Invoice, Customer } from '../types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { API_ENDPOINTS, getAuthHeaders } from '../config/api';
+import { API_ENDPOINTS, getSecureHeaders } from '../config/api';
 import { 
   getValidStatusTransitions, 
   canChangeInvoiceStatus,
@@ -10,6 +10,7 @@ import {
   InvoiceStatus,
   INVOICE_STATUS
 } from '../utils/permissions';
+import { tokenManager } from '../utils/tokenManager';
 
 interface InvoiceFormProps {
   onSubmit: (invoice: NewInvoice, customerName?: string) => Promise<void>;
@@ -50,12 +51,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendErrors, setBackendErrors] = useState<BackendErrorResponse>({});
-  const userRole = localStorage.getItem('userRole') as UserRole || 'Clerk';
+  const userRole = tokenManager.getUserRole() as UserRole || 'Clerk';
 
   useEffect(() => {
-    fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
-      headers: getAuthHeaders(localStorage.getItem('token')),
-    })
+          fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
+        headers: getSecureHeaders(tokenManager.getToken()),
+      })
       .then(res => res.json())
       .then(setCustomers)
       .catch(() => setCustomers([]));
@@ -239,7 +240,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       await onSubmit(newInvoice, selectedCustomer?.name);
       onClose();
     } catch (error: any) {
-      console.error('Form submission error:', error);
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
         toast.error(t('invoice.form.errors.submissionError'));
@@ -481,7 +481,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                   const descKey = `Lines[${idx}].Description`;
                   const qtyKey = `Lines[${idx}].Quantity`;
                   const priceKey = `Lines[${idx}].UnitPrice`;
-                  const taxRateKey = `Lines[${idx}].TaxRate`;
+                  //const taxRateKey = `Lines[${idx}].TaxRate`;
 
                   const descError = getLineErrorMessage(descKey);
                   const qtyError = getLineErrorMessage(qtyKey);

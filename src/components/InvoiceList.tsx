@@ -4,13 +4,14 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
 import StatusBadge from './StatusBadge';
-import { API_ENDPOINTS, getAuthHeaders } from '../config/api';
+import { API_ENDPOINTS, getSecureHeaders } from '../config/api';
 import { 
   getInvoiceActionPermissions, 
   canSelectForBulkOperation,
   UserRole,
   InvoiceStatus
 } from '../utils/permissions';
+import { tokenManager } from '../utils/tokenManager';
 
 interface InvoiceListResponse {
   invoices: Array<{
@@ -158,7 +159,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   });
 
   const userRole = useMemo(() => 
-    localStorage.getItem("userRole") as UserRole || 'Clerk', 
+    tokenManager.getUserRole() as UserRole || 'Clerk', 
     []
   );
 
@@ -213,7 +214,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     onRefreshInvoices(filters, { sortField: newSortField, sortDirection: newSortDirection }, { page: currentPage, pageSize });
   }, [sortField, sortDirection, filters, currentPage, pageSize, onRefreshInvoices]);
 
-  // Debounced filter application for better performance
+  /*/ Debounced filter application for better performance
   const debouncedApplyFilters = useCallback(
     useMemo(() => {
       let timeoutId: NodeJS.Timeout;
@@ -225,7 +226,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
       };
     }, [onRefreshInvoices]),
     [onRefreshInvoices]
-  );
+  );*/
 
   const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -411,7 +412,6 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
       setEditingInvoice(transformedInvoice);
       setShowInvoiceForm(true);
     } catch (error) {
-      console.error('Error preparing invoice for editing:', error);
       toast.error(t('errors.failedToFetchInvoice'));
     }
   }, [t]);
@@ -456,10 +456,10 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   const handleDownloadJson = useCallback(async (invoiceId: number) => {
     setFetchingJsonId(invoiceId);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) throw new Error('No token');
       const res = await fetch(API_ENDPOINTS.INVOICES.JSON(invoiceId), {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
@@ -469,7 +469,6 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
         throw new Error('No URL');
       }
     } catch(err) {
-      console.error(err);
       toast.error('Failed to fetch JSON. Make sure Compliance Mode is enabled.');
     } finally {
       setFetchingJsonId(null);
@@ -481,21 +480,20 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     const toastId = toast.loading(t('invoice.dgiStatus.checking'));
     
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) {
         throw new Error('No token');
       }
       
-      const res = await fetch(API_ENDPOINTS.INVOICES.DGI_STATUS(invoiceId), {
-        headers: getAuthHeaders(token),
-      });
+              const res = await fetch(API_ENDPOINTS.INVOICES.DGI_STATUS(invoiceId), {
+          headers: getSecureHeaders(token),
+        });
       
       if (!res.ok) {
         throw new Error(`Failed to fetch DGI status: ${res.status}`);
       }
       
       const data: DgiStatusResponse = await res.json();
-      console.log('DGI Status Response:', data);
       
       switch (data.status) {
         case 'PendingValidation':
@@ -527,7 +525,6 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
           break;
       }
     } catch (error) {
-      console.error('DGI status check error:', error);
       toast.error(t('invoice.dgiStatus.errorChecking'), { id: toastId });
     } finally {
       // Always clear the loading state

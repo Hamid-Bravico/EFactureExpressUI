@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { API_ENDPOINTS, getAuthHeaders, getJsonHeaders } from '../config/api';
+import { API_ENDPOINTS, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../config/api';
 import { decodeJWT } from '../utils/jwt';
+import { tokenManager } from '../utils/tokenManager';
 
 interface User {
   id: string;
@@ -55,7 +56,7 @@ const Users = React.memo(({ token }: UsersProps) => {
       });
 
       if (response.status === 401) {
-        localStorage.removeItem('token');
+        tokenManager.clearAuthData();
         window.location.reload();
         return;
       }
@@ -94,7 +95,7 @@ const Users = React.memo(({ token }: UsersProps) => {
       
       const response = await fetch(API_ENDPOINTS.AUTH.USERS, {
         method: 'POST',
-        headers: getJsonHeaders(token),
+        headers: getSecureJsonHeaders(token),
         body: JSON.stringify(trimmedUser),
       });
 
@@ -143,11 +144,11 @@ const Users = React.memo(({ token }: UsersProps) => {
 
       // If user is Admin, prevent any updates except password reset
       if (currentUser.roles.includes('Admin')) {
-        if (userId === localStorage.getItem('userId') && updates.password) {
+        if (userId === tokenManager.getUserId() && updates.password) {
           // Allow Admin to reset their own password only
           const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
             method: 'PUT',
-            headers: getJsonHeaders(token),
+            headers: getSecureJsonHeaders(token),
             body: JSON.stringify({ 
               password: updates.password.trim(),
               email: null,
@@ -165,8 +166,7 @@ const Users = React.memo(({ token }: UsersProps) => {
           setEditForm({ email: '', role: 'Clerk', password: '' });
           toast.success(t('success.passwordUpdated'));
           // Log out user after password change
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
+          tokenManager.clearAuthData();
           setTimeout(() => {
             window.location.reload();
           }, 2000);
@@ -209,7 +209,7 @@ const Users = React.memo(({ token }: UsersProps) => {
 
       const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
         method: 'PUT',
-        headers: getJsonHeaders(token),
+        headers: getSecureJsonHeaders(token),
         body: JSON.stringify(payload),
       });
 
@@ -233,7 +233,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     try {
       const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
 
       if (!response.ok) throw new Error('Failed to delete user');
@@ -315,7 +315,7 @@ const Users = React.memo(({ token }: UsersProps) => {
                       </button>
                     </>
                   )}
-                  {user.roles.includes('Admin') && user.id === localStorage.getItem('userId') && (
+                  {user.roles.includes('Admin') && user.id === tokenManager.getUserId() && (
                     <button
                       onClick={() => {
                         setEditingUser(user);
@@ -329,7 +329,7 @@ const Users = React.memo(({ token }: UsersProps) => {
                       </svg>
                     </button>
                   )}
-                  {canDeleteUser && !user.roles.includes('Admin') && user.id !== localStorage.getItem('userId') && (
+                  {canDeleteUser && !user.roles.includes('Admin') && user.id !== tokenManager.getUserId() && (
                     <button
                       onClick={() => handleDeleteUser(user.id)}
                       className="inline-flex items-center p-1.5 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"

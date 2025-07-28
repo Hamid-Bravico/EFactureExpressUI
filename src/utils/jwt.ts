@@ -70,5 +70,7 @@ export function decodeJWT(token: string): DecodedJWT | null {
 }
 
 export function getJwtToken(): string | null {
-  return localStorage.getItem('jwtToken');
+  // Import tokenManager dynamically to avoid circular dependencies
+  const { tokenManager } = require('./tokenManager');
+  return tokenManager.getToken();
 } 

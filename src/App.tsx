@@ -9,7 +9,7 @@ import InvoiceForm from "./components/InvoiceForm";
 import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import Users from "./components/Users";
-import { API_ENDPOINTS, API_BASE_URL, getAuthHeaders, getJsonHeaders } from "./config/api";
+import { API_ENDPOINTS, API_BASE_URL, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from "./config/api";
 import { APP_CONFIG } from "./config/app";
 import { Toaster, toast } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -17,6 +17,7 @@ import ErrorPage from './components/ErrorPage';
 import { useTranslation } from 'react-i18next';
 import ProtectedRoute from './components/ProtectedRoute';
 import { decodeJWT } from "./utils/jwt";
+import { tokenManager } from "./utils/tokenManager";
 import CompanyProfile from "./components/CompanyProfile";
 import CustomerCRUD from "./components/CustomerCRUD";
 
@@ -24,11 +25,11 @@ function App() {
   const { t, i18n } = useTranslation();
   // ─── AUTH STATE ───────────────────────────────────────────────────────────
   const [token, setToken] = useState<string | null>(() => {
-    const storedToken = localStorage.getItem("token");
+    const storedToken = tokenManager.getToken();
     if (storedToken) {
       const decoded = decodeJWT(storedToken);
       if (!decoded || (decoded.exp && decoded.exp * 1000 < Date.now())) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         return null;
       }
       return storedToken;
@@ -37,16 +38,8 @@ function App() {
   });
 
   const [company, setCompany] = useState<Company | null>(() => {
-    const storedCompany = localStorage.getItem("company");
-    if (storedCompany) {
-      try {
-        return JSON.parse(storedCompany);
-      } catch (e) {
-        localStorage.removeItem("company");
-        return null;
-      }
-    }
-    return null;
+    const storedCompany = tokenManager.getCompanyData();
+    return storedCompany;
   });
 
   // ─── LISTING STATE ─────────────────────────────────────────────────────────
@@ -69,6 +62,31 @@ function App() {
     i18n.changeLanguage(language);
   }, [language, i18n]);
 
+  // Handle token refresh events
+  useEffect(() => {
+    const handleTokenRefresh = (event: CustomEvent) => {
+      const newToken = event.detail?.token;
+      if (newToken) {
+        setToken(newToken);
+        toast.success(t('auth.tokenRefreshed'));
+      }
+    };
+
+    const handleTokenRefreshFailed = () => {
+      setToken(null);
+      setCompany(null);
+      toast.error(t('auth.tokenRefreshFailed'));
+    };
+
+    window.addEventListener('tokenRefreshed', handleTokenRefresh as EventListener);
+    window.addEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
+
+    return () => {
+      window.removeEventListener('tokenRefreshed', handleTokenRefresh as EventListener);
+      window.removeEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
+    };
+  }, [t]);
+
   // ─── ACCOUNT DROPDOWN ──────────────────────────────────────────────────────
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -86,14 +104,14 @@ function App() {
 
   const decoded = useMemo(() => token ? decodeJWT(token) : null, [token]);
   const userEmail = useMemo(() => decoded?.email || '', [decoded]);
-  const userRole = useMemo(() => decoded?.role || localStorage.getItem('userRole'), [decoded]);
+  const userRole = useMemo(() => decoded?.role || tokenManager.getUserRole(), [decoded]);
 
   // ─── OPTIMISTIC UPDATES ───────────────────────────────────────────────────
   const optimisticallyUpdateInvoice = useCallback((updatedInvoice: Invoice) => {
     try {
       setInvoices(prev => prev.map(inv => inv.id === updatedInvoice.id ? updatedInvoice : inv));
     } catch (error) {
-      console.error('Error updating invoice optimistically:', error);
+      // Error updating invoice optimistically
     }
   }, []);
 
@@ -101,7 +119,7 @@ function App() {
     try {
       setInvoices(prev => prev.filter(inv => inv.id !== id));
     } catch (error) {
-      console.error('Error removing invoice optimistically:', error);
+      // Error removing invoice optimistically
     }
   }, []);
 
@@ -109,7 +127,7 @@ function App() {
     try {
       setInvoices(prev => [newInvoice, ...prev]);
     } catch (error) {
-      console.error('Error adding invoice optimistically:', error);
+      // Error adding invoice optimistically
     }
   }, []);
 
@@ -145,7 +163,7 @@ function App() {
         };
       });
     } catch (error) {
-      console.error('Error updating invoice status optimistically:', error);
+      // Error updating invoice status optimistically
     }
   }, []);
 
@@ -177,7 +195,7 @@ function App() {
     });
   }, []);
 
-  const silentlyRemoveInvoiceFromList = useCallback((id: number) => {
+  /*const silentlyRemoveInvoiceFromList = useCallback((id: number) => {
     setInvoiceListData((prev: any) => {
       if (!prev) return prev;
       const updatedInvoices = prev.invoices.filter((inv: any) => inv.id !== id);
@@ -191,7 +209,7 @@ function App() {
         }
       };
     });
-  }, []);
+  }, []);*/
 
   // ─── FETCH DASHBOARD STATS ─────────────────────────────────────────────────
   const fetchDashboardStats = useCallback(async () => {
@@ -202,7 +220,7 @@ function App() {
       });
       
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         return;
       }
@@ -251,7 +269,7 @@ function App() {
       });
       
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         return;
       }
@@ -280,8 +298,8 @@ function App() {
   const handleLogin = useCallback(async (email: string, password: string) => {
     const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
       method: "POST",
-      headers: getJsonHeaders(),
-      body: JSON.stringify({ email, password }),
+      headers: getSecureJsonHeaders(),
+      body: JSON.stringify({ email: email.trim(), password: password.trim() }),
     });
 
     if (!response.ok) {
@@ -306,28 +324,34 @@ function App() {
       throw new Error(t('errors.invalidUserId'));
     }
 
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("userRole", decoded.role);
-    localStorage.setItem("userId", decoded.userId);
+    // Store token and refresh token if available
+    tokenManager.setToken(data.token, data.refreshToken);
+    tokenManager.setUserData(decoded.role, decoded.userId, data.company);
     if (data.company) {
-      localStorage.setItem("company", JSON.stringify(data.company));
       setCompany(data.company);
     }
     setToken(data.token);    
   }, [t]);
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("company");
-    setToken(null);
-    setCompany(null);
-  }, []);
+  const handleLogout = useCallback(async () => {
+    try {
+      // Call backend logout endpoint to clear CSRF cookie
+      await fetch(API_ENDPOINTS.AUTH.LOGOUT, {
+        method: 'POST',
+        headers: getSecureHeaders(token),
+      });
+    } catch (error) {
+      console.error('Logout request failed:', error);
+    } finally {
+      // Clear frontend auth data
+      tokenManager.clearAuthData();
+      setToken(null);
+      setCompany(null);
+    }
+  }, [token]);
 
   const handleCreateInvoice = useCallback(async (newInvoice: NewInvoice, customerName?: string) => {
     try {
-      console.log('Creating invoice:', newInvoice);
       // Optimistically add a temporary invoice
       const tempInvoice: Invoice = {
         id: Date.now(), // Temporary ID
@@ -359,12 +383,12 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.CREATE, {
         method: "POST",
-        headers: getJsonHeaders(token),
+        headers: getSecureJsonHeaders(token),
         body: JSON.stringify(newInvoice),
       });
 
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         // Revert optimistic update
         optimisticallyRemoveInvoice(tempInvoice.id);
@@ -385,31 +409,26 @@ function App() {
       
       // Check if response has content before trying to parse
       const responseText = await response.text();
-      console.log('Server response text:', responseText);
       
       if (responseText.trim()) {
         try {
           const createdInvoice = JSON.parse(responseText);
-          console.log('Parsed created invoice:', createdInvoice);
           // Replace temporary invoice with real one
           optimisticallyRemoveInvoice(tempInvoice.id);
           optimisticallyAddInvoice(createdInvoice);
           // Silently add to the list data to preserve sorting/filtering
           silentlyAddInvoiceToList(createdInvoice);
         } catch (parseError) {
-          console.warn('Failed to parse server response:', parseError);
           // If response is not valid JSON, just remove the temporary invoice
           optimisticallyRemoveInvoice(tempInvoice.id);
         }
       } else {
-        console.warn('Server response was empty');
         // If response is empty, just remove the temporary invoice
         optimisticallyRemoveInvoice(tempInvoice.id);
       }
       
       toast.success(t('success.invoiceCreated'));
     } catch (err: any) {
-      console.error('Error creating invoice:', err);
       // Revert any optimistic updates that might have been applied
       if (err.tempInvoiceId) {
         optimisticallyRemoveInvoice(err.tempInvoiceId);
@@ -457,12 +476,12 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.UPDATE(invoice.id), {
         method: "PUT",
-        headers: getJsonHeaders(token),
+        headers: getSecureJsonHeaders(token),
         body: JSON.stringify(invoice),
       });
 
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         // Revert optimistic update
         optimisticallyUpdateInvoice(originalInvoice);
@@ -491,15 +510,12 @@ function App() {
           // Silently update the list data to preserve sorting/filtering
           silentlyUpdateInvoiceInList(serverUpdatedInvoice);
         } catch (parseError) {
-          console.warn('Failed to parse server response:', parseError);
           // If response is not valid JSON, keep the optimistic update
-          console.warn('Server response was not valid JSON, keeping optimistic update');
           // Still update the list data with our optimistic update
           silentlyUpdateInvoiceInList(updatedInvoice);
         }
       } else {
         // If response is empty, keep the optimistic update
-        console.warn('Server response was empty, keeping optimistic update');
         // Still update the list data with our optimistic update
         silentlyUpdateInvoiceInList(updatedInvoice);
       }
@@ -550,11 +566,11 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
         method: "DELETE",
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
 
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         // Revert optimistic updates
         optimisticallyAddInvoice(originalInvoice);
@@ -588,7 +604,7 @@ function App() {
             setInvoiceListData(refreshedData);
           }
         } catch (error) {
-          console.warn('Failed to refresh page data:', error);
+          // Failed to refresh page data
         }
       }
       
@@ -607,7 +623,7 @@ function App() {
       });
 
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         toast.error(t('errors.sessionExpired'), { id: toastId });
         return;
@@ -642,11 +658,11 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
         method: "POST",
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
 
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         // Revert optimistic update
         optimisticallyUpdateInvoice(originalInvoice);
@@ -676,13 +692,10 @@ function App() {
             optimisticallyUpdateInvoiceStatus(id, 2, result.dgiSubmissionId);
           }
         } catch (parseError) {
-          console.warn('Failed to parse server response:', parseError);
           // If response is not valid JSON, keep the optimistic update
-          console.warn('Server response was not valid JSON, keeping optimistic update');
         }
       } else {
         // If response is empty, keep the optimistic update
-        console.warn('Server response was empty, keeping optimistic update');
       }
       
       toast.success(t('success.invoiceSubmitted'), { id: toastId });
@@ -708,7 +721,7 @@ function App() {
       const data = await response.json();
 
       if (response.status === 401) {
-        localStorage.removeItem("token");
+        tokenManager.clearAuthData();
         setToken(null);
         return;
       }
@@ -792,11 +805,11 @@ function App() {
         ids.map(async (id) => {
           const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
             method: "DELETE",
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
 
           if (response.status === 401) {
-            localStorage.removeItem("token");
+            tokenManager.clearAuthData();
             setToken(null);
             throw new Error('Session expired');
           }
@@ -825,7 +838,7 @@ function App() {
             setInvoiceListData(refreshedData);
           }
         } catch (error) {
-          console.warn('Failed to refresh page data:', error);
+          // Failed to refresh page data
         }
       }
       
@@ -855,11 +868,11 @@ function App() {
         ids.map(async (id) => {
           const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
             method: "POST",
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
 
           if (response.status === 401) {
-            localStorage.removeItem("token");
+            tokenManager.clearAuthData();
             setToken(null);
             throw new Error('Session expired');
           }
@@ -881,7 +894,6 @@ function App() {
               const result = JSON.parse(responseText);
               return result;
             } catch (parseError) {
-              console.warn('Failed to parse server response:', parseError);
               // If response is not valid JSON, return empty object
               return {};
             }

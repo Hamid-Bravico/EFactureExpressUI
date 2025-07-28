@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { API_ENDPOINTS, getAuthHeaders, getJsonHeaders } from '../config/api';
+import { API_ENDPOINTS, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../config/api';
 import { Customer } from '../types';
 import { decodeJWT } from '../utils/jwt';
 import { useTranslation } from 'react-i18next';
@@ -83,7 +83,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
         : API_ENDPOINTS.CUSTOMERS.CREATE;
       const res = await fetch(url, {
         method,
-        headers: getJsonHeaders(token),
+        headers: getSecureJsonHeaders(token),
         body: JSON.stringify(form),
       });
 
@@ -142,7 +142,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     try {
       const res = await fetch(API_ENDPOINTS.CUSTOMERS.DELETE(id), { 
         method: 'DELETE',
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       if (!res.ok) throw new Error(t('errors.failedToDeleteCustomer'));
       toast.success(t('success.customerDeleted'), { id: toastId });

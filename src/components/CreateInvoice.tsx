@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NewInvoice, NewLine, Customer } from '../types';
-import { API_ENDPOINTS, getAuthHeaders } from '../config/api';
+import { API_ENDPOINTS, getSecureHeaders } from '../config/api';
+import { tokenManager } from '../utils/tokenManager';
 
 interface CreateInvoiceProps {
   onSubmit: (invoice: NewInvoice, customerName?: string) => Promise<void>;
@@ -47,10 +48,10 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
 
   // Fetch customers for dropdown
   React.useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
-      headers: getAuthHeaders(token),
-    })
+    const token = tokenManager.getToken();
+          fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
+        headers: getSecureHeaders(token),
+      })
       .then(res => res.json())
       .then(setCustomers)
       .catch(() => setCustomers([]));

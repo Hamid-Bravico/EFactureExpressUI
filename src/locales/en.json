@@ -93,6 +93,10 @@
     "show": "Show",
     "perPage": "per page"
   },
+  "auth": {
+    "tokenRefreshed": "Session refreshed successfully",
+    "tokenRefreshFailed": "Session expired. Please log in again."
+  },
   "errors": {
     "invalidCredentials": "Invalid credentials",
     "anErrorOccurred": "An error occurred",
