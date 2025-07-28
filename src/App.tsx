@@ -9,7 +9,7 @@ import InvoiceForm from "./components/InvoiceForm";
 import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import Users from "./components/Users";
-import { API_ENDPOINTS, API_BASE_URL, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from "./config/api";
+import { API_ENDPOINTS, API_BASE_URL, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders, getJsonHeaders } from "./config/api";
 import { APP_CONFIG } from "./config/app";
 import { Toaster, toast } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -298,7 +298,7 @@ function App() {
   const handleLogin = useCallback(async (email: string, password: string) => {
     const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
       method: "POST",
-      headers: getSecureJsonHeaders(),
+      headers: getJsonHeaders(), // Using regular headers for login (no CSRF required)
       body: JSON.stringify({ email: email.trim(), password: password.trim() }),
     });
 

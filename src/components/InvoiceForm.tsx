@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NewInvoice, NewLine, Invoice, Customer } from '../types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { API_ENDPOINTS, getSecureHeaders } from '../config/api';
+import { API_ENDPOINTS, getSecureHeaders, getAuthHeaders } from '../config/api';
 import { 
   getValidStatusTransitions, 
   canChangeInvoiceStatus,
@@ -55,7 +55,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
   useEffect(() => {
           fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
-        headers: getSecureHeaders(tokenManager.getToken()),
+        headers: getAuthHeaders(tokenManager.getToken()), // Using regular headers for read operations
       })
       .then(res => res.json())
       .then(setCustomers)

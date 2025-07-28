@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
 import StatusBadge from './StatusBadge';
-import { API_ENDPOINTS, getSecureHeaders } from '../config/api';
+import { API_ENDPOINTS, getSecureHeaders, getAuthHeaders } from '../config/api';
 import { 
   getInvoiceActionPermissions, 
   canSelectForBulkOperation,
@@ -459,7 +459,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
       const token = tokenManager.getToken();
       if (!token) throw new Error('No token');
       const res = await fetch(API_ENDPOINTS.INVOICES.JSON(invoiceId), {
-        headers: getSecureHeaders(token),
+        headers: getAuthHeaders(token), // Using regular headers for read operations
       });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
@@ -486,7 +486,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
       }
       
               const res = await fetch(API_ENDPOINTS.INVOICES.DGI_STATUS(invoiceId), {
-          headers: getSecureHeaders(token),
+          headers: getAuthHeaders(token), // Using regular headers for read operations
         });
       
       if (!res.ok) {

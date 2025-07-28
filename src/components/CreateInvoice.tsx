@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NewInvoice, NewLine, Customer } from '../types';
-import { API_ENDPOINTS, getSecureHeaders } from '../config/api';
+import { API_ENDPOINTS, getSecureHeaders, getAuthHeaders } from '../config/api';
 import { tokenManager } from '../utils/tokenManager';
 
 interface CreateInvoiceProps {
@@ -50,7 +50,7 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({ onSubmit, disabled = fals
   React.useEffect(() => {
     const token = tokenManager.getToken();
           fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
-        headers: getSecureHeaders(token),
+        headers: getAuthHeaders(token), // Using regular headers for read operations
       })
       .then(res => res.json())
       .then(setCustomers)

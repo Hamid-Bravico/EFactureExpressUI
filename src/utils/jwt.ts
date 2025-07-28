@@ -5,6 +5,7 @@ export interface DecodedJWT {
   role: 'Admin' | 'Manager' | 'Clerk' | null;
   userId: string | null;
   exp: number | null;
+  'csrf-token'?: string;
   rawPayload: any;
 }
 
@@ -63,7 +64,10 @@ export function decodeJWT(token: string): DecodedJWT | null {
     // Expiry
     const exp = typeof payload.exp === 'number' ? payload.exp : null;
 
-    return { email, role, userId, exp, rawPayload: payload };
+    // Extract CSRF token
+    const csrfToken = payload['csrf-token'] || null;
+
+    return { email, role, userId, exp, 'csrf-token': csrfToken, rawPayload: payload };
   } catch {
     return null;
   }
