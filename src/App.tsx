@@ -714,7 +714,7 @@ function App() {
 
       const response = await fetch(API_ENDPOINTS.INVOICES.IMPORT, {
         method: "POST",
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
         body: formData,
       });
 
