@@ -1,7 +1,7 @@
 export const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 export const getAcceptLanguageHeader = (): string => {
-  const currentLanguage = localStorage.getItem('i18nextLng') || 'en';
+  const currentLanguage = localStorage.getItem('i18nextLng') || 'fr';
   return currentLanguage === 'fr' ? 'fr-FR' : 'en-US';
 };
 
