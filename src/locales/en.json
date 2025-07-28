@@ -343,7 +343,24 @@
     "processing": "Processing...",
     "success": "Import completed successfully",
     "error": "Error during import",
-    "importCSV": "Import CSV"
+    "importCSV": "Import CSV",
+    "help": {
+      "title": "CSV Import Format",
+      "requiredHeaders": "Required Headers:",
+      "optionalHeaders": "Optional Headers:",
+      "requiredFields": [
+        "NumeroFacture - Invoice number",
+        "Date - Invoice date",
+        "ClientICE - Customer ICE number",
+        "Description - Item description",
+        "Quantite - Quantity",
+        "PrixUnitaire - Unit price",
+        "TauxTVA - VAT rate"
+      ],
+      "optionalFields": [
+        "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)"
+      ]
+    }
   },
   "users": {
     "title": "User Management",

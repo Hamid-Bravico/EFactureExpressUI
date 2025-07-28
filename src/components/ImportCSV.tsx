@@ -9,6 +9,7 @@ interface ImportCSVProps {
 const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
   const { t } = useTranslation();
   const [error, setError] = useState<string>('');
+  const [showTooltip, setShowTooltip] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +72,58 @@ const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
           )}
         </button>
       </div>
+      
+      {/* Help Icon */}
+      <div className="relative">
+        <button
+          type="button"
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          onFocus={() => setShowTooltip(true)}
+          onBlur={() => setShowTooltip(false)}
+          className="inline-flex items-center justify-center w-6 h-6 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded-full hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+          title={t('import.help.title')}
+        >
+          ?
+        </button>
+        
+        {/* Tooltip */}
+        {showTooltip && (
+          <div className="absolute z-50 w-80 p-4 mt-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg -left-2 transform -translate-x-1/2">
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200"></div>
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white" style={{ marginTop: '1px' }}></div>
+            
+            <h3 className="font-semibold text-gray-900 mb-3">{t('import.help.title')}</h3>
+            
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2">{t('import.help.requiredHeaders')}</h4>
+                <ul className="space-y-1 text-gray-600">
+                  {t('import.help.requiredFields', { returnObjects: true }).map((field: string, index: number) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-2 text-red-500">•</span>
+                      <span className="text-xs">{field}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2">{t('import.help.optionalHeaders')}</h4>
+                <ul className="space-y-1 text-gray-600">
+                  {t('import.help.optionalFields', { returnObjects: true }).map((field: string, index: number) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-2 text-blue-500">•</span>
+                      <span className="text-xs">{field}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
       {error && (
         <p className="text-sm text-red-600">{error}</p>
       )}

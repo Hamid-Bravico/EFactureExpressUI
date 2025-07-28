@@ -342,7 +342,24 @@
     "uploading": "Téléchargement en cours...",
     "processing": "Traitement en cours...",
     "success": "Importation terminée avec succès",
-    "error": "Erreur lors de l'importation"
+    "error": "Erreur lors de l'importation",
+    "help": {
+      "title": "Format d'importation CSV",
+      "requiredHeaders": "En-têtes requis :",
+      "optionalHeaders": "En-têtes optionnels :",
+      "requiredFields": [
+        "NumeroFacture - Numéro de facture",
+        "Date - Date de facture",
+        "ClientICE - Numéro ICE du client",
+        "Description - Description de l'article",
+        "Quantite - Quantité",
+        "PrixUnitaire - Prix unitaire",
+        "TauxTVA - Taux de TVA"
+      ],
+      "optionalFields": [
+        "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)"
+      ]
+    }
   },
   "users": {
     "title": "Gestion des utilisateurs",
