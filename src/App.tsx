@@ -418,7 +418,7 @@ function App() {
     }
   }, [token, userEmail, t, optimisticallyAddInvoice, optimisticallyRemoveInvoice, silentlyAddInvoiceToList]);
 
-  const handleUpdateInvoice = useCallback(async (invoice: NewInvoice) => {
+  const handleUpdateInvoice = useCallback(async (invoice: NewInvoice, customerName?: string) => {
     if (!invoice.id) {
       toast.error(t('errors.failedToUpdateInvoice'));
       return;
@@ -434,7 +434,10 @@ function App() {
         ...originalInvoice,
         invoiceNumber: invoice.invoiceNumber,
         date: invoice.date,
-        customer: { ...originalInvoice.customer, id: invoice.customerId },
+        customer: { 
+          id: invoice.customerId, 
+          name: customerName || originalInvoice.customer.name 
+        },
         subTotal: invoice.subTotal,
         vat: invoice.vat,
         total: invoice.total,

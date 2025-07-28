@@ -68,7 +68,7 @@ interface InvoiceListProps {
   onDownloadPdf: (id: number) => void;
   onSubmit: (id: number) => void;
   onCreateInvoice: (invoice: NewInvoice) => Promise<void>;
-  onUpdateInvoice: (invoice: NewInvoice) => Promise<void>;
+  onUpdateInvoice: (invoice: NewInvoice, customerName?: string) => Promise<void>;
   onRefreshInvoices: (filters?: any, sort?: any, pagination?: any) => Promise<void>;
   disabled?: boolean;
   importLoading: boolean;
@@ -421,9 +421,9 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     setShowInvoiceForm(true);
   };*/
 
-  const handleInvoiceFormSubmit = useCallback(async (invoice: NewInvoice) => {
+  const handleInvoiceFormSubmit = useCallback(async (invoice: NewInvoice, customerName?: string) => {
     if (editingInvoice) {
-      await onUpdateInvoice(invoice);
+      await onUpdateInvoice(invoice, customerName);
     } else {
       await onCreateInvoice(invoice);
     }
