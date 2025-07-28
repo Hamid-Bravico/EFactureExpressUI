@@ -362,6 +362,10 @@
       "phonePlaceholder": "Phone Number",
       "cancel": "Cancel",
       "save": "Save"
+    },
+    "list": {
+      "noCustomers": "No Customers Found",
+      "getStarted": "Get started by adding your first customer."
     }
   },
   "roles": {

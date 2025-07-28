@@ -361,6 +361,10 @@
       "phonePlaceholder": "Numéro de téléphone",
       "cancel": "Annuler",
       "save": "Enregistrer"
+    },
+    "list": {
+      "noCustomers": "Aucun client trouvé",
+      "getStarted": "Commencez par ajouter votre premier client."
     }
   },
   "roles": {

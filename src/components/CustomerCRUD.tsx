@@ -211,18 +211,20 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="w-full divide-y divide-gray-100">
+            <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.name')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.ice')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.taxId')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.email')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.phone')}</th>
+                {canPerformActions && <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.actions')}</th>}
+              </tr>
+            </thead>
+          </table>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.name')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.ice')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.taxId')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.email')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.phone')}</th>
-                  {canPerformActions && <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.actions')}</th>}
-                </tr>
-              </thead>
+            <table className="w-full divide-y divide-gray-100">
               <tbody className="bg-white divide-y divide-gray-50">
               {customers.map(c => (
                 <tr key={c.id} className="hover:bg-blue-50/40 transition-all duration-300 group">
