@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-do
 import { Invoice, NewInvoice, Company } from "./types";
 import Dashboard from "./components/Dashboard";
 import InvoiceList from "./components/InvoiceList";
-import CreateInvoice from "./components/CreateInvoice";
 import ImportCSV from "./components/ImportCSV";
 import InvoiceForm from "./components/InvoiceForm";
 import LoginPage from "./components/LoginPage";
@@ -1275,14 +1274,6 @@ function App() {
                           />
                         )}
                       </div>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/invoices/create" 
-                  element={
-                    <ProtectedRoute>
-                      <CreateInvoice onSubmit={handleCreateInvoice} disabled={importLoading} />
                     </ProtectedRoute>
                   }
                 />
