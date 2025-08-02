@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { APP_CONFIG } from '../config/app';
+import { APP_CONFIG } from '../../../config/app';
 import { Link } from 'react-router-dom';
-
-interface LoginPageProps {
-  onLogin: (email: string, password: string) => Promise<void>;
-  onToggleLanguage: () => void;
-  currentLanguage: string;
-}
+import { LoginPageProps } from '../types/auth.types';
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onToggleLanguage, currentLanguage }) => {
   const { t } = useTranslation();

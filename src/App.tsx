@@ -1,15 +1,18 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
-import { Invoice, NewInvoice, Company } from "./types";
-import Dashboard from "./components/Dashboard";
-import InvoiceList from "./components/InvoiceList";
-import ImportCSV from "./components/ImportCSV";
-import InvoiceForm from "./components/InvoiceForm";
-import QuoteManagement from "./components/QuoteManagement";
-import LoginPage from "./components/LoginPage";
-import RegisterPage from "./components/RegisterPage";
-import Users from "./components/Users";
-import { API_ENDPOINTS, API_BASE_URL, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders, getJsonHeaders } from "./config/api";
+import { Company } from "./types/common";
+import { Invoice, NewInvoice } from "./domains/invoices/types/invoice.types";
+import Dashboard from "./domains/dashboard/components/Dashboard";
+import InvoiceList from "./domains/invoices/components/InvoiceList";
+import ImportCSV from "./domains/invoices/components/ImportCSV";
+import InvoiceForm from "./domains/invoices/components/InvoiceForm";
+import QuoteManagement from "./domains/quotes/components/QuoteManagement";
+import LoginPage from "./domains/auth/components/LoginPage";
+import RegisterPage from "./domains/auth/components/RegisterPage";
+import Users from "./domains/users/components/Users";
+import { API_BASE_URL, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders, getJsonHeaders } from "./config/api";
+import { AUTH_ENDPOINTS } from "./domains/auth/api/auth.endpoints";
+import { INVOICE_ENDPOINTS } from "./domains/invoices/api/invoice.endpoints";
 import { APP_CONFIG } from "./config/app";
 import { Toaster, toast } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -19,7 +22,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { decodeJWT } from "./utils/jwt";
 import { tokenManager } from "./utils/tokenManager";
 import CompanyProfile from "./components/CompanyProfile";
-import CustomerCRUD from "./components/CustomerCRUD";
+import CustomerCRUD from "./domains/customers/components/CustomerCRUD";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -263,7 +266,7 @@ function App() {
         queryParams.append('pageSize', pagination.pageSize.toString());
       }
       
-      const url = `${API_ENDPOINTS.INVOICES.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const url = `${INVOICE_ENDPOINTS.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await fetch(url, {
         headers: getAuthHeaders(token),
       });
@@ -296,7 +299,7 @@ function App() {
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
   const handleLogin = useCallback(async (email: string, password: string) => {
-    const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
+          const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
       method: "POST",
       headers: getJsonHeaders(), // Using regular headers for login (no CSRF required)
       body: JSON.stringify({ email: email.trim(), password: password.trim() }),
@@ -336,7 +339,7 @@ function App() {
   const handleLogout = useCallback(async () => {
     try {
       // Call backend logout endpoint to clear CSRF cookie
-      await fetch(API_ENDPOINTS.AUTH.LOGOUT, {
+      await fetch(AUTH_ENDPOINTS.LOGOUT, {
         method: 'POST',
         headers: getSecureHeaders(token),
       });
@@ -381,7 +384,7 @@ function App() {
       
       optimisticallyAddInvoice(tempInvoice);
 
-      const response = await fetch(API_ENDPOINTS.INVOICES.CREATE, {
+      const response = await fetch(INVOICE_ENDPOINTS.CREATE, {
         method: "POST",
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify(newInvoice),
@@ -474,7 +477,7 @@ function App() {
       
       optimisticallyUpdateInvoice(updatedInvoice);
 
-      const response = await fetch(API_ENDPOINTS.INVOICES.UPDATE(invoice.id), {
+      const response = await fetch(INVOICE_ENDPOINTS.UPDATE(invoice.id), {
         method: "PUT",
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify(invoice),
@@ -564,7 +567,7 @@ function App() {
         });
       }
 
-      const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
+      const response = await fetch(INVOICE_ENDPOINTS.DELETE(id), {
         method: "DELETE",
         headers: getSecureHeaders(token),
       });
@@ -595,7 +598,7 @@ function App() {
         queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
         
         try {
-          const response = await fetch(`${API_ENDPOINTS.INVOICES.LIST}?${queryParams.toString()}`, {
+          const response = await fetch(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
             headers: getAuthHeaders(token),
           });
           
@@ -618,7 +621,7 @@ function App() {
   const handleDownloadPdf = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.downloadingPDF'));
     try {
-      const response = await fetch(API_ENDPOINTS.INVOICES.PDF(id), {
+      const response = await fetch(INVOICE_ENDPOINTS.PDF(id), {
         headers: getAuthHeaders(token),
       });
 
@@ -656,7 +659,7 @@ function App() {
       // Optimistically update status to "Awaiting Clearance"
       optimisticallyUpdateInvoiceStatus(id, 2);
 
-      const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
+      const response = await fetch(INVOICE_ENDPOINTS.SUBMIT(id), {
         method: "POST",
         headers: getSecureHeaders(token),
       });
@@ -712,7 +715,7 @@ function App() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(API_ENDPOINTS.INVOICES.IMPORT, {
+      const response = await fetch(INVOICE_ENDPOINTS.IMPORT, {
         method: "POST",
         headers: getSecureHeaders(token),
         body: formData,
@@ -803,7 +806,7 @@ function App() {
       // Perform all delete operations
       await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch(API_ENDPOINTS.INVOICES.DELETE(id), {
+          const response = await fetch(INVOICE_ENDPOINTS.DELETE(id), {
             method: "DELETE",
             headers: getSecureHeaders(token),
           });
@@ -829,7 +832,7 @@ function App() {
         queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
         
         try {
-          const response = await fetch(`${API_ENDPOINTS.INVOICES.LIST}?${queryParams.toString()}`, {
+          const response = await fetch(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
             headers: getAuthHeaders(token),
           });
           
@@ -866,7 +869,7 @@ function App() {
       // Perform all submit operations
       const results = await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch(API_ENDPOINTS.INVOICES.SUBMIT(id), {
+          const response = await fetch(INVOICE_ENDPOINTS.SUBMIT(id), {
             method: "POST",
             headers: getSecureHeaders(token),
           });

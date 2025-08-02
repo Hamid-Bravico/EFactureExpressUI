@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { API_ENDPOINTS, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../config/api';
-import { Quote, NewQuote } from '../types';
+import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
+import { Quote, NewQuote } from '../types/quote.types';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import QuoteList from './QuoteList';
-import ImportCSV from './ImportCSV';
+
 import QuoteForm from './QuoteForm';
-import { tokenManager } from '../utils/tokenManager';
+import { tokenManager } from '../../../utils/tokenManager';
 
 interface QuoteManagementProps {
   token: string | null;
@@ -65,7 +66,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   const [quotes, setQuotes] = useState<QuoteListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [importLoading, setImportLoading] = useState(false);
+
   const [showQuoteForm, setShowQuoteForm] = useState(false);
 
   const fetchQuotes = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
@@ -92,7 +93,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         params.append('pageSize', pagination.pageSize.toString());
       }
 
-      const url = `${API_ENDPOINTS.QUOTES?.LIST || '/api/quotes'}?${params.toString()}`;
+      const url = `${QUOTE_ENDPOINTS?.LIST || '/api/quotes'}?${params.toString()}`;
       const res = await fetch(url, {
         headers: getAuthHeaders(token),
       });
@@ -118,7 +119,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   const handleCreateQuote = useCallback(async (quote: NewQuote) => {
     console.log(quote);
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.CREATE || '/api/quotes', {
+      const res = await fetch(QUOTE_ENDPOINTS?.CREATE || '/api/quotes', {
         method: 'POST',
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify(quote),
@@ -143,7 +144,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleUpdateQuote = useCallback(async (quote: NewQuote, customerName?: string) => {
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.UPDATE?.(quote.id!) || `/api/quotes/${quote.id}`, {
+      const res = await fetch(QUOTE_ENDPOINTS?.UPDATE?.(quote.id!) || `/api/quotes/${quote.id}`, {
         method: 'PUT',
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify(quote),
@@ -167,7 +168,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   const handleDeleteQuote = useCallback(async (id: number) => {
     try {
       console.log('Attempting to delete quote:', id);
-      const url = API_ENDPOINTS.QUOTES?.DELETE?.(id) || `/api/quotes/${id}`;
+      const url = QUOTE_ENDPOINTS?.DELETE?.(id) || `/api/quotes/${id}`;
       console.log('Delete URL:', url);
       
              const res = await fetch(url, {
@@ -194,7 +195,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleBulkDelete = useCallback(async (ids: number[]) => {
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.BULK_DELETE || '/api/quotes/bulk-delete', {
+      const res = await fetch(QUOTE_ENDPOINTS?.BULK_DELETE || '/api/quotes/bulk-delete', {
         method: 'DELETE',
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify({ ids }),
@@ -213,7 +214,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleBulkSubmit = useCallback(async (ids: number[]) => {
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.BULK_SUBMIT || '/api/quotes/bulk-submit', {
+      const res = await fetch(QUOTE_ENDPOINTS?.BULK_SUBMIT || '/api/quotes/bulk-submit', {
         method: 'POST',
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify({ ids }),
@@ -232,7 +233,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleUpdateQuoteStatus = useCallback(async (id: number, status: string) => {
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.UPDATE_STATUS?.(id) || `/api/quotes/${id}/status`, {
+      const res = await fetch(QUOTE_ENDPOINTS?.UPDATE_STATUS?.(id) || `/api/quotes/${id}/status`, {
         method: 'PUT',
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify({ status }),
@@ -252,7 +253,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleConvertToInvoice = useCallback(async (id: number) => {
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.CONVERT_TO_INVOICE?.(id) || `/api/quotes/${id}/convert-to-invoice`, {
+      const res = await fetch(QUOTE_ENDPOINTS?.CONVERT_TO_INVOICE?.(id) || `/api/quotes/${id}/convert-to-invoice`, {
         method: 'POST',
         headers: getAuthHeaders(token),
       });
@@ -271,7 +272,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleDownloadPdf = useCallback(async (id: number) => {
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.DOWNLOAD_PDF?.(id) || `/api/quotes/${id}/pdf`, {
+      const res = await fetch(QUOTE_ENDPOINTS?.DOWNLOAD_PDF?.(id) || `/api/quotes/${id}/pdf`, {
         headers: getAuthHeaders(token),
       });
 
@@ -297,7 +298,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleSubmitQuote = useCallback(async (id: number) => {
     try {
-      const res = await fetch(API_ENDPOINTS.QUOTES?.SUBMIT?.(id) || `/api/quotes/${id}/submit`, {
+      const res = await fetch(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`, {
         method: 'POST',
         headers: getAuthHeaders(token),
       });
@@ -313,33 +314,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
     }
   }, [token, t, fetchQuotes]);
 
-  const handleImportCSV = useCallback(async (file: File) => {
-    setImportLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
 
-      const res = await fetch(API_ENDPOINTS.QUOTES?.IMPORT_CSV || '/api/quotes/import-csv', {
-        method: 'POST',
-        headers: {
-          ...getAuthHeaders(token),
-        },
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || t('quote.list.importError'));
-      }
-
-      toast.success(t('quote.list.importSuccess'));
-      fetchQuotes();
-    } catch (error: any) {
-      toast.error(error.message || t('quote.list.importError'));
-    } finally {
-      setImportLoading(false);
-    }
-  }, [token, t, fetchQuotes]);
 
   if (error) {
     return (
@@ -361,12 +336,10 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <ImportCSV onImport={handleImportCSV} loading={importLoading} />
+        <div></div>
         <button
           onClick={() => setShowQuoteForm(true)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors ${
-            importLoading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
-          }`}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -385,9 +358,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           onCreateQuote={handleCreateQuote}
           onUpdateQuote={handleUpdateQuote}
           onRefreshQuotes={fetchQuotes}
-          disabled={importLoading}
-          importLoading={importLoading}
-          onImportCSV={handleImportCSV}
+
           onBulkDelete={handleBulkDelete}
           onBulkSubmit={handleBulkSubmit}
           onUpdateQuoteStatus={handleUpdateQuoteStatus}
@@ -399,7 +370,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         <QuoteForm
           onSubmit={handleCreateQuote}
           onClose={() => setShowQuoteForm(false)}
-          disabled={importLoading}
+
         />
       )}
     </div>

@@ -165,43 +165,4 @@ export class SecureApiClient {
 // Export singleton instance
 export const secureApiClient = SecureApiClient.getInstance();
 
-export const API_ENDPOINTS = {
-  AUTH: {
-    LOGIN: `${API_BASE_URL}/auth/login`,
-    REGISTER: `${API_BASE_URL}/auth/register`,
-    REFRESH: `${API_BASE_URL}/auth/refresh`,
-    LOGOUT: `${API_BASE_URL}/auth/logout`,
-    USERS: `${API_BASE_URL}/users`,
-  },
-  INVOICES: {
-    LIST: `${API_BASE_URL}/invoices`,
-    CREATE: `${API_BASE_URL}/invoices`,
-    UPDATE: (id: number) => `${API_BASE_URL}/invoices/${id}`,
-    DELETE: (id: number) => `${API_BASE_URL}/invoices/${id}`,
-    PDF: (id: number) => `${API_BASE_URL}/invoices/${id}/pdf-url`,
-    JSON: (id: number) => `${API_BASE_URL}/invoices/${id}/json-url`,
-    IMPORT: `${API_BASE_URL}/invoices/import-csv`,
-    SUBMIT: (id: number) => `${API_BASE_URL}/invoices/${id}/dgi-submit`,
-    DGI_STATUS: (id: number) => `${API_BASE_URL}/invoices/${id}/dgi-status`,
-  },
-  QUOTES: {
-    LIST: `${API_BASE_URL}/quotes`,
-    CREATE: `${API_BASE_URL}/quotes`,
-    UPDATE: (id: number) => `${API_BASE_URL}/quotes/${id}`,
-    DELETE: (id: number) => `${API_BASE_URL}/quotes/${id}`,
-    PDF: (id: number) => `${API_BASE_URL}/quotes/${id}/pdf`,
-    DOWNLOAD_PDF: (id: number) => `${API_BASE_URL}/quotes/${id}/pdf`,
-    IMPORT_CSV: `${API_BASE_URL}/quotes/import-csv`,
-    SUBMIT: (id: number) => `${API_BASE_URL}/quotes/${id}/submit`,
-    UPDATE_STATUS: (id: number) => `${API_BASE_URL}/quotes/${id}/status`,
-    CONVERT_TO_INVOICE: (id: number) => `${API_BASE_URL}/quotes/${id}/convert-to-invoice`,
-    BULK_DELETE: `${API_BASE_URL}/quotes/bulk-delete`,
-    BULK_SUBMIT: `${API_BASE_URL}/quotes/bulk-submit`,
-  },
-  CUSTOMERS: {
-    LIST: `${API_BASE_URL}/customers`,
-    CREATE: `${API_BASE_URL}/customers`,
-    UPDATE: (id: number) => `${API_BASE_URL}/customers/${id}`,
-    DELETE: (id: number) => `${API_BASE_URL}/customers/${id}`,
-  },
-}; 
+ 

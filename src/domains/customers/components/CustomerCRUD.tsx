@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { API_ENDPOINTS, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../config/api';
-import { Customer } from '../types';
-import { decodeJWT } from '../utils/jwt';
+import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { CUSTOMER_ENDPOINTS } from '../api/customer.endpoints';
+import { Customer } from '../../../types/common';
+import { decodeJWT } from '../../../utils/jwt';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 
@@ -32,7 +33,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
+      const res = await fetch(CUSTOMER_ENDPOINTS.LIST, {
         headers: getAuthHeaders(token),
       });
       if (!res.ok) throw new Error('Failed to fetch customers');
@@ -79,8 +80,8 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     try {
       const method = editingCustomer ? 'PUT' : 'POST';
       const url = editingCustomer
-        ? API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.id)
-        : API_ENDPOINTS.CUSTOMERS.CREATE;
+        ? CUSTOMER_ENDPOINTS.UPDATE(editingCustomer.id)
+        : CUSTOMER_ENDPOINTS.CREATE;
       const res = await fetch(url, {
         method,
         headers: getSecureJsonHeaders(token),
@@ -140,7 +141,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     if (!window.confirm(t('confirmations.deleteCustomer'))) return;
     const toastId = toast.loading(t('common.deleting'));
     try {
-      const res = await fetch(API_ENDPOINTS.CUSTOMERS.DELETE(id), { 
+      const res = await fetch(CUSTOMER_ENDPOINTS.DELETE(id), { 
         method: 'DELETE',
         headers: getSecureHeaders(token),
       });

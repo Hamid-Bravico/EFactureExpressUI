@@ -1,20 +1,19 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Quote, NewQuote, DgiStatusResponse } from '../types';
+import { Quote, NewQuote } from '../types/quote.types';
+import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import QuoteForm from './QuoteForm';
 import QuoteDetail from './QuoteDetail';
-import StatusBadge from './StatusBadge';
-import { API_ENDPOINTS, getSecureHeaders, getAuthHeaders } from '../config/api';
+import QuoteStatusBadge from './QuoteStatusBadge';
+import { getSecureHeaders, getAuthHeaders } from '../../../config/api';
+import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { 
-  getInvoiceActionPermissions, 
-  canSelectForBulkOperation,
   canSelectQuoteForBulkOperation,
-  UserRole,
-  InvoiceStatus,
   QuoteStatus
-} from '../utils/permissions';
-import { tokenManager } from '../utils/tokenManager';
+} from '../utils/quote.permissions';
+import { UserRole } from '../../../utils/shared.permissions';
+import { tokenManager } from '../../../utils/tokenManager';
 
 interface QuoteListResponse {
   quotes: Array<{
@@ -73,8 +72,8 @@ interface QuoteListProps {
   onUpdateQuote: (quote: NewQuote, customerName?: string) => Promise<void>;
   onRefreshQuotes: (filters?: any, sort?: any, pagination?: any) => Promise<void>;
   disabled?: boolean;
-  importLoading: boolean;
-  onImportCSV: (file: File) => Promise<void>;
+
+
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onBulkSubmit?: (ids: number[]) => Promise<void>;
   onUpdateQuoteStatus?: (id: number, status: string) => void;
@@ -100,8 +99,8 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   onUpdateQuote,
   onRefreshQuotes,
   disabled = false,
-  importLoading,
-  onImportCSV,
+
+
   onBulkDelete,
   onBulkSubmit,
   onUpdateQuoteStatus,
@@ -1014,7 +1013,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                        </td>
                        <td className="px-6 py-4 whitespace-nowrap">
                          <div className="animate-status-change">
-                           <StatusBadge 
+                           <QuoteStatusBadge 
                              status={quote.status}
                            />
                          </div>

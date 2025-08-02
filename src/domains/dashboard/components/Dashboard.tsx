@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Invoice } from '../types';
+import { DashboardInvoiceData, DashboardQuoteData, DashboardStats } from '../types/dashboard.types';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,7 +29,7 @@ ChartJS.register(
   Legend
 );
 
-interface DashboardStats {
+interface LocalDashboardStats extends DashboardStats {
   monthlyStats: { [monthName: string]: { count: number; amount: number; } };
   topCustomers: Array<{ customerName: string; count: number; amount: number; }>;
   statusDistribution: {
@@ -40,17 +40,10 @@ interface DashboardStats {
     validated: { count: number; amount: number; percentage: number };
     rejected: { count: number; amount: number; percentage: number };
   };
-  recentInvoices: Array<{
-    id: number;
-    invoiceNumber: string;
-    date: string;
-    total: number;
-    customerName: string;
-  }>;
 }
 
 interface DashboardProps {
-  stats: DashboardStats | null;
+  stats: LocalDashboardStats | null;
   loading: boolean;
   onRefresh: () => Promise<void>;
 }

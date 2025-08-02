@@ -1,17 +1,19 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Invoice, NewInvoice, DgiStatusResponse } from '../types';
+import { Invoice, NewInvoice } from '../types/invoice.types';
+import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
-import StatusBadge from './StatusBadge';
-import { API_ENDPOINTS, getSecureHeaders, getAuthHeaders } from '../config/api';
+import InvoiceStatusBadge from './InvoiceStatusBadge';
+import { getSecureHeaders, getAuthHeaders } from '../../../config/api';
+import { INVOICE_ENDPOINTS } from '../api/invoice.endpoints';
 import { 
   getInvoiceActionPermissions, 
   canSelectForBulkOperation,
-  UserRole,
   InvoiceStatus
-} from '../utils/permissions';
-import { tokenManager } from '../utils/tokenManager';
+} from '../utils/invoice.permissions';
+import { UserRole } from '../../../utils/shared.permissions';
+import { tokenManager } from '../../../utils/tokenManager';
 
 interface InvoiceListResponse {
   invoices: Array<{
@@ -458,7 +460,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     try {
       const token = tokenManager.getToken();
       if (!token) throw new Error('No token');
-      const res = await fetch(API_ENDPOINTS.INVOICES.JSON(invoiceId), {
+      const res = await fetch(INVOICE_ENDPOINTS.JSON(invoiceId), {
         headers: getAuthHeaders(token), // Using regular headers for read operations
       });
       if (!res.ok) throw new Error('Failed');
@@ -485,7 +487,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
         throw new Error('No token');
       }
       
-              const res = await fetch(API_ENDPOINTS.INVOICES.DGI_STATUS(invoiceId), {
+              const res = await fetch(INVOICE_ENDPOINTS.DGI_STATUS(invoiceId), {
           headers: getAuthHeaders(token), // Using regular headers for read operations
         });
       
@@ -975,7 +977,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="animate-status-change">
-                          <StatusBadge 
+                          <InvoiceStatusBadge 
                             status={invoice.status}
                             dgiSubmissionId={invoice.dgiSubmissionId}
                             onShowRejectionReason={invoice.status === 4 ? () => {
@@ -1238,7 +1240,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                                 <div className="space-y-1 text-gray-600">
                                   <div><span className="font-medium">{t('invoice.details.invoiceNumber')}:</span> {invoice.invoiceNumber}</div>
                                   <div><span className="font-medium">{t('invoice.details.date')}:</span> {new Date(invoice.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}</div>
-                                  <div><span className="font-medium">{t('invoice.details.status')}:</span> <StatusBadge status={invoice.status} /></div>
+                                  <div><span className="font-medium">{t('invoice.details.status')}:</span> <InvoiceStatusBadge status={invoice.status} /></div>
                                   {invoice.dgiSubmissionId && (
                                     <div><span className="font-medium">{t('invoice.details.dgiSubmissionId')}:</span> {invoice.dgiSubmissionId}</div>
                                   )}

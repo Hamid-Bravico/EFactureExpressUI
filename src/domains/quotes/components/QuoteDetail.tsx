@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { Quote } from '../types';
+import { Quote } from '../types/quote.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import StatusBadge from './StatusBadge';
+import QuoteStatusBadge from './QuoteStatusBadge';
 import QuoteForm from './QuoteForm';
 
 interface QuoteDetailProps {
@@ -166,7 +166,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
               {quote.expiryDate && (
                 <div><span className="font-medium">{t('quote.details.expiryDate')}:</span> {formatDate(quote.expiryDate)}</div>
               )}
-              <div><span className="font-medium">{t('quote.details.status')}:</span> <StatusBadge status={quote.status} /></div>
+              <div><span className="font-medium">{t('quote.details.status')}:</span> <QuoteStatusBadge status={quote.status} /></div>
             </div>
           </div>
           <div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Company } from '../types';
+import { Company } from '../types/common';
 import { useTranslation } from 'react-i18next';
 
 interface CompanyProfileProps {

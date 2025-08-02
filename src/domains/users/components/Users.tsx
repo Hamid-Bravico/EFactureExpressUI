@@ -1,27 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { API_ENDPOINTS, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../config/api';
-import { decodeJWT } from '../utils/jwt';
-import { tokenManager } from '../utils/tokenManager';
+import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { USER_ENDPOINTS } from '../api/user.endpoints';
+import { User, NewUser, UpdateUser } from '../types/user.types';
+import { decodeJWT } from '../../../utils/jwt';
+import { tokenManager } from '../../../utils/tokenManager';
 
-interface User {
-  id: string;
-  email: string;
-  roles: string[];
-}
 
-interface NewUser {
-  email: string;
-  password: string;
-  role: 'Clerk' | 'Manager';
-}
-
-interface UpdateUser {
-  email: string;
-  role: 'Admin' | 'Manager' | 'Clerk';
-  password?: string;
-}
 
 interface UsersProps {
   token: string | null;
@@ -51,7 +37,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(API_ENDPOINTS.AUTH.USERS, {
+      const response = await fetch(USER_ENDPOINTS.LIST, {
         headers: getAuthHeaders(token),
       });
 
@@ -93,7 +79,7 @@ const Users = React.memo(({ token }: UsersProps) => {
         password: newUser.password.trim()
       };
       
-      const response = await fetch(API_ENDPOINTS.AUTH.USERS, {
+      const response = await fetch(USER_ENDPOINTS.LIST, {
         method: 'POST',
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify(trimmedUser),
@@ -146,7 +132,7 @@ const Users = React.memo(({ token }: UsersProps) => {
       if (currentUser.roles.includes('Admin')) {
         if (userId === tokenManager.getUserId() && updates.password) {
           // Allow Admin to reset their own password only
-          const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
+          const response = await fetch(`${USER_ENDPOINTS.LIST}/${userId}`, {
             method: 'PUT',
             headers: getSecureJsonHeaders(token),
             body: JSON.stringify({ 
@@ -207,7 +193,7 @@ const Users = React.memo(({ token }: UsersProps) => {
         payload.role = null;
       }
 
-      const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
+      const response = await fetch(`${USER_ENDPOINTS.LIST}/${userId}`, {
         method: 'PUT',
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify(payload),
@@ -231,7 +217,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     if (!window.confirm(t('confirmations.deleteUser'))) return;
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.AUTH.USERS}/${userId}`, {
+      const response = await fetch(`${USER_ENDPOINTS.LIST}/${userId}`, {
         method: 'DELETE',
         headers: getSecureHeaders(token),
       });

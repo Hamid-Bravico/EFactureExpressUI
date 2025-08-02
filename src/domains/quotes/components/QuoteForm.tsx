@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { NewInvoice, NewLine, Invoice, Customer } from '../types';
+import { NewQuote, NewLine, Quote } from '../types/quote.types';
+import { Customer } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { API_ENDPOINTS, getSecureHeaders, getAuthHeaders } from '../config/api';
+import { getSecureHeaders, getAuthHeaders } from '../../../config/api';
+import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { 
-  getValidStatusTransitions, 
-  canChangeInvoiceStatus,
-  UserRole,
-  InvoiceStatus,
-  INVOICE_STATUS
-} from '../utils/permissions';
-import { tokenManager } from '../utils/tokenManager';
+  getValidQuoteStatusTransitions, 
+  canChangeQuoteStatus,
+  QuoteStatus,
+  QUOTE_STATUS
+} from '../utils/quote.permissions';
+import { UserRole } from '../../../utils/shared.permissions';
+import { tokenManager } from '../../../utils/tokenManager';
 
-interface InvoiceFormProps {
-  onSubmit: (invoice: NewInvoice, customerName?: string) => Promise<void>;
+interface QuoteFormProps {
+  onSubmit: (quote: NewQuote, customerName?: string) => Promise<void>;
   onClose: () => void;
-  invoice?: Invoice;
+  quote?: Quote;
   disabled?: boolean;
 }
 
 interface FormErrors {
-  invoiceNumber?: string;
-  date?: string;
+  issueDate?: string;
+  expiryDate?: string;
   customerId?: string;
   status?: string;
   lines?: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } };
@@ -31,16 +33,18 @@ interface BackendErrorResponse {
   [key: string]: string[];
 }
 
-const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, disabled = false }) => {
+const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disabled = false }) => {
   const { t, i18n } = useTranslation();
-  const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoiceNumber || "");
-  const [date, setDate] = useState(invoice?.date || new Date().toISOString().split('T')[0]);
+  const [issueDate, setIssueDate] = useState(quote?.issueDate || new Date().toISOString().split('T')[0]);
+  const [expiryDate, setExpiryDate] = useState(quote?.expiryDate || "");
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customerId, setCustomerId] = useState<number | null>(invoice?.customer?.id || null);
-  const [status, setStatus] = useState(invoice?.status || 0);
+  const [customerId, setCustomerId] = useState<number | null>(quote?.customer?.id || null);
+  const [status, setStatus] = useState(quote?.status || QUOTE_STATUS.DRAFT);
+  const [termsAndConditions, setTermsAndConditions] = useState(quote?.termsAndConditions || "");
+  const [privateNotes, setPrivateNotes] = useState(quote?.privateNotes || "");
   const [lines, setLines] = useState<NewLine[]>(
-    invoice?.lines
-      ? invoice.lines.map(line => ({
+    quote?.lines
+      ? quote.lines.map(line => ({
           description: line.description,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
@@ -54,54 +58,55 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const userRole = tokenManager.getUserRole() as UserRole || 'Clerk';
 
   useEffect(() => {
-          fetch(API_ENDPOINTS.CUSTOMERS.LIST, {
-        headers: getAuthHeaders(tokenManager.getToken()), // Using regular headers for read operations
-      })
-      .then(res => res.json())
-      .then(setCustomers)
-      .catch(() => setCustomers([]));
+    fetch(`${process.env.REACT_APP_API_URL || '/api'}/customers`, {
+      headers: getAuthHeaders(tokenManager.getToken()),
+    })
+    .then(res => res.json())
+    .then(setCustomers)
+    .catch(() => setCustomers([]));
   }, []);
 
   useEffect(() => {
-    if (invoice) {
-      setInvoiceNumber(invoice.invoiceNumber.trim());
-      const formattedDate = new Date(invoice.date).toISOString().split('T')[0];
-      setDate(formattedDate);
-      setCustomerId(invoice.customer?.id || null);
-      setLines(invoice.lines.map(line => ({
+    if (quote) {
+      const formattedIssueDate = new Date(quote.issueDate).toISOString().split('T')[0];
+      const formattedExpiryDate = quote.expiryDate ? new Date(quote.expiryDate).toISOString().split('T')[0] : "";
+      setIssueDate(formattedIssueDate);
+      setExpiryDate(formattedExpiryDate);
+      setCustomerId(quote.customer?.id || null);
+      setLines(quote.lines.map(line => ({
         description: line.description.trim(),
         quantity: line.quantity,
         unitPrice: line.unitPrice,
         taxRate: line.taxRate,
       })));
-      setStatus(invoice.status);
+      setStatus(quote.status);
+      setTermsAndConditions(quote.termsAndConditions || "");
+      setPrivateNotes(quote.privateNotes || "");
     }
-  }, [invoice]);
+  }, [quote]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    if (!invoiceNumber.trim()) newErrors.invoiceNumber = t('invoice.form.errors.invoiceNumberRequired');
-    if (!date) newErrors.date = t('invoice.form.errors.dateRequired');
-    if (!customerId) newErrors.customerId = t('invoice.form.errors.customerNameRequired');
-    if (status !== 0 && status !== 1 && status !== 2 && status !== 3 && status !== 4) newErrors.status = t('invoice.form.errors.invalidStatus');
+    if (!issueDate) newErrors.issueDate = t('quote.form.errors.issueDateRequired');
+    if (!customerId) newErrors.customerId = t('quote.form.errors.customerNameRequired');
+    if (status !== QUOTE_STATUS.DRAFT && status !== QUOTE_STATUS.SENT && status !== QUOTE_STATUS.ACCEPTED && status !== QUOTE_STATUS.REJECTED && status !== QUOTE_STATUS.CONVERTED) newErrors.status = t('quote.form.errors.invalidStatus');
     const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } } = {};
     let hasValidLine = false;
     lines.forEach((line, index) => {
       const lineError: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } = {};
-      if (!line.description || !line.description.trim()) lineError.description = t('invoice.form.errors.descriptionRequired');
-      if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('invoice.form.errors.quantityPositive');
-      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice < 0) lineError.unitPrice = t('invoice.form.errors.unitPricePositive');
-      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('invoice.form.errors.taxRateRange');
+      if (!line.description || !line.description.trim()) lineError.description = t('quote.form.errors.descriptionRequired');
+      if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('quote.form.errors.quantityPositive');
+      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice < 0) lineError.unitPrice = t('quote.form.errors.unitPricePositive');
+      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('quote.form.errors.taxRateRange');
       if (Object.keys(lineError).length > 0) lineErrors[index] = lineError; else hasValidLine = true;
     });
-    if (!hasValidLine) newErrors.lines = { 0: { description: t('invoice.form.errors.oneLineRequired') } };
+    if (!hasValidLine) newErrors.lines = { 0: { description: t('quote.form.errors.oneLineRequired') } };
     else if (Object.keys(lineErrors).length > 0) newErrors.lines = lineErrors;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const updateLine = (index: number, field: keyof NewLine | 'taxRate', value: string) => {
-    // 1) Update the line values as before
     setLines(prev =>
       prev.map((ln, i) =>
         i === index
@@ -110,7 +115,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       )
     );
   
-    // 2) If there was a client-side error for this line, clear it safely
     if (errors.lines?.[index]) {
       setErrors(prev => {
         const prevLines = prev.lines || {};
@@ -125,7 +129,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       });
     }
   };
-  
 
   const addLine = () => {
     setLines((prev) => [
@@ -136,7 +139,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
   const removeLine = (index: number) => {
     if (lines.length <= 1) {
-      toast.error(t('invoice.form.errors.cannotRemoveLastLine'));
+      toast.error(t('quote.form.errors.cannotRemoveLastLine'));
       return;
     }
     setLines((prev) => prev.filter((_, i) => i !== index));
@@ -154,9 +157,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     return { subTotal: +sub.toFixed(2), vat: +vat.toFixed(2), total: +(sub + vat).toFixed(2) };
   };
 
-  const getInvoiceErrorMessage = (field: string): string | undefined => {
+  const getQuoteErrorMessage = (field: string): string | undefined => {
     const fieldMap: { [key: string]: string } = {
-      'invoiceNumber': 'InvoiceNumber',
+      'quoteNumber': 'QuoteNumber',
+      'issueDate': 'IssueDate',
+      'expiryDate': 'ExpiryDate',
       'date': 'Date',
       'customerId': 'CustomerId',
       'status': 'Status'
@@ -177,9 +182,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     return undefined;
   };
 
-  const clearInvoiceError = (field: string) => {
+  const clearQuoteError = (field: string) => {
     const fieldMap: { [key: string]: string } = {
-      'invoiceNumber': 'InvoiceNumber',
+      'quoteNumber': 'QuoteNumber',
+      'issueDate': 'IssueDate',
+      'expiryDate': 'ExpiryDate',
       'date': 'Date',
       'customerId': 'CustomerId',
       'status': 'Status'
@@ -208,7 +215,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     if (disabled || isSubmitting) return;
 
     if (!validateForm()) {
-      toast.error(t('invoice.form.errors.fixErrors'));
+      toast.error(t('quote.form.errors.fixErrors'));
       return;
     }
 
@@ -219,10 +226,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       const { subTotal, vat, total } = computeTotals();
 
       const selectedCustomer = customers.find(c => c.id === customerId);
-      const newInvoice: NewInvoice = {
-        ...(invoice?.id && { id: invoice.id }),
-        invoiceNumber: invoiceNumber.trim(),
-        date,
+      const newQuote: NewQuote = {
+        ...(quote?.id && { id: quote.id }),
+        issueDate,
+        ...(expiryDate && { expiryDate }),
         customerId: customerId!,
         subTotal,
         vat,
@@ -234,21 +241,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
           unitPrice: ln.unitPrice, 
           taxRate: ln.taxRate 
         })),
+        termsAndConditions: termsAndConditions.trim(),
+        privateNotes: privateNotes.trim(),
       };
 
-      // Pass customer name along with the invoice for optimistic updates
-      await onSubmit(newInvoice, selectedCustomer?.name);
+      await onSubmit(newQuote, selectedCustomer?.name);
       onClose();
     } catch (error: any) {
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
-        toast.error(t('invoice.form.errors.submissionError'));
+        toast.error(t('quote.form.errors.submissionError'));
       } else if (error.title) {
         toast.error(error.title);
       } else if (error.message) {
         toast.error(error.message);
       } else {
-        toast.error(t('invoice.form.errors.saveFailed'));
+        toast.error(t('quote.form.errors.saveFailed'));
       }
     } finally {
       setIsSubmitting(false);
@@ -257,14 +265,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
   const formatCurrency = (amount: number) => {
     if (i18n.language === 'fr') {
-      // French format: 1 234,56 MAD
       return new Intl.NumberFormat('fr-FR', { 
         style: 'decimal',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       }).format(amount) + ' MAD';
     } else {
-      // English format: MAD 1,234.56
       return new Intl.NumberFormat('en-US', { 
         style: 'currency', 
         currency: 'MAD',
@@ -279,7 +285,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       <div className="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
-            {invoice ? t('invoice.form.editTitle') : t('invoice.form.createTitle')}
+            {quote ? t('quote.form.editTitle') : t('quote.form.createTitle')}
           </h2>
           <button
             onClick={onClose}
@@ -295,120 +301,121 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-4 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.invoiceNumber')}</label>
-              <input
-                type="text"
-                value={invoiceNumber}
-                onChange={(e) => {
-                  setInvoiceNumber(e.target.value.trim());
-                  if (errors.invoiceNumber) {
-                    setErrors(prev => ({ ...prev, invoiceNumber: undefined }));
-                  }
-                  clearInvoiceError('invoiceNumber');
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.invoiceNumber || getInvoiceErrorMessage('invoiceNumber') ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={disabled || isSubmitting}
-                required
-              />
-              {(errors.invoiceNumber || getInvoiceErrorMessage('invoiceNumber')) && (
-                <div className="text-red-500 text-xs mt-1">
-                  {errors.invoiceNumber || getInvoiceErrorMessage('invoiceNumber')}
-                </div>
-              )}
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.date')}</label>
+              <label className="block text-sm text-gray-600 mb-1">{t('quote.form.date')}</label>
               <input
                 type="date"
-                value={date}
+                value={issueDate}
                 onChange={(e) => {
-                  setDate(e.target.value);
-                  if (errors.date) {
-                    setErrors(prev => ({ ...prev, date: undefined }));
+                  setIssueDate(e.target.value);
+                  if (errors.issueDate) {
+                    setErrors(prev => ({ ...prev, issueDate: undefined }));
                   }
-                  clearInvoiceError('date');
+                  clearQuoteError('issueDate');
                 }}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.date || getInvoiceErrorMessage('date') ? 'border-red-500' : 'border-gray-300'
+                  errors.issueDate || getQuoteErrorMessage('issueDate') ? 'border-red-500' : 'border-gray-300'
                 }`}
                 disabled={disabled || isSubmitting}
                 required
               />
-              {(errors.date || getInvoiceErrorMessage('date')) && (
+              {(errors.issueDate || getQuoteErrorMessage('issueDate')) && (
                 <div className="text-red-500 text-xs mt-1">
-                  {errors.date || getInvoiceErrorMessage('date')}
+                  {errors.issueDate || getQuoteErrorMessage('issueDate')}
                 </div>
               )}
             </div>
             <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.customerName')}</label>
+              <label className="block text-sm text-gray-600 mb-1">{t('quote.form.expiryDate')}</label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => {
+                  setExpiryDate(e.target.value);
+                  if (errors.expiryDate) {
+                    setErrors(prev => ({ ...prev, expiryDate: undefined }));
+                  }
+                  clearQuoteError('expiryDate');
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.expiryDate || getQuoteErrorMessage('expiryDate') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                disabled={disabled || isSubmitting}
+              />
+              {(errors.expiryDate || getQuoteErrorMessage('expiryDate')) && (
+                <div className="text-red-500 text-xs mt-1">
+                  {errors.expiryDate || getQuoteErrorMessage('expiryDate')}
+                </div>
+              )}
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm text-gray-600 mb-1">{t('quote.form.customerName')}</label>
               <select
                 value={customerId ?? ''}
-                onChange={e => { setCustomerId(Number(e.target.value)); if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined })); clearInvoiceError('customerId'); }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.customerId || getInvoiceErrorMessage('customerId') ? 'border-red-500' : 'border-gray-300'}`}
+                onChange={e => { setCustomerId(Number(e.target.value)); if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined })); clearQuoteError('customerId'); }}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.customerId || getQuoteErrorMessage('customerId') ? 'border-red-500' : 'border-gray-300'}`}
                 disabled={disabled || isSubmitting}
                 required
               >
-                <option value="">{t('invoice.form.selectCustomer')}</option>
+                <option value="">{t('quote.form.selectCustomer')}</option>
                 {customers.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              {(errors.customerId || getInvoiceErrorMessage('customerId')) && (
-                <div className="text-red-500 text-xs mt-1">{errors.customerId || getInvoiceErrorMessage('customerId')}</div>
+              {(errors.customerId || getQuoteErrorMessage('customerId')) && (
+                <div className="text-red-500 text-xs mt-1">{errors.customerId || getQuoteErrorMessage('customerId')}</div>
               )}
             </div>
-            {canChangeInvoiceStatus(userRole, invoice?.status as InvoiceStatus || INVOICE_STATUS.DRAFT) && (
+            {canChangeQuoteStatus(userRole, quote?.status as QuoteStatus || QUOTE_STATUS.DRAFT) && (
               <div className="col-span-2">
-                <label className="block text-sm text-gray-600 mb-3">{t('invoice.form.status')}</label>
+                <label className="block text-sm text-gray-600 mb-3">{t('quote.form.status')}</label>
                 <div className="flex flex-wrap gap-4">
                   {(() => {
-                    const currentStatus = invoice?.status as InvoiceStatus || INVOICE_STATUS.DRAFT;
-                    const validTransitions = getValidStatusTransitions(userRole, currentStatus);
+                    const currentStatus = quote?.status as QuoteStatus || QUOTE_STATUS.DRAFT;
+                    const validTransitions = getValidQuoteStatusTransitions(userRole, currentStatus);
                     
                     return validTransitions.map((validStatus) => {
                       const statusConfig = {
-                        [INVOICE_STATUS.DRAFT]: {
+                        [QUOTE_STATUS.DRAFT]: {
                           key: 'draft',
                           color: 'blue',
                           icon: '📝',
-                          description: t('invoice.status.draftDescription')
+                          description: t('quote.status.draftDescription')
                         },
-                        [INVOICE_STATUS.READY]: {
-                          key: 'ready',
+                        [QUOTE_STATUS.SENT]: {
+                          key: 'sent',
+                          color: 'yellow',
+                          icon: '📤',
+                          description: t('quote.status.sentDescription')
+                        },
+                        [QUOTE_STATUS.ACCEPTED]: {
+                          key: 'accepted',
                           color: 'green',
                           icon: '✅',
-                          description: t('invoice.status.readyDescription')
+                          description: t('quote.status.acceptedDescription')
                         },
-                        [INVOICE_STATUS.AWAITING_CLEARANCE]: {
-                          key: 'awaitingClearance',
-                          color: 'yellow',
-                          icon: '⏳',
-                          description: t('invoice.status.awaitingClearanceDescription')
-                        },
-                        [INVOICE_STATUS.VALIDATED]: {
-                          key: 'validated',
-                          color: 'green',
-                          icon: '✔️',
-                          description: t('invoice.status.validatedDescription')
-                        },
-                        [INVOICE_STATUS.REJECTED]: {
+                        [QUOTE_STATUS.REJECTED]: {
                           key: 'rejected',
                           color: 'red',
                           icon: '❌',
-                          description: t('invoice.status.rejectedDescription')
+                          description: t('quote.status.rejectedDescription')
+                        },
+                        [QUOTE_STATUS.CONVERTED]: {
+                          key: 'converted',
+                          color: 'purple',
+                          icon: '🔄',
+                          description: t('quote.status.convertedDescription')
                         }
                       }[validStatus];
 
-                                             const colorClasses: { [key: string]: string } = {
-                         blue: status === validStatus ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                         green: status === validStatus ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                         yellow: status === validStatus ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                         red: status === validStatus ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                       };
+                      const colorClasses: { [key: string]: string } = {
+                        blue: status === validStatus ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                        green: status === validStatus ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                        yellow: status === validStatus ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                        red: status === validStatus ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      };
 
+                      if (!statusConfig) return null;
+                      
                       return (
                         <label
                           key={validStatus}
@@ -422,7 +429,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                             value={validStatus}
                             checked={status === validStatus}
                             onChange={(e) => {
-                              const newStatus = Number(e.target.value) as InvoiceStatus;
+                              const newStatus = e.target.value as QuoteStatus;
                               setStatus(newStatus);
                               if (errors.status) {
                                 setErrors(prev => ({ ...prev, status: undefined }));
@@ -431,21 +438,21 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                             disabled={disabled || isSubmitting}
                             className="sr-only"
                           />
-                                                     <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
-                             status === validStatus 
-                               ? statusConfig.color === 'blue' ? 'border-blue-500 bg-blue-500'
-                                 : statusConfig.color === 'green' ? 'border-green-500 bg-green-500'
-                                 : statusConfig.color === 'yellow' ? 'border-yellow-500 bg-yellow-500'
-                                 : statusConfig.color === 'red' ? 'border-red-500 bg-red-500'
-                                 : 'border-gray-300'
-                               : 'border-gray-300'
-                           }`}>
+                          <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
+                            status === validStatus 
+                              ? statusConfig.color === 'blue' ? 'border-blue-500 bg-blue-500'
+                                : statusConfig.color === 'green' ? 'border-green-500 bg-green-500'
+                                : statusConfig.color === 'yellow' ? 'border-yellow-500 bg-yellow-500'
+                                : statusConfig.color === 'red' ? 'border-red-500 bg-red-500'
+                                : 'border-gray-300'
+                              : 'border-gray-300'
+                          }`}>
                             {status === validStatus && (
                               <div className="w-2 h-2 rounded-full bg-white"></div>
                             )}
                           </div>
                           <div>
-                            <div className="font-medium">{t(`invoice.status.${statusConfig.key}`)}</div>
+                            <div className="font-medium">{t(`quote.status.${statusConfig.key}`)}</div>
                             <div className="text-xs text-gray-500">{statusConfig.description}</div>
                           </div>
                         </label>
@@ -464,33 +471,34 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-800">{t('invoice.form.linesTitle')}</h3>
+              <h3 className="text-lg font-medium text-gray-800">{t('quote.form.linesTitle')}</h3>
               <button
                 type="button"
                 onClick={addLine}
                 className="text-blue-600 hover:text-blue-700 font-medium"
                 disabled={disabled || isSubmitting}
               >
-                {t('invoice.form.addLine')}
+                {t('quote.form.addLine')}
               </button>
             </div>
 
             {lines.map((ln, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-4 mb-4 items-end">
                 {(() => {
-                  const descKey = `Lines[${idx}].Description`;
-                  const qtyKey = `Lines[${idx}].Quantity`;
-                  const priceKey = `Lines[${idx}].UnitPrice`;
-                  //const taxRateKey = `Lines[${idx}].TaxRate`;
+                                     const descKey = `Lines[${idx}].Description`;
+                   const qtyKey = `Lines[${idx}].Quantity`;
+                   const priceKey = `Lines[${idx}].UnitPrice`;
+                   const taxKey = `Lines[${idx}].TaxRate`;
 
-                  const descError = getLineErrorMessage(descKey);
-                  const qtyError = getLineErrorMessage(qtyKey);
-                  const priceError = getLineErrorMessage(priceKey);
+                   const descError = getLineErrorMessage(descKey);
+                   const qtyError = getLineErrorMessage(qtyKey);
+                   const priceError = getLineErrorMessage(priceKey);
+                   const taxError = getLineErrorMessage(taxKey);
 
                   return (
                     <>
                       <div className="col-span-6">
-                        <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.description')}</label>
+                        <label className="block text-sm text-gray-600 mb-1">{t('quote.form.description')}</label>
                         <input
                           type="text"
                           value={ln.description}
@@ -510,7 +518,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                       </div>
 
                       <div className="col-span-2">
-                        <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.quantity')}</label>
+                        <label className="block text-sm text-gray-600 mb-1">{t('quote.form.quantity')}</label>
                         <input
                           type="number"
                           value={ln.quantity}
@@ -532,7 +540,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                       </div>
 
                       <div className="col-span-2">
-                        <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.unitPrice')}</label>
+                        <label className="block text-sm text-gray-600 mb-1">{t('quote.form.unitPrice')}</label>
                         <input
                           type="number"
                           value={ln.unitPrice}
@@ -551,25 +559,28 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                         )}
                       </div>
 
-                      <div className="col-span-2">
-                        <div className="flex items-end gap-2">
-                          <div className="flex-1">
-                            <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.taxRate')}</label>
-                            <input
-                              type="number"
-                              value={ln.taxRate ?? 20}
-                              onChange={e => { updateLine(idx, 'taxRate', e.target.value); }}
-                              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate ? 'border-red-500' : 'border-gray-300'}`}
-                              disabled={disabled || isSubmitting}
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              required
-                            />
-                            {errors.lines?.[idx]?.taxRate && (
-                              <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{errors.lines[idx]?.taxRate}</div>
-                            )}
-                          </div>
+                                             <div className="col-span-2">
+                         <div className="flex items-end gap-2">
+                           <div className="flex-1">
+                             <label className="block text-sm text-gray-600 mb-1">{t('quote.form.taxRate')}</label>
+                             <input
+                               type="number"
+                               value={ln.taxRate ?? 20}
+                               onChange={e => { 
+                                 updateLine(idx, 'taxRate', e.target.value); 
+                                 clearLineError(`Lines[${idx}].TaxRate`);
+                               }}
+                               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate || taxError ? 'border-red-500' : 'border-gray-300'}`}
+                               disabled={disabled || isSubmitting}
+                               min="0"
+                               max="100"
+                               step="0.1"
+                               required
+                             />
+                             {(errors.lines?.[idx]?.taxRate || taxError) && (
+                               <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{errors.lines?.[idx]?.taxRate || taxError}</div>
+                             )}
+                           </div>
                           <button
                             type="button"
                             onClick={() => removeLine(idx)}
@@ -588,24 +599,50 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               </div>
             ))}
 
-            {/* Totals */}
             <div className="mt-6 border-t border-gray-200 pt-4">
               <div className="flex justify-end space-y-2">
                 <div className="w-64">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>{t('invoice.form.subtotal')}:</span>
+                    <span>{t('quote.form.subtotal')}:</span>
                     <span>{formatCurrency(computeTotals().subTotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>{t('invoice.form.vat', { rate: 20 })}:</span>
+                    <span>{t('quote.form.vat', { rate: 20 })}:</span>
                     <span>{formatCurrency(computeTotals().vat)}</span>
                   </div>
                   <div className="flex justify-between text-base font-medium text-gray-900">
-                    <span>{t('invoice.form.total')}:</span>
+                    <span>{t('quote.form.total')}:</span>
                     <span>{formatCurrency(computeTotals().total)}</span>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Terms & Conditions and Private Notes Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Terms & Conditions Section */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-800 mb-4">{t('quote.form.termsAndConditions')}</h3>
+              <textarea
+                value={termsAndConditions}
+                onChange={(e) => setTermsAndConditions(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical min-h-32"
+                placeholder={t('quote.form.termsAndConditionsPlaceholder')}
+                disabled={disabled || isSubmitting}
+              />
+            </div>
+
+            {/* Private Notes Section */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-800 mb-4">{t('quote.form.privateNotes')}</h3>
+              <textarea
+                value={privateNotes}
+                onChange={(e) => setPrivateNotes(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical min-h-32"
+                placeholder={t('quote.form.privateNotesPlaceholder')}
+                disabled={disabled || isSubmitting}
+              />
             </div>
           </div>
 
@@ -625,7 +662,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               }`}
               disabled={disabled || isSubmitting}
             >
-              {isSubmitting ? t('common.saving') : (invoice ? t('common.saveChanges') : t('common.createInvoice'))}
+              {isSubmitting ? t('common.saving') : (quote ? t('common.saveChanges') : t('quote.create'))}
             </button>
           </div>
         </form>
@@ -634,4 +671,4 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   );
 };
 
-export default InvoiceForm;
+export default QuoteForm; 
