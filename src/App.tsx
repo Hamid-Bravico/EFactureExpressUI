@@ -55,7 +55,7 @@ function App() {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
 
   // ─── LANGUAGE STATE ───────────────────────────────────────────────────────
-  const [language] = useState(() => {
+  const [language, setLanguage] = useState(() => {
     const savedLanguage = localStorage.getItem('language');
     return savedLanguage || 'fr';
   });
@@ -926,8 +926,8 @@ function App() {
 
   const toggleLanguage = useCallback(() => {
     const newLang = i18n.language === 'en' ? 'fr' : 'en';
-    i18n.changeLanguage(newLang);
-  }, [i18n]);
+    setLanguage(newLang);
+  }, [i18n.language]);
 
   // ─── RENDER NAVBAR ─────────────────────────────────────────────────────────
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

@@ -3,30 +3,26 @@ import { Quote } from '../types/quote.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import QuoteStatusBadge from './QuoteStatusBadge';
-import QuoteForm from './QuoteForm';
+import { getSecureJsonHeaders, API_BASE_URL } from '../../../config/api';
 
 interface QuoteDetailProps {
   quote: Quote;
-  onEdit?: (quote: Quote) => void;
-  onDelete?: (id: number) => void;
-  onStatusChange?: (id: number, status: string) => void;
+  onOptimisticStatusUpdate?: (id: number, status: string) => void;
   onConvertToInvoice?: (id: number) => Promise<void>;
   onDownloadPdf?: (id: number) => void;
   disabled?: boolean;
+  token: string | null;
 }
 
 const QuoteDetail: React.FC<QuoteDetailProps> = ({
   quote,
-  onEdit,
-  onDelete,
-  onStatusChange,
+  onOptimisticStatusUpdate,
   onConvertToInvoice,
   onDownloadPdf,
-  disabled = false
+  disabled = false,
+  token
 }) => {
   const { t, i18n } = useTranslation();
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [refreshingStatusId, setRefreshingStatusId] = useState<number | null>(null);
 
   const formatCurrency = useCallback((amount: number) => {
@@ -50,56 +46,134 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
     return new Date(dateString).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US');
   }, [i18n.language]);
 
-  const handleEdit = useCallback(() => {
-    if (onEdit) {
-      onEdit(quote);
-    } else {
-      setShowEditForm(true);
-    }
-  }, [quote, onEdit]);
-
-  const handleDelete = useCallback(() => {
-    if (onDelete) {
-      onDelete(quote.id);
-      setShowConfirmDelete(false);
-    }
-  }, [quote.id, onDelete]);
-
   const handleStatusChange = useCallback(async (newStatus: string) => {
-    if (!onStatusChange) return;
-
     setRefreshingStatusId(quote.id);
     try {
-      await onStatusChange(quote.id, newStatus);
+      if (!token) {
+        throw new Error('No valid token available');
+      }
+
+      // Map status strings to status codes
+      const statusCodeMap: { [key: string]: number } = {
+        'Sent': 1,
+        'Accepted': 2,
+        'Rejected': 3
+      };
+
+      const statusCode = statusCodeMap[newStatus];
+      if (statusCode === undefined) {
+        throw new Error(`Invalid status: ${newStatus}`);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}/status/${statusCode}`, {
+        method: 'POST',
+        headers: getSecureJsonHeaders(token)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.message || t('quote.list.statusUpdateError'));
+        } catch (parseError) {
+          throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+      }
+
+      // Call optimistic update to update UI state
+      if (onOptimisticStatusUpdate) {
+        onOptimisticStatusUpdate(quote.id, newStatus);
+      }
+      
       toast.success(t('quote.list.statusUpdateSuccess'));
     } catch (error: any) {
       toast.error(error.message || t('quote.list.statusUpdateError'));
     } finally {
       setRefreshingStatusId(null);
     }
-  }, [quote.id, onStatusChange, t]);
+  }, [quote.id, onOptimisticStatusUpdate, t, token]);
+
+  // Confirmation handlers for status changes
+  const handleMarkAsSent = useCallback(() => {
+    if (window.confirm(t('quote.confirm.markAsSent', { 
+      quoteNumber: quote.quoteNumber 
+    }))) {
+      handleStatusChange('Sent');
+    }
+  }, [handleStatusChange, quote.quoteNumber, t]);
+
+  const handleMarkAsAccepted = useCallback(() => {
+    if (window.confirm(t('quote.confirm.markAsAccepted', { 
+      quoteNumber: quote.quoteNumber 
+    }))) {
+      handleStatusChange('Accepted');
+    }
+  }, [handleStatusChange, quote.quoteNumber, t]);
+
+  const handleMarkAsRejected = useCallback(() => {
+    if (window.confirm(t('quote.confirm.markAsRejected', { 
+      quoteNumber: quote.quoteNumber 
+    }))) {
+      handleStatusChange('Rejected');
+    }
+  }, [handleStatusChange, quote.quoteNumber, t]);
 
   const handleConvertToInvoice = useCallback(async () => {
     if (!onConvertToInvoice) return;
 
     try {
+      if (!token) {
+        throw new Error('No valid token available');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}/convert-to-invoice`, {
+        method: 'POST',
+        headers: getSecureJsonHeaders(token)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || t('quote.list.convertToInvoiceError'));
+      }
+
       await onConvertToInvoice(quote.id);
       toast.success(t('quote.list.convertToInvoiceSuccess'));
     } catch (error: any) {
       toast.error(error.message || t('quote.list.convertToInvoiceError'));
     }
-  }, [quote.id, onConvertToInvoice, t]);
+  }, [quote.id, onConvertToInvoice, t, token]);
 
-  const handleDownloadPdf = useCallback(() => {
-    if (onDownloadPdf) {
-      onDownloadPdf(quote.id);
+  const handleDownloadPdf = useCallback(async () => {
+    try {
+      if (!token) {
+        throw new Error('No valid token available');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}/pdf-url`, {
+        method: 'GET',
+        headers: getSecureJsonHeaders(token)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || t('quote.actions.downloadError'));
+      }
+
+      const data = await response.json();
+      
+      // Open the PDF URL in a new tab
+      window.open(data.url, '_blank');
+      
+      if (onDownloadPdf) {
+        onDownloadPdf(quote.id);
+      }
+    } catch (error: any) {
+      toast.error(error.message || t('quote.actions.downloadError'));
     }
-  }, [quote.id, onDownloadPdf]);
+  }, [quote.id, onDownloadPdf, t, token]);
 
-  const canEditQuote = quote.status === 'Draft'; // Only draft quotes can be edited
-  const canDeleteQuote = quote.status === 'Draft'; // Only draft quotes can be deleted
-  const canChangeStatus = ['Draft', 'Sent', 'Rejected'].includes(quote.status); // Only certain statuses can be changed
-  const canConvertToInvoice = quote.status === 'Accepted'; // Only accepted quotes can be converted
+
+
 
   // Calculate totals from lines
   const calculatedSubTotal = quote.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
@@ -112,48 +186,105 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-lg font-medium text-gray-900">{t('quote.details.title')}</h4>
           
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            {canEditQuote && (
-              <button
-                onClick={handleEdit}
-                disabled={disabled}
-                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('quote.actions.edit')}
-              </button>
-            )}
-            
-            {onDownloadPdf && (
-              <button
-                onClick={handleDownloadPdf}
-                disabled={disabled}
-                className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('quote.actions.download')}
-              </button>
-            )}
-            
-            {canConvertToInvoice && onConvertToInvoice && (
-              <button
-                onClick={handleConvertToInvoice}
-                disabled={disabled}
-                className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('quote.list.convertToInvoice')}
-              </button>
-            )}
-            
-            {canDeleteQuote && onDelete && (
-              <button
-                onClick={() => setShowConfirmDelete(true)}
-                disabled={disabled}
-                className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('quote.actions.delete')}
-              </button>
-            )}
-          </div>
+                     {/* Action Buttons */}
+           <div className="flex gap-2">
+             {/* Draft Status */}
+             {quote.status === 'Draft' && (
+               <>
+                 <button
+                   onClick={handleMarkAsSent}
+                   disabled={disabled || refreshingStatusId === quote.id}
+                   className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                   {t('quote.actions.markAsSent')}
+                 </button>
+                 {onDownloadPdf && (
+                   <button
+                     onClick={handleDownloadPdf}
+                     disabled={disabled}
+                     className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {t('quote.actions.download')}
+                   </button>
+                 )}
+               </>
+             )}
+
+             {/* Sent Status */}
+             {quote.status === 'Sent' && (
+               <>
+                 <button
+                   onClick={handleMarkAsAccepted}
+                   disabled={disabled || refreshingStatusId === quote.id}
+                   className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                   {t('quote.actions.markAsAccepted')}
+                 </button>
+                 <button
+                   onClick={handleMarkAsRejected}
+                   disabled={disabled || refreshingStatusId === quote.id}
+                   className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                   {t('quote.actions.markAsRejected')}
+                 </button>
+                 {onDownloadPdf && (
+                   <button
+                     onClick={handleDownloadPdf}
+                     disabled={disabled}
+                     className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {t('quote.actions.download')}
+                   </button>
+                 )}
+               </>
+             )}
+
+             {/* Accepted Status */}
+             {quote.status === 'Accepted' && (
+               <>
+                 {onConvertToInvoice && (
+                   <button
+                     onClick={handleConvertToInvoice}
+                     disabled={disabled}
+                     className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-600 text-white border border-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {t('quote.list.convertToInvoice')}
+                   </button>
+                 )}
+                 {onDownloadPdf && (
+                   <button
+                     onClick={handleDownloadPdf}
+                     disabled={disabled}
+                     className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {t('quote.actions.download')}
+                   </button>
+                 )}
+               </>
+             )}
+
+             {/* Rejected Status */}
+             {quote.status === 'Rejected' && onDownloadPdf && (
+               <button
+                 onClick={handleDownloadPdf}
+                 disabled={disabled}
+                 className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {t('quote.actions.download')}
+               </button>
+             )}
+
+             {/* Converted Status */}
+             {quote.status === 'Converted' && onDownloadPdf && (
+               <button
+                 onClick={handleDownloadPdf}
+                 disabled={disabled}
+                 className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {t('quote.actions.download')}
+               </button>
+             )}
+           </div>
         </div>
         
         {/* Quote Information */}
@@ -253,48 +384,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         </div>
       </div>
 
-      {/* Edit Form Modal */}
-      {showEditForm && (
-        <QuoteForm
-          onSubmit={async (quoteData, customerName) => {
-            // Handle form submission
-            setShowEditForm(false);
-          }}
-          onClose={() => setShowEditForm(false)}
-          quote={quote}
-          disabled={disabled}
-        />
-      )}
 
-      {/* Delete Confirmation Modal */}
-      {showConfirmDelete && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {t('quote.detail.confirmDelete')}
-              </h3>
-              <p className="text-sm text-gray-500 mb-6">
-                {t('quote.detail.deleteWarning')}
-              </p>
-              <div className="flex justify-center space-x-3">
-                <button
-                  onClick={handleDelete}
-                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-                >
-                  {t('common.delete')}
-                </button>
-                <button
-                  onClick={() => setShowConfirmDelete(false)}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -459,6 +459,7 @@
         "dateRequired": "Date is required",
         "validUntilRequired": "Expiry date is required",
         "customerNameRequired": "Customer name is required",
+        "expiryDateAfterIssueDate": "Expiry date must be after the issue date",
         "vatRateRange": "VAT rate must be between 0 and 100",
         "descriptionRequired": "Description is required",
         "quantityPositive": "Quantity must be greater than 0",
@@ -476,7 +477,8 @@
       "privateNotes": "Private Notes",
       "termsAndConditionsPlaceholder": "Enter payment terms, project timelines, or other conditions of the offer...",
       "privateNotesPlaceholder": "Add private reminders or comments (not visible on client PDF)...",
-      "updateSuccess": "Quote updated successfully"
+      "updateSuccess": "Quote updated successfully",
+      "createSuccess": "Quote created successfully"
     },
     "filters": {
       "title": "Filters",
@@ -540,7 +542,11 @@
       "downloadJson": "Download JSON",
       "refreshStatus": "Refresh Status",
       "viewRejectionReason": "View Rejection Reason",
-      "copyDgiSubmissionId": "Copy DGI Submission ID"
+      "copyDgiSubmissionId": "Copy DGI Submission ID",
+      "markAsSent": "Mark as Sent",
+      "markAsAccepted": "Mark as Accepted", 
+      "markAsRejected": "Mark as Rejected",
+      "downloadError": "Failed to download PDF"
     },
     "details": {
       "title": "Quote Details",
@@ -576,7 +582,10 @@
     "confirm": {
       "title": "Confirm {{action}}",
       "message": "Are you sure you want to {{action}} {{count}} quote{{plural}}?{{warning}}",
-      "warning": " This action cannot be undone."
+      "warning": " This action cannot be undone.",
+      "markAsSent": "Are you sure you want to mark quote #{{quoteNumber}} as Sent? This action cannot be undone.",
+      "markAsAccepted": "Are you sure you want to mark quote #{{quoteNumber}} as Accepted? This action cannot be undone.",
+      "markAsRejected": "Are you sure you want to mark quote #{{quoteNumber}} as Rejected? This action cannot be undone."
     },
     "dgiStatus": {
       "checking": "Checking status...",
@@ -588,6 +597,38 @@
     "detail": {
       "confirmDelete": "Confirm Delete Quote",
       "deleteWarning": "This action cannot be undone. The quote will be permanently deleted."
+    },
+    "import": {
+      "title": "Import Quotes",
+      "description": "Import multiple quotes from a CSV file",
+      "instructions": "Download the template and fill it with your quote data",
+      "downloadTemplate": "Download Template",
+      "selectFile": "Select CSV File",
+      "uploading": "Uploading...",
+      "processing": "Processing...",
+      "success": "Import completed successfully",
+      "error": "Error during import",
+      "importCSV": "Import CSV",
+      "help": {
+        "title": "CSV Import Format",
+        "requiredHeaders": "Required Headers:",
+        "optionalHeaders": "Optional Headers:",
+        "requiredFields": [
+          "NumeroDevis - Quote number",
+          "DateEmission - Issue date",
+          "ClientICE - Customer ICE number",
+          "Description - Item description",
+          "Quantite - Quantity",
+          "PrixUnitaire - Unit price",
+          "TauxTVA - VAT rate"
+        ],
+        "optionalFields": [
+          "DateExpiration - Expiry date",
+          "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)",
+          "TermesConditions - Terms and conditions",
+          "NotesPrivees - Private notes"
+        ]
+      }
     }
   },
   "errors": {

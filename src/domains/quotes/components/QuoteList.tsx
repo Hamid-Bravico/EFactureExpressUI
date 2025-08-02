@@ -1,26 +1,22 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Quote, NewQuote } from '../types/quote.types';
-import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import QuoteForm from './QuoteForm';
 import QuoteDetail from './QuoteDetail';
 import QuoteStatusBadge from './QuoteStatusBadge';
-import { getSecureHeaders, getAuthHeaders } from '../../../config/api';
-import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { 
   canSelectQuoteForBulkOperation,
   QuoteStatus
 } from '../utils/quote.permissions';
-import { UserRole } from '../../../utils/shared.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
 
-interface QuoteListResponse {
+export interface QuoteListResponse {
   quotes: Array<{
     id: number;
     quoteNumber: string;
     issueDate: string;
-    expiryDate: string;
+    expiryDate?: string;
     customerName: string;
     customer?: {
       id: number;
@@ -49,6 +45,8 @@ interface QuoteListResponse {
       quoteId?: number;
     }>;
     companyId?: string;
+    termsAndConditions?: string;
+    privateNotes?: string;
   }>;
   pagination: {
     totalItems: number;
@@ -68,15 +66,16 @@ interface QuoteListProps {
   onDelete: (id: number) => void;
   onDownloadPdf: (id: number) => void;
   onSubmit: (id: number) => void;
-  onCreateQuote: (quote: NewQuote) => Promise<void>;
+  onCreateQuote: (quote: NewQuote, customerName?: string) => Promise<void>;
   onUpdateQuote: (quote: NewQuote, customerName?: string) => Promise<void>;
   onRefreshQuotes: (filters?: any, sort?: any, pagination?: any) => Promise<void>;
   disabled?: boolean;
-
+  token: string | null;
 
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onBulkSubmit?: (ids: number[]) => Promise<void>;
   onUpdateQuoteStatus?: (id: number, status: string) => void;
+  onOptimisticQuoteStatusUpdate?: (id: number, status: string) => void;
   onConvertToInvoice?: (id: number) => Promise<void>;
 }
 
@@ -97,6 +96,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   onSubmit,
   onCreateQuote,
   onUpdateQuote,
+  token,
   onRefreshQuotes,
   disabled = false,
 
@@ -104,6 +104,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   onBulkDelete,
   onBulkSubmit,
   onUpdateQuoteStatus,
+  onOptimisticQuoteStatusUpdate,
   onConvertToInvoice
 }) => {
   const { t, i18n } = useTranslation();
@@ -112,12 +113,9 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [editingQuote, setEditingQuote] = useState<Quote | undefined>();
   const [showFilters, setShowFilters] = useState(false);
-  const [showBulkActions, setShowBulkActions] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState<{ type: 'submit' | 'delete'; count: number } | null>(null);
   const [rejectionModal, setRejectionModal] = useState<{ quoteId: number; reason: string } | null>(null);
-  const [refreshingStatusId, setRefreshingStatusId] = useState<number | null>(null);
   const [downloadDropdownOpenId, setDownloadDropdownOpenId] = useState<number | null>(null);
-  const [fetchingJsonId, setFetchingJsonId] = useState<number | null>(null);
   const downloadDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   // Filter and sort state
@@ -341,7 +339,6 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
         }
       }
       setSelectedQuotes(new Set());
-      setShowBulkActions(false);
     } catch (error) {
       toast.error(
         t('errors.bulkActionFailed', { 
@@ -363,17 +360,6 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     }
   }, [onDelete, t]);
 
-  const handleSubmit = useCallback((id: number) => {
-    if (window.confirm(t('quote.confirm.message', { 
-      action: t('quote.actions.submit'),
-      count: 1,
-      plural: '',
-      warning: ''
-    }))) {
-      onSubmit(id);
-    }
-  }, [onSubmit, t]);
-
   // Handle page size change
   const handlePageSizeChange = useCallback((newPageSize: number) => {
     setPageSize(newPageSize);
@@ -384,78 +370,12 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     onRefreshQuotes(filters, sortParams, { page: 1, pageSize: newPageSize });
   }, [filters, sortField, sortDirection, onRefreshQuotes]);
 
-  const handleBulkAction = useCallback(async (action: 'delete' | 'submit') => {
-    if (selectedQuotes.size === 0) return;
-
-    const actionFunction = action === 'delete' ? onBulkDelete : onBulkSubmit;
-    if (!actionFunction) return;
-
-    try {
-      await actionFunction(Array.from(selectedQuotes));
-      setSelectedQuotes(new Set());
-      toast.success(t(`quote.list.bulkActions.${action}Success`, { count: selectedQuotes.size }));
-    } catch (error: any) {
-      toast.error(error.message || t(`quote.list.bulkActions.${action}Error`));
-    }
-  }, [selectedQuotes, onBulkDelete, onBulkSubmit, t]);
-
-  const handleStatusChange = useCallback(async (quoteId: number, newStatus: string) => {
-    if (!onUpdateQuoteStatus) return;
-
-    setRefreshingStatusId(quoteId);
-    try {
-      await onUpdateQuoteStatus(quoteId, newStatus);
-      toast.success(t('quote.list.statusUpdateSuccess'));
-    } catch (error: any) {
-      toast.error(error.message || t('quote.list.statusUpdateError'));
-    } finally {
-      setRefreshingStatusId(null);
-    }
-  }, [onUpdateQuoteStatus, t]);
-
-  const handleConvertToInvoice = useCallback(async (quoteId: number) => {
-    if (!onConvertToInvoice) return;
-
-    try {
-      await onConvertToInvoice(quoteId);
-      toast.success(t('quote.list.convertToInvoiceSuccess'));
-    } catch (error: any) {
-      toast.error(error.message || t('quote.list.convertToInvoiceError'));
-    }
-  }, [onConvertToInvoice, t]);
-
   const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat(i18n.language, {
       style: 'currency',
       currency: 'MAD',
     }).format(amount);
   }, [i18n.language]);
-
-  const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleDateString(i18n.language);
-  }, [i18n.language]);
-
-  const getQuoteStatusLabel = useCallback((status: number) => {
-    switch (status) {
-      case 0: return t('quote.status.draft');
-      case 1: return t('quote.status.sent');
-      case 2: return t('quote.status.accepted');
-      case 3: return t('quote.status.rejected');
-      case 4: return t('quote.status.expired');
-      default: return t('quote.status.unknown');
-    }
-  }, [t]);
-
-  const getQuoteStatusColor = useCallback((status: number) => {
-    switch (status) {
-      case 0: return 'gray';
-      case 1: return 'blue';
-      case 2: return 'green';
-      case 3: return 'red';
-      case 4: return 'yellow';
-      default: return 'gray';
-    }
-  }, []);
 
   const canEditQuote = useCallback((quote: any) => {
     return quote.status === 'Draft'; // Only draft quotes can be edited
@@ -464,66 +384,6 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   const canDeleteQuote = useCallback((quote: any) => {
     return userRole === 'Admin' || userRole === 'Manager' || quote.status === 'Draft';
   }, [userRole]);
-
-  const canChangeStatus = useCallback((quote: any) => {
-    return userRole === 'Admin' || userRole === 'Manager';
-  }, [userRole]);
-
-  const canConvertToInvoice = useCallback((quote: any) => {
-    return quote.status === 'Accepted'; // Only accepted quotes can be converted
-  }, []);
-
-  const sortedQuotes = useMemo(() => {
-    if (!data?.quotes) return [];
-    
-    let sorted = [...data.quotes];
-    
-    if (sortField) {
-      sorted.sort((a, b) => {
-        let aValue: any, bValue: any;
-        
-        switch (sortField) {
-          case 'date':
-            aValue = new Date(a.issueDate).getTime();
-            bValue = new Date(b.issueDate).getTime();
-            break;
-          case 'expiryDate':
-            aValue = a.expiryDate ? new Date(a.expiryDate).getTime() : 0;
-            bValue = b.expiryDate ? new Date(b.expiryDate).getTime() : 0;
-            break;
-          case 'quoteNumber':
-            aValue = a.quoteNumber.toLowerCase();
-            bValue = b.quoteNumber.toLowerCase();
-            break;
-          case 'customer':
-            aValue = a.customerName.toLowerCase();
-            bValue = b.customerName.toLowerCase();
-            break;
-          case 'total':
-            aValue = a.total;
-            bValue = b.total;
-            break;
-          case 'status':
-            aValue = a.status;
-            bValue = b.status;
-            break;
-          default:
-            return 0;
-        }
-        
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    
-    return sorted;
-  }, [data?.quotes, sortField, sortDirection]);
-
-  const handleCreateQuote = useCallback(() => {
-    setEditingQuote(undefined);
-    setShowQuoteForm(true);
-  }, []);
 
   const handleEditQuote = useCallback((quoteData: any) => {
     // Map the quote data to match the Quote interface
@@ -555,7 +415,9 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
         name: quoteData.createdBy,
         email: ''
       },
-      vatRate: quoteData.vatRate
+      vatRate: quoteData.vatRate,
+      termsAndConditions: quoteData.termsAndConditions,
+      privateNotes: quoteData.privateNotes
     };
     setEditingQuote(quote);
     setShowQuoteForm(true);
@@ -566,7 +428,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
       if (editingQuote) {
         await onUpdateQuote(quoteData, customerName);
       } else {
-        await onCreateQuote(quoteData);
+        await onCreateQuote(quoteData, customerName);
       }
       setShowQuoteForm(false);
     } catch (error: any) {
@@ -1018,7 +880,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                            />
                          </div>
                        </td>
-                       <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                              <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
                          <div className="flex items-center justify-end gap-1.5 relative">
                            {canEditQuote(quote) && (
                              <button
@@ -1032,70 +894,6 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                              >
                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                               </svg>
-                             </button>
-                           )}
-                           
-                           {quote.status === 'Draft' && (
-                             <button
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 handleSubmit(quote.id);
-                               }}
-                               className="text-green-600 hover:text-green-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-green-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-green-200"
-                               disabled={disabled}
-                               title={t('quote.actions.submit')}
-                             >
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                               </svg>
-                             </button>
-                           )}
-                           
-                           <button
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               onDownloadPdf(quote.id);
-                             }}
-                             className="text-purple-600 hover:text-purple-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-purple-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-purple-200"
-                             disabled={disabled}
-                             title={t('quote.actions.download')}
-                           >
-                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                             </svg>
-                           </button>
-                           
-                           {canChangeStatus(quote) && (
-                             <select
-                               value={quote.status}
-                               onChange={(e) => {
-                                 e.stopPropagation();
-                                 handleStatusChange(quote.id, e.target.value);
-                               }}
-                               disabled={disabled || refreshingStatusId === quote.id}
-                               className="text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                             >
-                               <option value="Draft">{t('quote.status.draft')}</option>
-                               <option value="Sent">{t('quote.status.sent')}</option>
-                               <option value="Accepted">{t('quote.status.accepted')}</option>
-                               <option value="Rejected">{t('quote.status.rejected')}</option>
-                               <option value="Converted">{t('quote.status.converted')}</option>
-                             </select>
-                           )}
-                           
-                           {canConvertToInvoice(quote) && onConvertToInvoice && (
-                             <button
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 handleConvertToInvoice(quote.id);
-                               }}
-                               className="text-green-600 hover:text-green-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-green-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-green-200"
-                               disabled={disabled}
-                               title={t('quote.list.convertToInvoice')}
-                             >
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                </svg>
                              </button>
                            )}
@@ -1149,14 +947,15 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                                  createdById: quote.createdById || '',
                                  name: quote.createdBy,
                                  email: ''
-                               }
+                               },
+                               termsAndConditions: quote.termsAndConditions,
+                               privateNotes: quote.privateNotes
                              }}
-                             onEdit={handleEditQuote}
-                             onDelete={onDelete}
-                             onStatusChange={onUpdateQuoteStatus}
+                             onOptimisticStatusUpdate={onOptimisticQuoteStatusUpdate}
                              onConvertToInvoice={onConvertToInvoice}
                              onDownloadPdf={onDownloadPdf}
                              disabled={disabled}
+                             token={token}
                            />
                          </td>
                        </tr>

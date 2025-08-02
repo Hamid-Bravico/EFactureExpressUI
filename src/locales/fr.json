@@ -121,7 +121,6 @@
     "serverError": "Erreur serveur. Veuillez réessayer plus tard.",
     "unauthorized": "Accès non autorisé. Veuillez vous reconnecter.",
     "bulkActionFailed": "Échec de {{action}} des factures : {{error}}",
-    "unknown": "Erreur inconnue",
     "invoiceNotFound": "Facture introuvable",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
     "registrationFailed": "Échec de l'inscription. Veuillez réessayer.",
@@ -145,7 +144,10 @@
     "companyNameRequired": "Le nom de l'entreprise est requis.",
     "ICERequired": "Le numéro ICE est requis.",
     "emailRequired": "L'adresse email est requise.",
-    "passwordRequired": "Le mot de passe est requis."
+    "passwordRequired": "Le mot de passe est requis.",
+    "failedToLoadQuotes": "Échec du chargement des devis",
+    "tryRefreshing": "Veuillez essayer de rafraîchir la page ou contacter le support si le problème persiste.",
+    "unknown": "Une erreur inconnue s'est produite"
   },
   "success": {
     "invoiceCreated": "Facture créée avec succès.",
@@ -458,6 +460,7 @@
         "dateRequired": "La date est requise",
         "validUntilRequired": "La date d'expiration est requise",
         "customerNameRequired": "Le nom du client est requis",
+        "expiryDateAfterIssueDate": "La date d'expiration doit être postérieure à la date d'émission",
         "vatRateRange": "Le taux de TVA doit être compris entre 0 et 100",
         "descriptionRequired": "La description est requise",
         "quantityPositive": "La quantité doit être supérieure à 0",
@@ -475,7 +478,8 @@
       "privateNotes": "Notes privées",
       "termsAndConditionsPlaceholder": "Saisissez les conditions de paiement, les délais du projet ou autres conditions de l'offre...",
       "privateNotesPlaceholder": "Ajoutez des rappels privés ou commentaires (non visibles sur le PDF client)...",
-      "updateSuccess": "Devis mis à jour avec succès"
+      "updateSuccess": "Devis mis à jour avec succès",
+      "createSuccess": "Devis créé avec succès"
     },
     "filters": {
       "title": "Filtres",
@@ -539,7 +543,11 @@
       "downloadJson": "Télécharger JSON",
       "refreshStatus": "Actualiser le statut",
       "viewRejectionReason": "Voir la raison du rejet",
-      "copyDgiSubmissionId": "Copier l'ID de soumission DGI"
+      "copyDgiSubmissionId": "Copier l'ID de soumission DGI",
+      "markAsSent": "Marquer comme envoyé",
+      "markAsAccepted": "Marquer comme accepté", 
+      "markAsRejected": "Marquer comme rejeté",
+      "downloadError": "Échec du téléchargement du PDF"
     },
     "details": {
       "title": "Détails du devis",
@@ -575,7 +583,10 @@
     "confirm": {
       "title": "Confirmer {{action}}",
       "message": "Êtes-vous sûr de vouloir {{action}} {{count}} devis{{plural}} ?{{warning}}",
-      "warning": " Cette action ne peut pas être annulée."
+      "warning": " Cette action ne peut pas être annulée.",
+      "markAsSent": "Êtes-vous sûr de vouloir marquer le devis #{{quoteNumber}} comme envoyé ? Cette action ne peut pas être annulée.",
+      "markAsAccepted": "Êtes-vous sûr de vouloir marquer le devis #{{quoteNumber}} comme accepté ? Cette action ne peut pas être annulée.",
+      "markAsRejected": "Êtes-vous sûr de vouloir marquer le devis #{{quoteNumber}} comme rejeté ? Cette action ne peut pas être annulée."
     },
     "dgiStatus": {
       "checking": "Vérification du statut...",
@@ -587,13 +598,39 @@
     "detail": {
       "confirmDelete": "Confirmer la suppression du devis",
       "deleteWarning": "Cette action ne peut pas être annulée. Le devis sera définitivement supprimé."
+    },
+    "import": {
+      "title": "Importer des devis",
+      "description": "Importer plusieurs devis depuis un fichier CSV",
+      "instructions": "Téléchargez le modèle et remplissez-le avec vos données de devis",
+      "downloadTemplate": "Télécharger le modèle",
+      "selectFile": "Sélectionner un fichier CSV",
+      "uploading": "Téléchargement...",
+      "processing": "Traitement...",
+      "success": "Import terminé avec succès",
+      "error": "Erreur lors de l'import",
+      "importCSV": "Importer CSV",
+      "help": {
+        "title": "Format d'import CSV",
+        "requiredHeaders": "En-têtes requis :",
+        "optionalHeaders": "En-têtes optionnels :",
+        "requiredFields": [
+          "NumeroDevis - Numéro de devis",
+          "DateEmission - Date d'émission",
+          "ClientICE - Numéro ICE du client",
+          "Description - Description de l'article",
+          "Quantite - Quantité",
+          "PrixUnitaire - Prix unitaire",
+          "TauxTVA - Taux de TVA"
+        ],
+        "optionalFields": [
+          "DateExpiration - Date d'expiration",
+          "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)",
+          "TermesConditions - Termes et conditions",
+          "NotesPrivees - Notes privées"
+        ]
+      }
     }
-  },
-  "errors": {
-    "failedToLoadQuotes": "Échec du chargement des devis",
-    "tryRefreshing": "Veuillez essayer de rafraîchir la page ou contacter le support si le problème persiste.",
-    "bulkActionFailed": "Échec de {{action}} des devis : {{error}}",
-    "unknown": "Une erreur inconnue s'est produite"
   },
   "confirmations": {
     "deleteInvoice": "Êtes-vous sûr de vouloir supprimer cette facture ?",

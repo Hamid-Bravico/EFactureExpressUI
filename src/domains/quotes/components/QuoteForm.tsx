@@ -3,15 +3,10 @@ import { NewQuote, NewLine, Quote } from '../types/quote.types';
 import { Customer } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { getSecureHeaders, getAuthHeaders } from '../../../config/api';
-import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
+import { getAuthHeaders } from '../../../config/api';
 import { 
-  getValidQuoteStatusTransitions, 
-  canChangeQuoteStatus,
-  QuoteStatus,
   QUOTE_STATUS
 } from '../utils/quote.permissions';
-import { UserRole } from '../../../utils/shared.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
 
 interface QuoteFormProps {
@@ -25,7 +20,6 @@ interface FormErrors {
   issueDate?: string;
   expiryDate?: string;
   customerId?: string;
-  status?: string;
   lines?: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } };
 }
 
@@ -39,7 +33,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
   const [expiryDate, setExpiryDate] = useState(quote?.expiryDate || "");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerId, setCustomerId] = useState<number | null>(quote?.customer?.id || null);
-  const [status, setStatus] = useState(quote?.status || QUOTE_STATUS.DRAFT);
+  const [status, setStatus] = useState(quote ? quote.status : QUOTE_STATUS.DRAFT);
   const [termsAndConditions, setTermsAndConditions] = useState(quote?.termsAndConditions || "");
   const [privateNotes, setPrivateNotes] = useState(quote?.privateNotes || "");
   const [lines, setLines] = useState<NewLine[]>(
@@ -55,7 +49,6 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendErrors, setBackendErrors] = useState<BackendErrorResponse>({});
-  const userRole = tokenManager.getUserRole() as UserRole || 'Clerk';
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL || '/api'}/customers`, {
@@ -89,7 +82,12 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     const newErrors: FormErrors = {};
     if (!issueDate) newErrors.issueDate = t('quote.form.errors.issueDateRequired');
     if (!customerId) newErrors.customerId = t('quote.form.errors.customerNameRequired');
-    if (status !== QUOTE_STATUS.DRAFT && status !== QUOTE_STATUS.SENT && status !== QUOTE_STATUS.ACCEPTED && status !== QUOTE_STATUS.REJECTED && status !== QUOTE_STATUS.CONVERTED) newErrors.status = t('quote.form.errors.invalidStatus');
+    
+    // Validate expiry date is after issue date
+    if (expiryDate && issueDate && new Date(expiryDate) <= new Date(issueDate)) {
+      newErrors.expiryDate = t('quote.form.errors.expiryDateAfterIssueDate');
+    }
+    
     const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } } = {};
     let hasValidLine = false;
     lines.forEach((line, index) => {
@@ -250,7 +248,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     } catch (error: any) {
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
-        toast.error(t('quote.form.errors.submissionError'));
+        // Don't show toast here as it will be handled by the parent component
       } else if (error.title) {
         toast.error(error.title);
       } else if (error.message) {
@@ -284,9 +282,16 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800">
-            {quote ? t('quote.form.editTitle') : t('quote.form.createTitle')}
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">
+              {quote ? t('quote.form.editTitle') : t('quote.form.createTitle')}
+            </h2>
+            {quote && (
+              <p className="text-sm text-gray-600 mt-1">
+                {t('quote.form.quoteNumber')}: <span className="font-medium">{quote.quoteNumber}</span>
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500 focus:outline-none"
@@ -365,108 +370,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
                 <div className="text-red-500 text-xs mt-1">{errors.customerId || getQuoteErrorMessage('customerId')}</div>
               )}
             </div>
-            {canChangeQuoteStatus(userRole, quote?.status as QuoteStatus || QUOTE_STATUS.DRAFT) && (
-              <div className="col-span-2">
-                <label className="block text-sm text-gray-600 mb-3">{t('quote.form.status')}</label>
-                <div className="flex flex-wrap gap-4">
-                  {(() => {
-                    const currentStatus = quote?.status as QuoteStatus || QUOTE_STATUS.DRAFT;
-                    const validTransitions = getValidQuoteStatusTransitions(userRole, currentStatus);
-                    
-                    return validTransitions.map((validStatus) => {
-                      const statusConfig = {
-                        [QUOTE_STATUS.DRAFT]: {
-                          key: 'draft',
-                          color: 'blue',
-                          icon: '📝',
-                          description: t('quote.status.draftDescription')
-                        },
-                        [QUOTE_STATUS.SENT]: {
-                          key: 'sent',
-                          color: 'yellow',
-                          icon: '📤',
-                          description: t('quote.status.sentDescription')
-                        },
-                        [QUOTE_STATUS.ACCEPTED]: {
-                          key: 'accepted',
-                          color: 'green',
-                          icon: '✅',
-                          description: t('quote.status.acceptedDescription')
-                        },
-                        [QUOTE_STATUS.REJECTED]: {
-                          key: 'rejected',
-                          color: 'red',
-                          icon: '❌',
-                          description: t('quote.status.rejectedDescription')
-                        },
-                        [QUOTE_STATUS.CONVERTED]: {
-                          key: 'converted',
-                          color: 'purple',
-                          icon: '🔄',
-                          description: t('quote.status.convertedDescription')
-                        }
-                      }[validStatus];
 
-                      const colorClasses: { [key: string]: string } = {
-                        blue: status === validStatus ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                        green: status === validStatus ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                        yellow: status === validStatus ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                        red: status === validStatus ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                      };
-
-                      if (!statusConfig) return null;
-                      
-                      return (
-                        <label
-                          key={validStatus}
-                          className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                            colorClasses[statusConfig.color]
-                          } ${(disabled || isSubmitting) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <input
-                            type="radio"
-                            name="status"
-                            value={validStatus}
-                            checked={status === validStatus}
-                            onChange={(e) => {
-                              const newStatus = e.target.value as QuoteStatus;
-                              setStatus(newStatus);
-                              if (errors.status) {
-                                setErrors(prev => ({ ...prev, status: undefined }));
-                              }
-                            }}
-                            disabled={disabled || isSubmitting}
-                            className="sr-only"
-                          />
-                          <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${
-                            status === validStatus 
-                              ? statusConfig.color === 'blue' ? 'border-blue-500 bg-blue-500'
-                                : statusConfig.color === 'green' ? 'border-green-500 bg-green-500'
-                                : statusConfig.color === 'yellow' ? 'border-yellow-500 bg-yellow-500'
-                                : statusConfig.color === 'red' ? 'border-red-500 bg-red-500'
-                                : 'border-gray-300'
-                              : 'border-gray-300'
-                          }`}>
-                            {status === validStatus && (
-                              <div className="w-2 h-2 rounded-full bg-white"></div>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{t(`quote.status.${statusConfig.key}`)}</div>
-                            <div className="text-xs text-gray-500">{statusConfig.description}</div>
-                          </div>
-                        </label>
-                      );
-                    });
-                  })()}
-                </div>
-                {errors.status && (
-                  <div className="text-red-500 text-xs mt-1">
-                    {errors.status}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">

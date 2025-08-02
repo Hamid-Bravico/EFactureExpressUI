@@ -1,64 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
-import { Quote, NewQuote } from '../types/quote.types';
+import { NewQuote } from '../types/quote.types';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import QuoteList from './QuoteList';
+import QuoteList, { QuoteListResponse } from './QuoteList';
+import QuoteImportCSV from './QuoteImportCSV';
 
 import QuoteForm from './QuoteForm';
-import { tokenManager } from '../../../utils/tokenManager';
 
 interface QuoteManagementProps {
   token: string | null;
-}
-
-interface QuoteListResponse {
-  quotes: Array<{
-    id: number;
-    quoteNumber: string;
-    issueDate: string;
-    expiryDate: string;
-    customerName: string;
-    customer?: {
-      id: number;
-      name: string;
-      ice?: string;
-      taxId?: string;
-      address?: string;
-      email?: string;
-      phoneNumber?: string;
-    };
-    customerId?: number;
-    total: number;
-    status: string;
-    createdBy: string;
-    createdById?: string;
-    createdAt: string;
-    subTotal: number;
-    vat: number;
-    lines: Array<{
-      id?: number;
-      description: string;
-      quantity: number;
-      unitPrice: number;
-      total: number;
-      taxRate?: number;
-      quoteId?: number;
-    }>;
-    companyId?: string;
-    validUntil?: string;
-  }>;
-  pagination: {
-    totalItems: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
-  filters: {
-    statuses: Array<{ value: string; label: string; count: number; }>;
-    customers: Array<{ value: string; label: string; count: number; }>;
-  };
 }
 
 const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
@@ -66,6 +18,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   const [quotes, setQuotes] = useState<QuoteListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
 
   const [showQuoteForm, setShowQuoteForm] = useState(false);
 
@@ -116,18 +69,84 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
     fetchQuotes();
   }, [fetchQuotes]);
 
-  const handleCreateQuote = useCallback(async (quote: NewQuote) => {
-    console.log(quote);
+  const handleCreateQuote = useCallback(async (quote: NewQuote, customerName?: string) => {
     try {
+      // Create temporary quote for optimistic update
+      const tempQuote = {
+        id: Date.now(), // Temporary ID
+        quoteNumber: `TEMP-${Date.now()}`,
+        issueDate: quote.issueDate,
+        expiryDate: quote.expiryDate,
+        customerName: customerName || 'Loading...',
+        customer: {
+          id: quote.customerId,
+          name: customerName || 'Loading...'
+        },
+        customerId: quote.customerId,
+        total: quote.total,
+        status: quote.status || 'Draft',
+        createdBy: 'Current User',
+        createdById: '',
+        createdAt: new Date().toISOString(),
+        subTotal: quote.subTotal,
+        vat: quote.vat,
+        lines: quote.lines.map(line => ({
+          id: Date.now() + Math.random(),
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          total: line.quantity * line.unitPrice,
+          quoteId: Date.now(),
+          taxRate: line.taxRate
+        })),
+        companyId: '',
+        termsAndConditions: quote.termsAndConditions,
+        privateNotes: quote.privateNotes
+      };
+
+      // Optimistically add the quote
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: [tempQuote, ...prev!.quotes],
+          pagination: {
+            ...prev!.pagination,
+            totalItems: prev!.pagination.totalItems + 1,
+            totalPages: Math.ceil((prev!.pagination.totalItems + 1) / prev!.pagination.pageSize)
+          }
+        }));
+      }
+
+      // Prepare the request body with customer object
+      const requestBody = {
+        ...quote,
+        customer: {
+          id: quote.customerId,
+          name: customerName || ''
+        }
+      };
+
       const res = await fetch(QUOTE_ENDPOINTS?.CREATE || '/api/quotes', {
         method: 'POST',
         headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(quote),
+        body: JSON.stringify(requestBody),
       });
 
       if (!res.ok) {
+        // Revert optimistic update
+        if (quotes) {
+          setQuotes(prev => ({
+            ...prev!,
+            quotes: prev!.quotes.filter(q => q.id !== tempQuote.id),
+            pagination: {
+              ...prev!.pagination,
+              totalItems: prev!.pagination.totalItems - 1,
+              totalPages: Math.ceil((prev!.pagination.totalItems - 1) / prev!.pagination.pageSize)
+            }
+          }));
+        }
+
         const errorData = await res.json();
-        console.log('Backend error data:', errorData);
         const error = new Error(errorData.message || t('quote.form.errors.submissionFailed'));
         (error as any).errors = errorData.errors;
         throw error;
@@ -135,15 +154,69 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
       const data = await res.json();
       toast.success(t('quote.form.createSuccess'));
-      fetchQuotes();
+      
+      // Replace temporary quote with real data
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => q.id === tempQuote.id ? data : q)
+        }));
+      }
     } catch (error: any) {
       toast.error(error.message || t('quote.form.errors.submissionFailed'));
       throw error;
     }
-  }, [token, t, fetchQuotes]);
+  }, [token, t, quotes]);
 
   const handleUpdateQuote = useCallback(async (quote: NewQuote, customerName?: string) => {
+    if (!quote.id) {
+      toast.error(t('quote.form.errors.submissionFailed'));
+      return;
+    }
+
     try {
+      // Store original quote for rollback
+      const originalQuote = quotes?.quotes.find(q => q.id === quote.id);
+      if (!originalQuote) throw new Error('Quote not found');
+
+      // Optimistically update the quote
+      const updatedQuote = {
+        ...originalQuote,
+        issueDate: quote.issueDate,
+        expiryDate: quote.expiryDate,
+        customerName: customerName || originalQuote.customerName,
+        customer: {
+          id: quote.customerId,
+          name: customerName || originalQuote.customer?.name || originalQuote.customerName
+        },
+        customerId: quote.customerId,
+        subTotal: quote.subTotal,
+        vat: quote.vat,
+        total: quote.total,
+        status: quote.status,
+        lines: quote.lines.map(line => ({
+          id: Date.now() + Math.random(),
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          total: line.quantity * line.unitPrice,
+          quoteId: quote.id!,
+          taxRate: line.taxRate
+        })),
+        termsAndConditions: quote.termsAndConditions,
+        privateNotes: quote.privateNotes
+      };
+
+      // Apply optimistic update
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => 
+            q.id === quote.id! ? updatedQuote : q
+          )
+        }));
+      }
+
       const res = await fetch(QUOTE_ENDPOINTS?.UPDATE?.(quote.id!) || `/api/quotes/${quote.id}`, {
         method: 'PUT',
         headers: getSecureJsonHeaders(token),
@@ -151,88 +224,307 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       });
 
       if (!res.ok) {
+        // Revert optimistic update
+        if (quotes) {
+          setQuotes(prev => ({
+            ...prev!,
+            quotes: prev!.quotes.map(q => 
+              q.id === quote.id! ? originalQuote : q
+            )
+          }));
+        }
+
         const errorData = await res.json();
         const error = new Error(errorData.message || t('quote.form.errors.submissionFailed'));
         (error as any).errors = errorData.errors;
         throw error;
       }
 
+      // Check if response has content before trying to parse
+      const responseText = await res.text();
+      if (responseText.trim()) {
+        try {
+          const serverUpdatedQuote = JSON.parse(responseText);
+          // Update with server response to ensure consistency
+          if (quotes) {
+            setQuotes(prev => ({
+              ...prev!,
+              quotes: prev!.quotes.map(q => 
+                q.id === quote.id! ? { ...serverUpdatedQuote, customerName: customerName || q.customerName } : q
+              )
+            }));
+          }
+        } catch (parseError) {
+          // If response is not valid JSON, keep the optimistic update
+        }
+      }
+
       toast.success(t('quote.form.updateSuccess'));
-      fetchQuotes();
     } catch (error: any) {
       toast.error(error.message || t('quote.form.errors.submissionFailed'));
       throw error;
     }
-  }, [token, t, fetchQuotes]);
+  }, [token, t, quotes]);
 
   const handleDeleteQuote = useCallback(async (id: number) => {
-    try {
-      console.log('Attempting to delete quote:', id);
-      const url = QUOTE_ENDPOINTS?.DELETE?.(id) || `/api/quotes/${id}`;
-      console.log('Delete URL:', url);
-      
-             const res = await fetch(url, {
-         method: 'DELETE',
-         headers: getSecureHeaders(token),
-       });
+    const toastId = toast.loading(t('common.deletingQuote'));
+    
+    // Store original data for rollback
+    const originalData = quotes;
+    const originalQuote = quotes?.quotes.find(q => q.id === id);
+    if (!originalQuote) {
+      toast.error(t('quote.list.deleteError'), { id: toastId });
+      return;
+    }
 
-      console.log('Delete response status:', res.status);
-      console.log('Delete response ok:', res.ok);
+    // Check if this deletion will make the page incomplete
+    const willPageBeIncomplete = quotes && 
+      quotes.quotes.length === quotes.pagination.pageSize && 
+      quotes.pagination.page < quotes.pagination.totalPages;
+
+    try {      
+      // Optimistically remove the quote
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.filter(q => q.id !== id),
+          pagination: {
+            ...prev!.pagination,
+            totalItems: prev!.pagination.totalItems - 1,
+            totalPages: Math.ceil((prev!.pagination.totalItems - 1) / prev!.pagination.pageSize)
+          }
+        }));
+      }
+
+      const url = QUOTE_ENDPOINTS?.DELETE?.(id) || `/api/quotes/${id}`;
+      const res = await fetch(url, {
+        method: 'DELETE',
+        headers: getSecureHeaders(token),
+      });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.log('Delete error response:', errorText);
+        // Revert optimistic update
+        setQuotes(originalData);
+        //const errorText = await res.text();
         throw new Error(t('quote.list.deleteError'));
       }
 
-      toast.success(t('quote.list.deleteSuccess', { count: 1 }));
-      fetchQuotes();
+      // If the page will be incomplete, refresh the current page data
+      if (willPageBeIncomplete) {
+        // Silently refresh the current page to get the missing items
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', quotes!.pagination.page.toString());
+        queryParams.append('pageSize', quotes!.pagination.pageSize.toString());
+        
+        try {
+          const response = await fetch(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
+            headers: getAuthHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setQuotes(refreshedData);
+          }
+        } catch (error) {
+          // Failed to refresh page data
+        }
+      }
+
+      toast.success(t('quote.list.deleteSuccess', { count: 1 }), { id: toastId });
     } catch (error: any) {
       console.error('Delete quote error:', error);
-      toast.error(error.message || t('quote.list.deleteError'));
+      toast.error(error.message || t('quote.list.deleteError'), { id: toastId });
     }
-  }, [token, t, fetchQuotes]);
+  }, [token, t, quotes]);
 
   const handleBulkDelete = useCallback(async (ids: number[]) => {
+    const toastId = toast.loading(t('quote.bulk.deleting', { count: ids.length }));
+    
+    // Store original data for rollback
+    const originalData = quotes;
+    
+    // Check if this bulk deletion will make the page incomplete
+    const willPageBeIncomplete = quotes && 
+      quotes.quotes.length === quotes.pagination.pageSize && 
+      ids.length > 0 && 
+      quotes.pagination.page < quotes.pagination.totalPages;
+    
     try {
-      const res = await fetch(QUOTE_ENDPOINTS?.BULK_DELETE || '/api/quotes/bulk-delete', {
-        method: 'DELETE',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify({ ids }),
-      });
-
-      if (!res.ok) {
-        throw new Error(t('quote.list.bulkDeleteError'));
+      // Optimistically remove all quotes
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.filter(q => !ids.includes(q.id)),
+          pagination: {
+            ...prev!.pagination,
+            totalItems: prev!.pagination.totalItems - ids.length,
+            totalPages: Math.ceil((prev!.pagination.totalItems - ids.length) / prev!.pagination.pageSize)
+          }
+        }));
       }
 
-      toast.success(t('quote.list.bulkDeleteSuccess', { count: ids.length }));
-      fetchQuotes();
-    } catch (error: any) {
-      toast.error(error.message || t('quote.list.bulkDeleteError'));
+      // Perform all delete operations
+      await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(QUOTE_ENDPOINTS?.DELETE?.(id) || `/api/quotes/${id}`, {
+            method: 'DELETE',
+            headers: getSecureHeaders(token),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: t('quote.list.deleteError') }));
+            throw new Error(errorData.message || t('quote.list.deleteError'));
+          }
+        })
+      );
+      
+      // If the page will be incomplete, refresh the current page data
+      if (willPageBeIncomplete) {
+        // Silently refresh the current page to get the missing items
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', quotes!.pagination.page.toString());
+        queryParams.append('pageSize', quotes!.pagination.pageSize.toString());
+        
+        try {
+          const response = await fetch(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
+            headers: getAuthHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setQuotes(refreshedData);
+          }
+        } catch (error) {
+          // Failed to refresh page data
+        }
+      }
+      
+      toast.success(t('quote.list.bulkDeleteSuccess', { count: ids.length }), { id: toastId });
+    } catch (err) {
+      // Revert all optimistic updates
+      setQuotes(originalData);
+      
+      const errorMessage = err instanceof Error ? err.message : t('quote.list.bulkDeleteError');
+      toast.error(errorMessage, { id: toastId });
     }
-  }, [token, t, fetchQuotes]);
+  }, [token, t, quotes]);
 
   const handleBulkSubmit = useCallback(async (ids: number[]) => {
+    const toastId = toast.loading(t('quote.bulk.submitting', { count: ids.length }));
+    
+    // Store original quotes for rollback
+    const originalQuotes = quotes?.quotes.filter(q => ids.includes(q.id)) || [];
+    
     try {
-      const res = await fetch(QUOTE_ENDPOINTS?.BULK_SUBMIT || '/api/quotes/bulk-submit', {
-        method: 'POST',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify({ ids }),
-      });
-
-      if (!res.ok) {
-        throw new Error(t('quote.list.bulkSubmitError'));
+      // Optimistically update all quotes to "Sent" status
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => 
+            ids.includes(q.id) ? { ...q, status: 'Sent' } : q
+          )
+        }));
       }
 
-      toast.success(t('quote.list.bulkSubmitSuccess', { count: ids.length }));
-      fetchQuotes();
-    } catch (error: any) {
-      toast.error(error.message || t('quote.list.bulkSubmitError'));
+      // Perform all submit operations
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`, {
+            method: 'POST',
+            headers: getSecureHeaders(token),
+          });
+
+          if (!response.ok) {
+            let errorData;
+            try {
+              errorData = await response.json();
+            } catch {
+              errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+            }
+            throw new Error(errorData.message || t('quote.list.submitError'));
+          }
+
+          // Check if response has content before trying to parse
+          const responseText = await response.text();
+          if (responseText.trim()) {
+            try {
+              const result = JSON.parse(responseText);
+              return result;
+            } catch (parseError) {
+              // If response is not valid JSON, return empty object
+              return {};
+            }
+          } else {
+            // If response is empty, return empty object
+            return {};
+          }
+        })
+      );
+      
+      // Update with server responses if needed
+      results.forEach((result, index) => {
+        if (result && typeof result === 'object' && Object.keys(result).length > 0) {
+          // If there's additional data from server, update accordingly
+          if (quotes) {
+            setQuotes(prev => ({
+              ...prev!,
+              quotes: prev!.quotes.map(q => 
+                q.id === ids[index] ? { ...q, status: 'Sent', ...result } : q
+              )
+            }));
+          }
+        }
+      });
+      
+      toast.success(t('quote.list.bulkSubmitSuccess', { count: ids.length }), { id: toastId });
+    } catch (err) {
+      // Revert all optimistic updates
+      if (quotes && originalQuotes.length > 0) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => {
+            const originalQuote = originalQuotes.find(orig => orig.id === q.id);
+            return originalQuote || q;
+          })
+        }));
+      }
+      
+      const errorMessage = err instanceof Error ? err.message : t('quote.list.bulkSubmitError');
+      toast.error(errorMessage, { id: toastId });
     }
-  }, [token, t, fetchQuotes]);
+  }, [token, t, quotes]);
+
+  // Add optimistic status update function for UI responsiveness
+  const handleOptimisticQuoteStatusUpdate = useCallback((id: number, status: string) => {
+    if (quotes) {
+      setQuotes(prev => ({
+        ...prev!,
+        quotes: prev!.quotes.map(q => 
+          q.id === id ? { ...q, status } : q
+        )
+      }));
+    }
+  }, [quotes]);
 
   const handleUpdateQuoteStatus = useCallback(async (id: number, status: string) => {
+    // Store original quote for rollback
+    const originalQuote = quotes?.quotes.find(q => q.id === id);
+    if (!originalQuote) {
+      toast.error(t('quote.list.statusUpdateError'));
+      return;
+    }
+
     try {
+      // Optimistically update the status
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => 
+            q.id === id ? { ...q, status } : q
+          )
+        }));
+      }
+
       const res = await fetch(QUOTE_ENDPOINTS?.UPDATE_STATUS?.(id) || `/api/quotes/${id}/status`, {
         method: 'PUT',
         headers: getSecureJsonHeaders(token),
@@ -240,35 +532,68 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       });
 
       if (!res.ok) {
+        // Revert optimistic update
+        if (quotes) {
+          setQuotes(prev => ({
+            ...prev!,
+            quotes: prev!.quotes.map(q => 
+              q.id === id ? originalQuote : q
+            )
+          }));
+        }
         throw new Error(t('quote.list.statusUpdateError'));
       }
 
       toast.success(t('quote.list.statusUpdateSuccess'));
-      fetchQuotes();
     } catch (error: any) {
       toast.error(error.message || t('quote.list.statusUpdateError'));
       throw error;
     }
-  }, [token, t, fetchQuotes]);
+  }, [token, t, quotes]);
 
   const handleConvertToInvoice = useCallback(async (id: number) => {
+    // Store original quote for rollback
+    const originalQuote = quotes?.quotes.find(q => q.id === id);
+    if (!originalQuote) {
+      toast.error(t('quote.list.convertToInvoiceError'));
+      return;
+    }
+
     try {
+      // Optimistically update quote status to converted
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => 
+            q.id === id ? { ...q, status: 'Converted' } : q
+          )
+        }));
+      }
+
       const res = await fetch(QUOTE_ENDPOINTS?.CONVERT_TO_INVOICE?.(id) || `/api/quotes/${id}/convert-to-invoice`, {
         method: 'POST',
         headers: getAuthHeaders(token),
       });
 
       if (!res.ok) {
+        // Revert optimistic update
+        if (quotes) {
+          setQuotes(prev => ({
+            ...prev!,
+            quotes: prev!.quotes.map(q => 
+              q.id === id ? originalQuote : q
+            )
+          }));
+        }
         throw new Error(t('quote.list.convertToInvoiceError'));
       }
 
       toast.success(t('quote.list.convertToInvoiceSuccess'));
-      fetchQuotes();
     } catch (error: any) {
       toast.error(error.message || t('quote.list.convertToInvoiceError'));
       throw error;
     }
-  }, [token, t, fetchQuotes]);
+  }, [token, t, quotes]);
 
   const handleDownloadPdf = useCallback(async (id: number) => {
     try {
@@ -297,24 +622,100 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   }, [token, t]);
 
   const handleSubmitQuote = useCallback(async (id: number) => {
+    // Store original quote for rollback
+    const originalQuote = quotes?.quotes.find(q => q.id === id);
+    if (!originalQuote) {
+      toast.error(t('quote.list.submitError'));
+      return;
+    }
+
     try {
+      // Optimistically update quote status to sent
+      if (quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => 
+            q.id === id ? { ...q, status: 'Sent' } : q
+          )
+        }));
+      }
+
       const res = await fetch(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`, {
         method: 'POST',
         headers: getAuthHeaders(token),
       });
 
       if (!res.ok) {
+        // Revert optimistic update
+        if (quotes) {
+          setQuotes(prev => ({
+            ...prev!,
+            quotes: prev!.quotes.map(q => 
+              q.id === id ? originalQuote : q
+            )
+          }));
+        }
         throw new Error(t('quote.list.submitError'));
       }
 
       toast.success(t('quote.list.submitSuccess'));
-      fetchQuotes();
     } catch (error: any) {
       toast.error(error.message || t('quote.list.submitError'));
     }
+  }, [token, t, quotes]);
+
+  const handleImportCSV = useCallback(async (file: File) => {
+    setImportLoading(true);
+    const toastId = toast.loading(t('common.importingCSV'));
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(QUOTE_ENDPOINTS.IMPORT_CSV, {
+        method: "POST",
+        headers: getSecureHeaders(token),
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.status === 401) {
+        toast.error(t('common.unauthorized'), { id: toastId });
+        return;
+      }
+
+      if (!response.ok) {
+        let errorMessages: string[] = [];
+        
+        // Handle general errors
+        if (data.errors && Array.isArray(data.errors)) {
+          errorMessages = [...data.errors];
+        }
+        
+        // Handle row-specific errors
+        if (data.rowErrors && Array.isArray(data.rowErrors)) {
+          const rowErrorMessages = data.rowErrors.map((rowError: { rowNumber: number; errors: string[] }) => {
+            return `Row ${rowError.rowNumber}:\n${rowError.errors.join('\n')}`;
+          });
+          errorMessages = [...errorMessages, ...rowErrorMessages];
+        }
+
+        if (errorMessages.length > 0) {
+          throw new Error(errorMessages.join('\n'));
+        }
+        
+        throw new Error(t('errors.failedToImportCSV'));
+      }
+      
+      await fetchQuotes();
+      toast.success(t('success.csvImported'), { id: toastId });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t('errors.failedToImportCSV');
+      toast.error(errorMessage, { id: toastId });
+    } finally {
+      setImportLoading(false);
+    }
   }, [token, t, fetchQuotes]);
-
-
 
   if (error) {
     return (
@@ -336,10 +737,12 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <div></div>
+        <QuoteImportCSV onImport={handleImportCSV} loading={importLoading} />
         <button
           onClick={() => setShowQuoteForm(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors ${
+            importLoading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+          }`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -358,10 +761,12 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           onCreateQuote={handleCreateQuote}
           onUpdateQuote={handleUpdateQuote}
           onRefreshQuotes={fetchQuotes}
+          token={token}
 
           onBulkDelete={handleBulkDelete}
           onBulkSubmit={handleBulkSubmit}
           onUpdateQuoteStatus={handleUpdateQuoteStatus}
+          onOptimisticQuoteStatusUpdate={handleOptimisticQuoteStatusUpdate}
           onConvertToInvoice={handleConvertToInvoice}
         />
       </div>

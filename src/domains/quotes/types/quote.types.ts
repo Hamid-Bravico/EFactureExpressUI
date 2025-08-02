@@ -13,7 +13,7 @@ export interface Quote {
   id: number;
   quoteNumber: string;
   issueDate: string;
-  expiryDate: string;
+  expiryDate?: string;
   customer: { id: number; name: string };
   subTotal: number;
   vat: number;
