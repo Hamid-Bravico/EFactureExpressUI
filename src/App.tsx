@@ -5,6 +5,7 @@ import Dashboard from "./components/Dashboard";
 import InvoiceList from "./components/InvoiceList";
 import ImportCSV from "./components/ImportCSV";
 import InvoiceForm from "./components/InvoiceForm";
+import QuoteManagement from "./components/QuoteManagement";
 import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import Users from "./components/Users";
@@ -985,6 +986,20 @@ function App() {
                       {t('common.invoices')}
                     </NavLink>
                     <NavLink
+                      to="/quotes"
+                      className={({ isActive }) =>
+                        `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
+                        ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                        after:absolute after:left-3 after:right-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-blue-500 after:scale-x-0 after:transition-transform after:duration-200
+                        hover:after:scale-x-100 focus:after:scale-x-100 ${isActive ? 'after:scale-x-100' : ''}`
+                      }
+                    >
+                      <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      </svg>
+                      {t('common.quotes')}
+                    </NavLink>
+                    <NavLink
                       to="/customers"
                       className={({ isActive }) =>
                         `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
@@ -1049,6 +1064,22 @@ function App() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         {t('common.invoices')}
+                      </NavLink>
+                      <NavLink
+                        to="/quotes"
+                        className={({ isActive }) =>
+                          `inline-flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${
+                            isActive
+                              ? "bg-blue-50 text-blue-700 shadow-sm"
+                              : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                          }`
+                        }
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        {t('common.quotes')}
                       </NavLink>
                       <NavLink
                         to="/customers"
@@ -1274,6 +1305,14 @@ function App() {
                           />
                         )}
                       </div>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/quotes"
+                  element={
+                    <ProtectedRoute>
+                      <QuoteManagement token={token} />
                     </ProtectedRoute>
                   }
                 />
