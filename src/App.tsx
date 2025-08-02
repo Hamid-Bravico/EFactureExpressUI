@@ -17,6 +17,7 @@ import { APP_CONFIG } from "./config/app";
 import { Toaster, toast } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './components/ErrorPage';
+import ErrorModal from './components/ErrorModal';
 import { useTranslation } from 'react-i18next';
 import ProtectedRoute from './components/ProtectedRoute';
 import { decodeJWT } from "./utils/jwt";
@@ -53,6 +54,17 @@ function App() {
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    details?: string[];
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    details: []
+  });
 
   // ─── LANGUAGE STATE ───────────────────────────────────────────────────────
   const [language, setLanguage] = useState(() => {
@@ -721,48 +733,50 @@ function App() {
         body: formData,
       });
 
-      const data = await response.json();
-
       if (response.status === 401) {
         tokenManager.clearAuthData();
         setToken(null);
         return;
       }
 
-      if (!response.ok) {
-        let errorMessages: string[] = [];
-        
-        // Handle general errors
-        if (data.errors && Array.isArray(data.errors)) {
-          errorMessages = [...data.errors];
-        }
-        
-        // Handle row-specific errors
-        if (data.rowErrors && Array.isArray(data.rowErrors)) {
-          const rowErrorMessages = data.rowErrors.map((rowError: { rowNumber: number; errors: string[] }) => {
-            return `Row ${rowError.rowNumber}:\n${rowError.errors.join('\n')}`;
-          });
-          errorMessages = [...errorMessages, ...rowErrorMessages];
-        }
-
-        if (errorMessages.length > 0) {
-          throw new Error(errorMessages.join('\n'));
-        }
-        
-        throw new Error(t('errors.failedToImportCSV'));
+      if (response.status === 500) {
+        toast.error(t('errors.unexpectedError'), { id: toastId });
+        return;
       }
-      
-      await fetchInvoices();
-      toast.success(t('success.csvImported'), { id: toastId });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Success response (200 OK)
+        const count = data.data?.count || 0;
+        toast.success(data.message || t('success.invoicesImported', { count }), { id: toastId });
+        await fetchInvoices();
+      } else {
+        // Validation error response (400/409) - Show in modal
+        const errorMessage = data.message || t('errors.failedToImportCSV');
+        const details = data.details && Array.isArray(data.details) ? data.details : [];
+        
+        // Dismiss the loading toast before showing the modal
+        toast.dismiss(toastId);
+        
+        setErrorModal({
+          isOpen: true,
+          title: t('common.error'),
+          message: errorMessage,
+          details: details
+        });
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
-      // If the error message contains multiple lines (from array of errors), show them in a more readable format
-      const displayMessage = errorMessage.includes('\n') 
-        ? `${t('errors.failedToImportCSV')}:\n${errorMessage}`
-        : `${t('errors.failedToImportCSV')}: ${errorMessage}`;
-      toast.error(displayMessage, { 
-        id: toastId,
-        duration: 5000, // Show for 5 seconds since there might be multiple errors
+      const errorMessage = err instanceof Error ? err.message : t('errors.failedToImportCSV');
+      
+      // Dismiss the loading toast before showing the modal
+      toast.dismiss(toastId);
+      
+      setErrorModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: errorMessage,
+        details: []
       });
     } finally {
       setImportLoading(false);
@@ -1307,6 +1321,14 @@ function App() {
                             disabled={importLoading}
                           />
                         )}
+
+                        <ErrorModal
+                          isOpen={errorModal.isOpen}
+                          onClose={() => setErrorModal(prev => ({ ...prev, isOpen: false }))}
+                          title={errorModal.title}
+                          message={errorModal.message}
+                          details={errorModal.details}
+                        />
                       </div>
                     </ProtectedRoute>
                   }

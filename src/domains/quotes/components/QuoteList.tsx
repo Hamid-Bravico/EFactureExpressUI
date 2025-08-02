@@ -377,6 +377,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     }).format(amount);
   }, [i18n.language]);
 
+  const isQuoteExpired = useCallback((expiryDate?: string) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+  }, []);
+
   const canEditQuote = useCallback((quote: any) => {
     return quote.status === 'Draft'; // Only draft quotes can be edited
   }, []);
@@ -589,7 +594,8 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                 <option value="1">{t('quote.status.sent')}</option>
                 <option value="2">{t('quote.status.accepted')}</option>
                 <option value="3">{t('quote.status.rejected')}</option>
-                <option value="4">{t('quote.status.expired')}</option>
+                <option value="4">{t('quote.status.converted')}</option>
+                <option value="5">{t('quote.list.expired')}</option>
               </select>
             </div>
 
@@ -852,6 +858,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                            </svg>
                            {quote.expiryDate ? new Date(quote.expiryDate).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US') : '-'}
+                                                 {isQuoteExpired(quote.expiryDate) && (
+                        <span className="ml-1 px-1 py-0 text-xs font-medium text-red-600 bg-red-100 rounded text-[10px]">
+                          {t('quote.list.expired')}
+                        </span>
+                      )}
                          </div>
                        </td>
                        <td className="px-4 py-2 whitespace-nowrap">

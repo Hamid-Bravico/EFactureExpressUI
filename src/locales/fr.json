@@ -93,7 +93,8 @@
     "of": "sur",
     "results": "résultats",
     "show": "Afficher",
-    "perPage": "par page"
+    "perPage": "par page",
+    "errorDetails": "Détails de l'erreur"
   },
   "auth": {
     "tokenRefreshed": "Session actualisée avec succès",
@@ -147,7 +148,9 @@
     "passwordRequired": "Le mot de passe est requis.",
     "failedToLoadQuotes": "Échec du chargement des devis",
     "tryRefreshing": "Veuillez essayer de rafraîchir la page ou contacter le support si le problème persiste.",
-    "unknown": "Une erreur inconnue s'est produite"
+    "unknown": "Une erreur inconnue s'est produite",
+    "unexpectedError": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+    "failedToImportCSV": "Échec de l'importation du fichier CSV."
   },
   "success": {
     "invoiceCreated": "Facture créée avec succès.",
@@ -156,7 +159,9 @@
     "invoiceSubmitted": "Facture soumise avec succès.",
     "bulkInvoicesDeleted": "{{count}} facture(s) supprimée(s) avec succès.",
     "bulkInvoicesSubmitted": "{{count}} facture(s) soumise(s) avec succès.",
-    "csvImported": "CSV importé avec succès.",
+    "csvImported": "{{count}} éléments ont été importés avec succès.",
+    "quotesImported": "{{count}} devis ont été importés avec succès.",
+    "invoicesImported": "{{count}} factures ont été importées avec succès.",
     "pdfReady": "Le PDF est prêt à être téléchargé.",
     "userCreated": "Utilisateur créé avec succès.",
     "userUpdated": "Utilisateur mis à jour avec succès.",
@@ -533,7 +538,8 @@
         "submitError": "Échec de la soumission des devis",
         "deleteSuccess": "{{count}} devis supprimés avec succès",
         "deleteError": "Échec de la suppression des devis"
-      }
+      },
+      "expired": "Expiré"
     },
     "actions": {
       "edit": "Modifier le devis",
