@@ -121,27 +121,16 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
   const handleConvertToInvoice = useCallback(async () => {
     if (!onConvertToInvoice) return;
 
+    if (!window.confirm(t('quote.confirm.convertToInvoice', {
+      quoteNumber: quote.quoteNumber
+    }))) return;
+
     try {
-      if (!token) {
-        throw new Error('No valid token available');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}/convert-to-invoice`, {
-        method: 'POST',
-        headers: getSecureJsonHeaders(token)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || t('quote.list.convertToInvoiceError'));
-      }
-
       await onConvertToInvoice(quote.id);
-      toast.success(t('quote.list.convertToInvoiceSuccess'));
     } catch (error: any) {
-      toast.error(error.message || t('quote.list.convertToInvoiceError'));
+      // Error handling is done in the parent component
     }
-  }, [quote.id, onConvertToInvoice, t, token]);
+  }, [quote.id, quote.quoteNumber, onConvertToInvoice, t]);
 
   const handleDownloadPdf = useCallback(async () => {
     try {
@@ -304,7 +293,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
             <h5 className="font-medium text-gray-900 mb-2">{t('quote.details.customerInfo')}</h5>
             <div className="space-y-1 text-gray-600">
               <div><span className="font-medium">{t('quote.details.customerName')}:</span> {quote.customer.name}</div>
-              <div><span className="font-medium">{t('quote.details.customerId')}:</span> {quote.customer.id}</div>
+              <div><span className="font-medium">{t('quote.details.ice')}:</span> {quote.customer.ice || t('common.notAvailable')}</div>
             </div>
           </div>
         </div>

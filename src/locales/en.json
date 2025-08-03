@@ -94,7 +94,8 @@
     "results": "results",
     "show": "Show",
     "perPage": "per page",
-    "errorDetails": "Error Details"
+    "errorDetails": "Error Details",
+    "notAvailable": "N/A"
   },
   "auth": {
     "tokenRefreshed": "Session refreshed successfully",
@@ -288,11 +289,15 @@
       "customer": "Customer",
       "amount": "Amount",
       "actions": "Actions",
-      "status": "Status"
+      "status": "Status",
+      "statusUpdateSuccess": "Invoice status updated successfully",
+      "statusUpdateError": "Failed to update invoice status"
     },
     "actions": {
       "edit": "Edit Invoice",
       "submit": "Submit to DGI",
+      "makeReady": "Make Ready",
+      "backToDraft": "Back to Draft",
       "download": "Download PDF",
       "delete": "Delete Invoice",
       "downloadJson": "Download JSON",
@@ -330,7 +335,9 @@
     "confirm": {
       "title": "Confirm {{action}}",
       "message": "Are you sure you want to {{action}} {{count}} invoice{{plural}}?{{warning}}",
-      "warning": " This action cannot be undone."
+      "warning": " This action cannot be undone.",
+      "makeReady": "Are you sure you want to mark invoice #{{invoiceNumber}} as Ready?",
+      "backToDraft": "Are you sure you want to mark invoice #{{invoiceNumber}} as Draft?"
     },
     "dgiStatus": {
       "checking": "Checking status...",
@@ -529,7 +536,7 @@
       "bulkDelete": "Delete Selected",
       "statusUpdateSuccess": "Quote status updated successfully",
       "statusUpdateError": "Failed to update quote status",
-      "convertToInvoiceSuccess": "Quote converted to invoice successfully",
+      "convertToInvoiceSuccess": "Quote converted to invoice successfully. Invoice number: {{invoiceNumber}}",
       "convertToInvoiceError": "Failed to convert quote to invoice",
       "convertToInvoice": "Convert to Invoice",
       "bulkActions": {
@@ -552,7 +559,8 @@
       "markAsSent": "Mark as Sent",
       "markAsAccepted": "Mark as Accepted", 
       "markAsRejected": "Mark as Rejected",
-      "downloadError": "Failed to download PDF"
+      "downloadError": "Failed to download PDF",
+      "downloadSuccess": "PDF downloaded successfully"
     },
     "details": {
       "title": "Quote Details",
@@ -589,9 +597,10 @@
       "title": "Confirm {{action}}",
       "message": "Are you sure you want to {{action}} {{count}} quote{{plural}}?{{warning}}",
       "warning": " This action cannot be undone.",
-      "markAsSent": "Are you sure you want to mark quote #{{quoteNumber}} as Sent? This action cannot be undone.",
-      "markAsAccepted": "Are you sure you want to mark quote #{{quoteNumber}} as Accepted? This action cannot be undone.",
-      "markAsRejected": "Are you sure you want to mark quote #{{quoteNumber}} as Rejected? This action cannot be undone."
+      "markAsSent": "Are you sure you want to mark quote #{{quoteNumber}} as Sent?",
+      "markAsAccepted": "Are you sure you want to mark quote #{{quoteNumber}} as Accepted?",
+      "markAsRejected": "Are you sure you want to mark quote #{{quoteNumber}} as Rejected?",
+      "convertToInvoice": "Are you sure you want to convert quote #{{quoteNumber}} to invoice?"
     },
     "dgiStatus": {
       "checking": "Checking status...",

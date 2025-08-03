@@ -1,15 +1,14 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Invoice, NewInvoice } from '../types/invoice.types';
-import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
+import InvoiceDetail from './InvoiceDetail';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
-import { getSecureHeaders, getAuthHeaders } from '../../../config/api';
-import { INVOICE_ENDPOINTS } from '../api/invoice.endpoints';
 import { 
   getInvoiceActionPermissions, 
   canSelectForBulkOperation,
+  canDeleteInvoice,
   InvoiceStatus
 } from '../utils/invoice.permissions';
 import { UserRole } from '../../../utils/shared.permissions';
@@ -122,32 +121,8 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   } | null>(null);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>();
-  const [fetchingJsonId, setFetchingJsonId] = useState<number | null>(null);
-  const [downloadDropdownOpenId, setDownloadDropdownOpenId] = useState<number | null>(null);
-  const downloadDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-  const [refreshingStatusId, setRefreshingStatusId] = useState<number | null>(null);
-  const [rejectionModal, setRejectionModal] = useState<{ invoiceId: number; reason: string } | null>(null);
 
-  // Close dropdown on outside click
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        downloadDropdownOpenId !== null &&
-        downloadDropdownRefs.current[downloadDropdownOpenId] &&
-        !downloadDropdownRefs.current[downloadDropdownOpenId]?.contains(event.target as Node)
-      ) {
-        setDownloadDropdownOpenId(null);
-      }
-    }
-    if (downloadDropdownOpenId !== null) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [downloadDropdownOpenId]);
+
 
 
 
@@ -183,9 +158,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     function handleKeyDown(event: KeyboardEvent) {
       // Close dropdowns on Escape
       if (event.key === 'Escape') {
-        setDownloadDropdownOpenId(null);
         setShowConfirmDialog(null);
-        setRejectionModal(null);
       }
       
       // Select all with Ctrl+A
@@ -455,84 +428,14 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     }
   }, [onSubmit, t]);
 
-  const handleDownloadJson = useCallback(async (invoiceId: number) => {
-    setFetchingJsonId(invoiceId);
-    try {
-      const token = tokenManager.getToken();
-      if (!token) throw new Error('No token');
-      const res = await fetch(INVOICE_ENDPOINTS.JSON(invoiceId), {
-        headers: getAuthHeaders(token), // Using regular headers for read operations
-      });
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      if (data.url) {
-        window.open(data.url, '_blank');
-      } else {
-        throw new Error('No URL');
-      }
-    } catch(err) {
-      toast.error('Failed to fetch JSON. Make sure Compliance Mode is enabled.');
-    } finally {
-      setFetchingJsonId(null);
-    }
+  // Helper functions for Edit/Delete buttons (similar to QuoteList pattern)
+  const canEditInvoice = useCallback((invoice: any) => {
+    return invoice.status === 0; // Only draft invoices can be edited
   }, []);
 
-  const handleRefreshDgiStatus = useCallback(async (invoiceId: number) => {
-    setRefreshingStatusId(invoiceId);
-    const toastId = toast.loading(t('invoice.dgiStatus.checking'));
-    
-    try {
-      const token = tokenManager.getToken();
-      if (!token) {
-        throw new Error('No token');
-      }
-      
-              const res = await fetch(INVOICE_ENDPOINTS.DGI_STATUS(invoiceId), {
-          headers: getAuthHeaders(token), // Using regular headers for read operations
-        });
-      
-      if (!res.ok) {
-        throw new Error(`Failed to fetch DGI status: ${res.status}`);
-      }
-      
-      const data: DgiStatusResponse = await res.json();
-      
-      switch (data.status) {
-        case 'PendingValidation':
-          toast.success(t('invoice.dgiStatus.stillPending'), { id: toastId });
-          break;
-          
-        case 'Validated':
-          toast.success(t('invoice.status.validated'), { id: toastId });
-          // Optimistically update the invoice status
-          if (onUpdateInvoiceStatus) {
-            onUpdateInvoiceStatus(invoiceId, 3);
-          }
-          break;
-          
-        case 'Rejected':
-          toast.error(t('invoice.status.rejected'), { id: toastId });
-          const rejectionReason = data.errors.length > 0 
-            ? data.errors.map(error => error.errorMessage).join('; ') 
-            : 'No specific reason provided';
-          setRejectionModal({ invoiceId, reason: rejectionReason });
-          // Optimistically update the invoice status
-          if (onUpdateInvoiceStatus) {
-            onUpdateInvoiceStatus(invoiceId, 4, undefined, rejectionReason);
-          }
-          break;
-          
-        default:
-          toast.error(`Unknown DGI status received: ${data.status}`, { id: toastId });
-          break;
-      }
-    } catch (error) {
-      toast.error(t('invoice.dgiStatus.errorChecking'), { id: toastId });
-    } finally {
-      // Always clear the loading state
-      setRefreshingStatusId(null);
-    }
-  }, [t, onUpdateInvoiceStatus]);
+  const canDeleteInvoiceLocal = useCallback((invoice: any) => {
+    return canDeleteInvoice(userRole, invoice.status);
+  }, [userRole]);
 
 
 
@@ -980,352 +883,91 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                           <InvoiceStatusBadge 
                             status={invoice.status}
                             dgiSubmissionId={invoice.dgiSubmissionId}
-                            onShowRejectionReason={invoice.status === 4 ? () => {
-                              // Use the DgiRejectionReason from the invoice if available
-                              const reason = invoice.dgiRejectionReason || 'Rejection reason not available. Please refresh status to get the latest details.';
-                              setRejectionModal({ invoiceId: invoice.id, reason });
-                            } : undefined}
-                            
                           />
                         </div>
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-1.5 relative">
-                          {invoice.status === 2 ? (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRefreshDgiStatus(invoice.id);
-                                }}
-                                disabled={refreshingStatusId === invoice.id}
-                                className="text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-blue-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-blue-200"
-                                title={t('invoice.actions.refreshStatus')}
-                              >
-                                {refreshingStatusId === invoice.id ? (
-                                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                  </svg>
-                                ) : (
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                )}
-                              </button>
-                              {/* Vertical separator before download dropdown */}
-                              <span className="mx-1 h-6 border-l border-gray-200 align-middle inline-block"></span>
-                              <div
-                                className="relative inline-block"
-                                ref={el => { downloadDropdownRefs.current[invoice.id] = el; }}>
-                                <button
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    setDownloadDropdownOpenId(downloadDropdownOpenId === invoice.id ? null : invoice.id);
-                                  }}
-                                  className="text-gray-600 hover:text-gray-900 p-1"
-                                  title={t('invoice.actions.download')}
-                                >
-                                  {/* Standard download icon: arrow down into tray */}
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5 5 5-5" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V3" />
-                                  </svg>
-                                </button>
-                                {downloadDropdownOpenId === invoice.id && (
-                                  <div className="fixed z-50 w-48 bg-white border border-gray-200 rounded shadow-lg" style={{
-                                    top: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.bottom || 0) + 8,
-                                    left: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.right || 0) - 192
-                                  }}>
-                                    <button
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        setDownloadDropdownOpenId(null);
-                                        onDownloadPdf(invoice.id);
-                                      }}
-                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                      title={t('invoice.actions.download')}
-                                    >
-                                      {/* PDF icon */}
-                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                        <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
-                                        <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#e53e3e">PDF</text>
-                                      </svg>
-                                      {t('invoice.actions.download')}
-                                    </button>
-                                    <button
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        setDownloadDropdownOpenId(null);
-                                        handleDownloadJson(invoice.id);
-                                      }}
-                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                      title={t('invoice.actions.downloadJson')}
-                                      disabled={fetchingJsonId === invoice.id}
-                                    >
-                                      {/* JSON icon */}
-                                      {fetchingJsonId === invoice.id ? (
-                                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                        </svg>
-                                      ) : (
-                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                          <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
-                                          <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#3182ce">&#123;&#125;</text>
-                                        </svg>
-                                      )}
-                                      {t('invoice.actions.downloadJson')}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              {(() => {
-                                const permissions = getInvoiceActionPermissions(userRole, invoice.status as InvoiceStatus);
-                                return (
-                                  <>
-                                    {permissions.canEdit && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditInvoice(invoice);
-                                        }}
-                                        className="text-blue-600 hover:text-blue-700 p-1.5 rounded-lg transition-all duration-200 hover:bg-blue-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-blue-200 group/action"
-                                        title={t('invoice.actions.edit')}
-                                      >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                      </button>
-                                    )}
-                                    {permissions.canSubmit && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSubmit(invoice.id);
-                                        }}
-                                        className="text-green-600 hover:text-green-700 p-1.5 rounded-lg transition-all duration-200 hover:bg-green-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-green-200"
-                                        title={t('invoice.actions.submit')}
-                                      >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                        </svg>
-                                      </button>
-                                    )}
-                                    {permissions.canDelete && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDelete(invoice.id);
-                                        }}
-                                        className="text-red-600 hover:text-red-700 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-red-200"
-                                        title={t('invoice.actions.delete')}
-                                      >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                      </button>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                              
-                              {/* Vertical separator before download dropdown */}
-                              <span className="mx-1 h-6 border-l border-gray-200 align-middle inline-block"></span>
-                              <div
-                                className="relative inline-block"
-                                ref={el => { downloadDropdownRefs.current[invoice.id] = el; }}>
-                                <button
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    setDownloadDropdownOpenId(downloadDropdownOpenId === invoice.id ? null : invoice.id);
-                                  }}
-                                  className="text-gray-600 hover:text-gray-900 p-1"
-                                  title={t('invoice.actions.download')}
-                                >
-                                  {/* Standard download icon: arrow down into tray */}
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5 5 5-5" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V3" />
-                                  </svg>
-                                </button>
-                                {downloadDropdownOpenId === invoice.id && (
-                                  <div className="fixed z-50 w-48 bg-white border border-gray-200 rounded shadow-lg" style={{
-                                    top: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.bottom || 0) + 8,
-                                    left: (downloadDropdownRefs.current[invoice.id]?.getBoundingClientRect()?.right || 0) - 192
-                                  }}>
-                                    <button
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        setDownloadDropdownOpenId(null);
-                                        onDownloadPdf(invoice.id);
-                                      }}
-                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                      title={t('invoice.actions.download')}
-                                    >
-                                      {/* PDF icon */}
-                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                        <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
-                                        <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#e53e3e">PDF</text>
-                                      </svg>
-                                      {t('invoice.actions.download')}
-                                    </button>
-                                    <button
-                                      onClick={e => {
-                                        e.stopPropagation();
-                                        setDownloadDropdownOpenId(null);
-                                        handleDownloadJson(invoice.id);
-                                      }}
-                                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                      title={t('invoice.actions.downloadJson')}
-                                      disabled={fetchingJsonId === invoice.id}
-                                    >
-                                      {/* JSON icon */}
-                                      {fetchingJsonId === invoice.id ? (
-                                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                        </svg>
-                                      ) : (
-                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                          <rect x="4" y="3" width="16" height="18" rx="2" fill="#fff" stroke="currentColor" strokeWidth="2"/>
-                                          <text x="7" y="17" fontSize="7" fontWeight="bold" fill="#3182ce">&#123;&#125;</text>
-                                        </svg>
-                                      )}
-                                      {t('invoice.actions.downloadJson')}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </>
+                          {canEditInvoice(invoice) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditInvoice(invoice);
+                              }}
+                              className="text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-blue-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-blue-200"
+                              disabled={disabled}
+                              title={t('common.edit')}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          )}
+                          
+                          {canDeleteInvoiceLocal(invoice) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(invoice.id);
+                              }}
+                              className="text-red-600 hover:text-red-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-red-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-red-200"
+                              disabled={disabled}
+                              title={t('common.delete')}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
                           )}
                         </div>
                       </td>
                     </tr>
                     {selectedInvoice === invoice.id && (
                       <tr>
-                        <td colSpan={5} className="px-6 py-4 bg-gray-50">
-                          <div className="bg-white rounded-lg border border-gray-200 p-4">
-                            <h4 className="text-sm font-medium text-gray-900 mb-3">{t('invoice.details.title')}</h4>
-                            
-                            {/* Warnings Display */}
-                            {invoice.warnings && invoice.warnings.length > 0 && (
-                              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <div className="flex items-center">
-                                  <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
-                                  </svg>
-                                  <h5 className="text-sm font-medium text-yellow-800">{t('invoice.details.warnings')}</h5>
-                                </div>
-                                <ul className="mt-2 text-sm text-yellow-700">
-                                  {invoice.warnings.map((warning, index) => (
-                                    <li key={index} className="flex items-start">
-                                      <span className="mr-2">•</span>
-                                      <span>{warning}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {/* Invoice Information */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
-                              <div>
-                                <h5 className="font-medium text-gray-900 mb-2">{t('invoice.details.invoiceInfo')}</h5>
-                                <div className="space-y-1 text-gray-600">
-                                  <div><span className="font-medium">{t('invoice.details.invoiceNumber')}:</span> {invoice.invoiceNumber}</div>
-                                  <div><span className="font-medium">{t('invoice.details.date')}:</span> {new Date(invoice.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}</div>
-                                  <div><span className="font-medium">{t('invoice.details.status')}:</span> <InvoiceStatusBadge status={invoice.status} /></div>
-                                  {invoice.dgiSubmissionId && (
-                                    <div><span className="font-medium">{t('invoice.details.dgiSubmissionId')}:</span> {invoice.dgiSubmissionId}</div>
-                                  )}
-                                </div>
-                              </div>
-                              <div>
-                                <h5 className="font-medium text-gray-900 mb-2">{t('invoice.details.customerInfo')}</h5>
-                                <div className="space-y-1 text-gray-600">
-                                  <div><span className="font-medium">{t('invoice.details.customerName')}:</span> {invoice.customer?.name || invoice.customerName}</div>
-                                  {invoice.customer?.ice && (
-                                    <div><span className="font-medium">{t('invoice.details.ice')}:</span> {invoice.customer.ice}</div>
-                                  )}
-                                  {invoice.customer?.email && (
-                                    <div><span className="font-medium">{t('invoice.details.email')}:</span> {invoice.customer.email}</div>
-                                  )}
-                                  {invoice.customer?.phoneNumber && (
-                                    <div><span className="font-medium">{t('invoice.details.phone')}:</span> {invoice.customer.phoneNumber}</div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full divide-y divide-gray-200">
-                                <thead>
-                                  <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('invoice.details.description')}</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('invoice.details.quantity')}</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('invoice.details.unitPrice')}</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('invoice.details.taxRate')}</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('invoice.details.total')}</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                  {invoice.lines.map((line, index) => (
-                                    <tr key={index}>
-                                      <td className="px-4 py-2 text-sm text-gray-900">{line.description}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-900 text-right">{line.quantity}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                                        {formatCurrency(line.unitPrice)}
-                                      </td>
-                                      <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                                        {line.taxRate || 20}%
-                                      </td>
-                                      <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                                        {formatCurrency(line.total)}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                                <tfoot>
-                                  <tr className="border-t border-gray-200">
-                                    <td colSpan={3} className="px-4 py-2 text-sm font-medium text-gray-600 text-right">{t('invoice.details.subtotal')}:</td>
-                                    <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
-                                      {formatCurrency(invoice.subTotal)}
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td colSpan={3} className="px-4 py-2 text-sm font-medium text-gray-600 text-right">{t('invoice.details.vat')}:</td>
-                                    <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
-                                      {formatCurrency(invoice.vat)}
-                                    </td>
-                                  </tr>
-                                  <tr className="border-t border-gray-200">
-                                    <td colSpan={3} className="px-4 py-2 text-sm font-bold text-gray-900 text-right">{t('invoice.details.total')}:</td>
-                                    <td className="px-4 py-2 text-sm font-bold text-gray-900 text-right">
-                                      {formatCurrency(invoice.total)}
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
-                            
-                            {/* Creation Information */}
-                            <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <span className="font-medium">{t('invoice.details.createdBy')}:</span> {invoice.createdBy}
-                                </div>
-                                <div>
-                                  <span className="font-medium">{t('invoice.details.createdAt')}:</span> {new Date(invoice.createdAt).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                        <td colSpan={7} className="px-6 py-4 bg-gray-50">
+                          <InvoiceDetail
+                            invoice={{
+                              id: invoice.id,
+                              invoiceNumber: invoice.invoiceNumber,
+                              date: invoice.date,
+                              customer: {
+                                id: invoice.customer?.id || invoice.customerId || 0,
+                                name: invoice.customer?.name || invoice.customerName || 'Unknown Customer',
+                                ice: invoice.customer?.ice,
+                                taxId: invoice.customer?.taxId,
+                                address: invoice.customer?.address,
+                                email: invoice.customer?.email,
+                                phoneNumber: invoice.customer?.phoneNumber
+                              },
+                              subTotal: invoice.subTotal,
+                              vat: invoice.vat,
+                              total: invoice.total,
+                              lines: invoice.lines.map((line: any) => ({
+                                id: line.id || 0,
+                                description: line.description,
+                                quantity: line.quantity,
+                                unitPrice: line.unitPrice,
+                                total: line.total,
+                                invoiceId: invoice.id,
+                                taxRate: line.taxRate || 20
+                              })),
+                              status: invoice.status,
+                              createdAt: invoice.createdAt,
+                              createdBy: {
+                                createdById: invoice.createdById || '',
+                                name: invoice.createdBy,
+                                email: ''
+                              },
+                              dgiSubmissionId: invoice.dgiSubmissionId,
+                              dgiRejectionReason: invoice.dgiRejectionReason
+                            }}
+                            onOptimisticStatusUpdate={onUpdateInvoiceStatus}
+                            onDownloadPdf={onDownloadPdf}
+                            onEdit={handleEditInvoice}
+                            onDelete={handleDelete}
+                            onSubmit={onSubmit}
+                            disabled={disabled}
+                          />
                         </td>
                       </tr>
                     )}
@@ -1402,37 +1044,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
         </div>
       )}
 
-      {/* Rejection Reason Modal */}
-      {rejectionModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
-            <div className="flex items-center mb-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mr-4">
-                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {t('invoice.dgiStatus.rejectionReason')}
-              </h3>
-            </div>
-            <div className="mb-6">
-              <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg leading-relaxed">
-                {rejectionModal.reason}
-              </p>
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setRejectionModal(null)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {t('common.close')}
-              </button>
 
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Pagination */}
       {data?.pagination && (

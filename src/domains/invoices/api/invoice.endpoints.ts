@@ -10,4 +10,5 @@ export const INVOICE_ENDPOINTS = {
   IMPORT: `${API_BASE_URL}/invoices/import-csv`,
   SUBMIT: (id: number) => `${API_BASE_URL}/invoices/${id}/dgi-submit`,
   DGI_STATUS: (id: number) => `${API_BASE_URL}/invoices/${id}/dgi-status`,
+  UPDATE_STATUS: (id: number, newStatus: number) => `${API_BASE_URL}/invoices/${id}/status/${newStatus}`,
 };

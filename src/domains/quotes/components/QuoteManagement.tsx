@@ -90,10 +90,6 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         issueDate: quote.issueDate,
         expiryDate: quote.expiryDate,
         customerName: customerName || 'Loading...',
-        customer: {
-          id: quote.customerId,
-          name: customerName || 'Loading...'
-        },
         customerId: quote.customerId,
         total: quote.total,
         status: quote.status || 'Draft',
@@ -129,19 +125,10 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      // Prepare the request body with customer object
-      const requestBody = {
-        ...quote,
-        customer: {
-          id: quote.customerId,
-          name: customerName || ''
-        }
-      };
-
       const res = await fetch(QUOTE_ENDPOINTS?.CREATE || '/api/quotes', {
         method: 'POST',
         headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(quote),
       });
 
       if (!res.ok) {
@@ -582,9 +569,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await fetch(QUOTE_ENDPOINTS?.CONVERT_TO_INVOICE?.(id) || `/api/quotes/${id}/convert-to-invoice`, {
+      const res = await fetch(QUOTE_ENDPOINTS?.CONVERT_TO_INVOICE?.(id) || `/api/quotes/${id}/convert`, {
         method: 'POST',
-        headers: getAuthHeaders(token),
+        headers: getSecureJsonHeaders(token),
       });
 
       if (!res.ok) {
@@ -600,7 +587,43 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         throw new Error(t('quote.list.convertToInvoiceError'));
       }
 
-      toast.success(t('quote.list.convertToInvoiceSuccess'));
+      const responseData = await res.json();
+      const invoiceNumber = responseData.invoiceNumber || 'N/A';
+      
+      // Create a dismissible success toast with close button
+      const toastId = toast.custom(
+        (toastInstance) => (
+          <div className={`${toastInstance.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {t('quote.list.convertToInvoiceSuccess', { invoiceNumber })}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-gray-200">
+              <button
+                onClick={() => toast.dismiss(toastInstance.id)}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-gray-600 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          duration: Infinity, // Toast will stay until user dismisses it
+        }
+      );
     } catch (error: any) {
       toast.error(error.message || t('quote.list.convertToInvoiceError'));
       throw error;
@@ -609,12 +632,14 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleDownloadPdf = useCallback(async (id: number) => {
     try {
-      const res = await fetch(QUOTE_ENDPOINTS?.DOWNLOAD_PDF?.(id) || `/api/quotes/${id}/pdf`, {
-        headers: getAuthHeaders(token),
+      const res = await fetch(QUOTE_ENDPOINTS?.DOWNLOAD_PDF?.(id) || `/api/quotes/${id}/pdf-url`, {
+        headers: getSecureHeaders(token),
       });
 
       if (!res.ok) {
-        throw new Error(t('quote.list.downloadError'));
+        const errorText = await res.text();
+        console.error('PDF download failed:', res.status, res.statusText, errorText);
+        throw new Error(t('quote.actions.downloadError'));
       }
 
       const blob = await res.blob();
@@ -627,9 +652,10 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success(t('quote.list.downloadSuccess'));
+      toast.success(t('quote.actions.downloadSuccess'));
     } catch (error: any) {
-      toast.error(error.message || t('quote.list.downloadError'));
+      console.error('PDF download error:', error);
+      toast.error(error.message || t('quote.actions.downloadError'));
     }
   }, [token, t]);
 

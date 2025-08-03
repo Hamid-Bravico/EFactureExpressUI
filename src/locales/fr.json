@@ -94,7 +94,8 @@
     "results": "résultats",
     "show": "Afficher",
     "perPage": "par page",
-    "errorDetails": "Détails de l'erreur"
+    "errorDetails": "Détails de l'erreur",
+    "notAvailable": "N/A"
   },
   "auth": {
     "tokenRefreshed": "Session actualisée avec succès",
@@ -291,11 +292,15 @@
       "customer": "Client",
       "amount": "Montant",
       "actions": "Actions",
-      "status": "Statut"
+      "status": "Statut",
+      "statusUpdateSuccess": "Statut de la facture mis à jour avec succès",
+      "statusUpdateError": "Échec de la mise à jour du statut de la facture"
     },
     "actions": {
       "edit": "Modifier la facture",
       "submit": "Soumettre à la DGI",
+      "makeReady": "Marquer comme prêt",
+      "backToDraft": "Retour au brouillon",
       "download": "Télécharger le PDF",
       "delete": "Supprimer la facture",
       "downloadJson": "Télécharger JSON",
@@ -332,7 +337,9 @@
     "confirm": {
       "title": "Confirmer {{action}}",
       "message": "Êtes-vous sûr de vouloir {{action}} {{count}} facture{{plural}} ?{{warning}}",
-      "warning": " Cette action ne peut pas être annulée."
+      "warning": " Cette action ne peut pas être annulée.",
+      "makeReady": "Êtes-vous sûr de vouloir marquer la facture #{{invoiceNumber}} comme Prête ?",
+      "backToDraft": "Êtes-vous sûr de vouloir marquer la facture #{{invoiceNumber}} comme Brouillon ?"
     },
     "dgiStatus": {
       "checking": "Vérification du statut...",
@@ -530,7 +537,7 @@
       "bulkDelete": "Supprimer la sélection",
       "statusUpdateSuccess": "Statut du devis mis à jour avec succès",
       "statusUpdateError": "Échec de la mise à jour du statut du devis",
-      "convertToInvoiceSuccess": "Devis converti en facture avec succès",
+      "convertToInvoiceSuccess": "Devis converti en facture avec succès. Numéro de facture : {{invoiceNumber}}",
       "convertToInvoiceError": "Échec de la conversion du devis en facture",
       "convertToInvoice": "Convertir en facture",
       "bulkActions": {
@@ -553,7 +560,8 @@
       "markAsSent": "Marquer comme envoyé",
       "markAsAccepted": "Marquer comme accepté", 
       "markAsRejected": "Marquer comme rejeté",
-      "downloadError": "Échec du téléchargement du PDF"
+      "downloadError": "Échec du téléchargement du PDF",
+      "downloadSuccess": "PDF téléchargé avec succès"
     },
     "details": {
       "title": "Détails du devis",
@@ -592,7 +600,8 @@
       "warning": " Cette action ne peut pas être annulée.",
       "markAsSent": "Êtes-vous sûr de vouloir marquer le devis #{{quoteNumber}} comme envoyé ? Cette action ne peut pas être annulée.",
       "markAsAccepted": "Êtes-vous sûr de vouloir marquer le devis #{{quoteNumber}} comme accepté ? Cette action ne peut pas être annulée.",
-      "markAsRejected": "Êtes-vous sûr de vouloir marquer le devis #{{quoteNumber}} comme rejeté ? Cette action ne peut pas être annulée."
+      "markAsRejected": "Êtes-vous sûr de vouloir marquer le devis #{{quoteNumber}} comme rejeté ? Cette action ne peut pas être annulée.",
+      "convertToInvoice": "Êtes-vous sûr de vouloir convertir le devis #{{quoteNumber}} en facture ? Cette action ne peut pas être annulée."
     },
     "dgiStatus": {
       "checking": "Vérification du statut...",

@@ -370,7 +370,7 @@ function App() {
       // Optimistically add a temporary invoice
       const tempInvoice: Invoice = {
         id: Date.now(), // Temporary ID
-        invoiceNumber: newInvoice.invoiceNumber,
+        invoiceNumber: newInvoice.invoiceNumber || 'TEMP-' + Date.now(),
         date: newInvoice.date,
         customer: { id: newInvoice.customerId, name: customerName || 'Unknown Customer' }, // Use actual customer name
         subTotal: newInvoice.subTotal,
@@ -409,7 +409,7 @@ function App() {
         optimisticallyRemoveInvoice(tempInvoice.id);
         return;
       }
-
+      //console.log(await response.json());
       if (!response.ok) {
         let errorData;
         try {
@@ -466,7 +466,7 @@ function App() {
       // Optimistically update the invoice
       const updatedInvoice: Invoice = {
         ...originalInvoice,
-        invoiceNumber: invoice.invoiceNumber,
+        invoiceNumber: invoice.invoiceNumber || originalInvoice.invoiceNumber,
         date: invoice.date,
         customer: { 
           id: invoice.customerId, 

@@ -938,7 +938,8 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                                expiryDate: quote.expiryDate,
                                customer: {
                                  id: quote.customer?.id || quote.customerId || 0,
-                                 name: quote.customer?.name || quote.customerName || 'Unknown Customer'
+                                 name: quote.customer?.name || quote.customerName || 'Unknown Customer',
+                                 ice: quote.customer?.ice
                                },
                                subTotal: quote.subTotal,
                                vat: quote.vat,

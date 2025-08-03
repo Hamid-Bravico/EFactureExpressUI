@@ -12,7 +12,15 @@ export interface Invoice {
   id: number;
   invoiceNumber: string;
   date: string;
-  customer: { id: number; name: string };
+  customer: { 
+    id: number; 
+    name: string;
+    ice?: string;
+    taxId?: string;
+    address?: string;
+    email?: string;
+    phoneNumber?: string;
+  };
   subTotal: number;
   vat: number;
   total: number;
@@ -27,6 +35,7 @@ export interface Invoice {
   vatRate?: number;
   dgiSubmissionId?: string;
   dgiRejectionReason?: string;
+  warnings?: string[];
 }
 
 // For creating, we don't send `id` or `invoiceId`
@@ -39,7 +48,7 @@ export interface NewLine {
 
 export interface NewInvoice {
   id?: number; // Optional id for updates
-  invoiceNumber: string;
+  invoiceNumber?: string; // Optional since it's auto-generated
   date: string;
   customerId: number;
   subTotal: number;
