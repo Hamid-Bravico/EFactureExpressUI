@@ -32,3 +32,10 @@ export interface DgiStatusResponse {
   }[];
   isSuccessful: boolean;
 }
+
+export interface Pagination {
+  totalItems: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}

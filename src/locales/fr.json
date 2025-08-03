@@ -75,6 +75,7 @@
     "signIn": "Se connecter",
     "users": "Utilisateurs",
     "customers": "Clients",
+    "catalog": "Catalogue",
     "create": "Créer",
     "profile": "Profil",
     "companyProfile": "Profil de l'entreprise",
@@ -651,6 +652,132 @@
           "TermesConditions - Termes et conditions",
           "NotesPrivees - Notes privées"
         ]
+      }
+    }
+  },
+  "catalog": {
+    "title": "Catalogue",
+    "subtitle": "{{count}} articles dans le catalogue",
+    "actions": {
+      "create": "Créer un article",
+      "edit": "Modifier l'article",
+      "delete": "Supprimer l'article",
+      "update": "Mettre à jour l'article"
+    },
+    "list": {
+      "name": "Nom",
+      "type": "Type",
+      "price": "Prix",
+      "actions": "Actions",
+      "taxRate": "Taux de TVA",
+      "noItems": "Aucun article de catalogue trouvé",
+      "adjustFilters": "Essayez d'ajuster vos filtres",
+      "getStarted": "Commencez par créer votre premier article de catalogue"
+    },
+    "form": {
+      "createTitle": "Créer un article de catalogue",
+      "editTitle": "Modifier l'article de catalogue",
+      "name": "Nom",
+      "namePlaceholder": "Entrez le nom de l'article",
+      "sku": "SKU",
+      "skuPlaceholder": "Entrez le SKU (optionnel)",
+      "description": "Description",
+      "descriptionPlaceholder": "Entrez la description de l'article (optionnel)",
+      "type": "Type",
+      "unitPrice": "Prix unitaire",
+      "defaultTaxRate": "Taux de TVA par défaut",
+      "preview": "Aperçu du prix",
+      "taxIncluded": "Taux de TVA : {{rate}}%",
+      "errors": {
+        "nameRequired": "Le nom est requis",
+        "unitPricePositive": "Le prix unitaire doit être positif",
+        "taxRateRange": "Le taux de TVA doit être entre 0 et 100",
+        "typeRequired": "Le type est requis",
+        "submissionFailed": "Échec de la soumission du formulaire"
+      }
+    },
+    "filters": {
+      "show": "Afficher les filtres",
+      "hide": "Masquer les filtres",
+      "apply": "Appliquer les filtres",
+      "reset": "Réinitialiser les filtres",
+      "search": "Rechercher",
+      "searchPlaceholder": "Rechercher par nom ou description",
+      "type": "Type",
+      "allTypes": "Tous les types",
+      "sort": "Trier par",
+      "direction": "Direction",
+      "ascending": "Croissant",
+      "descending": "Décroissant",
+      "noSort": "Aucun tri",
+      "sortByName": "Trier par nom",
+      "sortByPrice": "Trier par prix",
+      "sortByType": "Trier par type"
+    },
+    "sort": {
+      "name": "Nom",
+      "sku": "SKU",
+      "unitPrice": "Prix unitaire",
+      "type": "Type"
+    },
+    "type": {
+      "product": "Produit",
+      "service": "Service"
+    },
+    "table": {
+      "sku": "SKU",
+      "name": "Nom",
+      "description": "Description",
+      "unitPrice": "Prix unitaire",
+      "defaultTaxRate": "Taux de TVA",
+      "type": "Type",
+      "actions": "Actions"
+    },
+    "bulk": {
+      "selected": "{{count}} article(s) sélectionné(s)",
+      "delete": "Supprimer la sélection",
+      "clear": "Effacer la sélection"
+    },
+    "pagination": {
+      "info": "Affichage de {{from}} à {{to}} sur {{total}} articles",
+      "previous": "Précédent",
+      "next": "Suivant"
+    },
+    "delete": {
+      "title": "Supprimer l'article",
+      "message": "Êtes-vous sûr de vouloir supprimer cet article ? Cette action ne peut pas être annulée."
+    },
+    "bulkDelete": {
+      "title": "Supprimer les articles",
+      "message": "Êtes-vous sûr de vouloir supprimer {{count}} articles ? Cette action ne peut pas être annulée."
+    },
+    "messages": {
+      "deleteSuccess": "Article supprimé avec succès",
+      "bulkDeleteSuccess": "{{count}} articles supprimés avec succès",
+      "updateSuccess": "Article mis à jour avec succès",
+      "createSuccess": "Article créé avec succès",
+      "noItems": "Aucun article de catalogue trouvé"
+    },
+    "errors": {
+      "noPermission": "Vous n'avez pas la permission d'effectuer cette action",
+      "deleteFailed": "Échec de la suppression de l'article",
+      "bulkDeleteFailed": "Échec de la suppression des articles",
+      "saveFailed": "Échec de la sauvegarde de l'article",
+      "loadFailed": "Échec du chargement des articles de catalogue",
+      "accessDenied": "Accès refusé. Vous n'avez pas la permission de voir le catalogue."
+    },
+    "import": {
+      "help": {
+        "title": "Aide Import CSV",
+        "requiredHeaders": "En-têtes CSV requis",
+        "nameDesc": "Le nom de l'article du catalogue",
+        "skuDesc": "Code article (optionnel)",
+        "descriptionDesc": "Description de l'article (optionnel)",
+        "unitPriceDesc": "Prix unitaire en MAD",
+        "taxRateDesc": "Taux de TVA par défaut en pourcentage (0-100)",
+        "typeDesc": "Type d'article (Produit ou Service)",
+        "typeValues": "Valeurs de type valides",
+        "example": "Exemple de format CSV"
       }
     }
   },

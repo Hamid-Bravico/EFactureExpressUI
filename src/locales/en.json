@@ -73,6 +73,7 @@
     "signIn": "Sign in",
     "users": "Users",
     "customers": "Customers",
+    "catalog": "Catalog",
     "create": "Create",
     "profile": "Profile",
     "companyProfile": "Company Profile",
@@ -652,6 +653,132 @@
           "TermesConditions - Terms and conditions",
           "NotesPrivees - Private notes"
         ]
+      }
+    }
+  },
+  "catalog": {
+    "title": "Catalog",
+    "subtitle": "{{count}} items in catalog",
+    "actions": {
+      "create": "Create Item",
+      "edit": "Edit Item",
+      "delete": "Delete Item",
+      "update": "Update Item"
+    },
+    "list": {
+      "name": "Name",
+      "type": "Type",
+      "price": "Price",
+      "actions": "Actions",
+      "taxRate": "Tax Rate",
+      "noItems": "No catalog items found",
+      "adjustFilters": "Try adjusting your filters",
+      "getStarted": "Get started by creating your first catalog item"
+    },
+    "form": {
+      "createTitle": "Create Catalog Item",
+      "editTitle": "Edit Catalog Item",
+      "name": "Name",
+      "namePlaceholder": "Enter item name",
+      "sku": "SKU",
+      "skuPlaceholder": "Enter SKU (optional)",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter item description (optional)",
+      "type": "Type",
+      "unitPrice": "Unit Price",
+      "defaultTaxRate": "Default Tax Rate",
+      "preview": "Price Preview",
+      "taxIncluded": "Tax rate: {{rate}}%",
+      "errors": {
+        "nameRequired": "Name is required",
+        "unitPricePositive": "Unit price must be positive",
+        "taxRateRange": "Tax rate must be between 0 and 100",
+        "typeRequired": "Type is required",
+        "submissionFailed": "Failed to submit form"
+      }
+    },
+    "filters": {
+      "show": "Show Filters",
+      "hide": "Hide Filters",
+      "apply": "Apply Filters",
+      "reset": "Reset Filters",
+      "search": "Search",
+      "searchPlaceholder": "Search by name or description",
+      "type": "Type",
+      "allTypes": "All Types",
+      "sort": "Sort By",
+      "direction": "Direction",
+      "ascending": "Ascending",
+      "descending": "Descending",
+      "noSort": "No Sorting",
+      "sortByName": "Sort by Name",
+      "sortByPrice": "Sort by Price",
+      "sortByType": "Sort by Type"
+    },
+    "sort": {
+      "name": "Name",
+      "sku": "SKU",
+      "unitPrice": "Unit Price",
+      "type": "Type"
+    },
+    "type": {
+      "product": "Product",
+      "service": "Service"
+    },
+    "table": {
+      "sku": "SKU",
+      "name": "Name",
+      "description": "Description",
+      "unitPrice": "Unit Price",
+      "defaultTaxRate": "Tax Rate",
+      "type": "Type",
+      "actions": "Actions"
+    },
+    "bulk": {
+      "selected": "{{count}} item(s) selected",
+      "delete": "Delete Selected",
+      "clear": "Clear Selection"
+    },
+    "pagination": {
+      "info": "Showing {{from}} to {{to}} of {{total}} items",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "delete": {
+      "title": "Delete Item",
+      "message": "Are you sure you want to delete this item? This action cannot be undone."
+    },
+    "bulkDelete": {
+      "title": "Delete Items",
+      "message": "Are you sure you want to delete {{count}} items? This action cannot be undone."
+    },
+    "messages": {
+      "deleteSuccess": "Item deleted successfully",
+      "bulkDeleteSuccess": "{{count}} items deleted successfully",
+      "updateSuccess": "Item updated successfully",
+      "createSuccess": "Item created successfully",
+      "noItems": "No catalog items found"
+    },
+    "errors": {
+      "noPermission": "You don't have permission to perform this action",
+      "deleteFailed": "Failed to delete item",
+      "bulkDeleteFailed": "Failed to delete items",
+      "saveFailed": "Failed to save item",
+      "loadFailed": "Failed to load catalog items",
+      "accessDenied": "Access denied. You don't have permission to view the catalog."
+    },
+    "import": {
+      "help": {
+        "title": "CSV Import Help",
+        "requiredHeaders": "Required CSV Headers",
+        "nameDesc": "The name of the catalog item",
+        "skuDesc": "Stock Keeping Unit (optional)",
+        "descriptionDesc": "Item description (optional)",
+        "unitPriceDesc": "Unit price in MAD",
+        "taxRateDesc": "Default tax rate as percentage (0-100)",
+        "typeDesc": "Item type (Product or Service)",
+        "typeValues": "Valid Type Values",
+        "example": "Example CSV Format"
       }
     }
   },

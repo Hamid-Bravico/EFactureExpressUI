@@ -25,6 +25,7 @@ import { decodeJWT } from "./utils/jwt";
 import { tokenManager } from "./utils/tokenManager";
 import CompanyProfile from "./components/CompanyProfile";
 import CustomerCRUD from "./domains/customers/components/CustomerCRUD";
+import CatalogManagement from "./domains/catalog/components/CatalogManagement";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -1048,6 +1049,22 @@ function App() {
                       </svg>
                       {t('common.customers')}
                     </NavLink>
+                    {(isAdmin || isManager) && (
+                      <NavLink
+                        to="/catalog"
+                        className={({ isActive }) =>
+                          `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
+                          ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                          after:absolute after:left-3 after:right-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-blue-500 after:scale-x-0 after:transition-transform after:duration-200
+                          hover:after:scale-x-100 focus:after:scale-x-100 ${isActive ? 'after:scale-x-100' : ''}`
+                        }
+                      >
+                        <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        {t('common.catalog')}
+                      </NavLink>
+                    )}
                     {canAccessUsers && (
                       <NavLink
                         to="/users"
@@ -1132,6 +1149,24 @@ function App() {
                         </svg>
                         {t('common.customers')}
                       </NavLink>
+                      {(isAdmin || isManager) && (
+                        <NavLink
+                          to="/catalog"
+                          className={({ isActive }) =>
+                            `inline-flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${
+                              isActive
+                                ? "bg-blue-50 text-blue-700 shadow-sm"
+                                : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                            }`
+                          }
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                          {t('common.catalog')}
+                        </NavLink>
+                      )}
                       {canAccessUsers && (
                         <NavLink
                           to="/users"
@@ -1382,6 +1417,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <CustomerCRUD token={token} />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/catalog"
+                  element={
+                    <ProtectedRoute>
+                      <CatalogManagement />
                     </ProtectedRoute>
                   }
                 />
