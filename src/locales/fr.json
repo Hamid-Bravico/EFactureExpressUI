@@ -108,7 +108,6 @@
     "failedToDeleteInvoice": "Échec de la suppression de la facture",
     "failedToDownloadPdf": "Échec du téléchargement du PDF",
     "failedToSubmitInvoice": "Échec de la soumission de la facture",
-    "failedToImportCSV": "Échec de l'importation du CSV",
     "failedToUpdateInvoice": "Impossible de mettre à jour la facture : ID manquant",
     "failedToFetchInvoice": "Échec de la récupération des détails de la facture",
     "applicationError": "Erreur d'application",

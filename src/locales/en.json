@@ -108,7 +108,6 @@
     "failedToDeleteInvoice": "Failed to delete invoice",
     "failedToDownloadPdf": "Failed to download PDF",
     "failedToSubmitInvoice": "Failed to submit invoice",
-    "failedToImportCSV": "Failed to import CSV",
     "failedToUpdateInvoice": "Cannot update invoice: Missing invoice ID",
     "failedToFetchInvoice": "Failed to fetch invoice details",
     "applicationError": "Application Error",
