@@ -191,7 +191,15 @@
     "statusDistribution": "Status Distribution",
     "topCustomersByAmount": "Top Customers by Amount",
     "monthlyAmount": "Monthly Amount",
-    "customerAmount": "Customer Amount"
+    "customerAmount": "Customer Amount",
+    "filters": {
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "apply": "Apply Filters",
+      "clear": "Clear Filters"
+    }
   },
   "invoice": {
     "create": "Create Invoice",

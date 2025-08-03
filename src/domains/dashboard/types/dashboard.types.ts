@@ -44,3 +44,14 @@ export interface DashboardStats {
   recentInvoices: DashboardInvoiceData[];
   recentQuotes: DashboardQuoteData[];
 }
+
+export interface DashboardFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  status?: number;
+}
+
+export interface DashboardFilterProps {
+  filters: DashboardFilters;
+  onFiltersChange: (filters: DashboardFilters) => void;
+}

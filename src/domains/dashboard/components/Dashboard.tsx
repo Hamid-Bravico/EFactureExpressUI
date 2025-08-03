@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { DashboardInvoiceData, DashboardQuoteData, DashboardStats } from '../types/dashboard.types';
+import { DashboardInvoiceData, DashboardQuoteData, DashboardStats, DashboardFilters } from '../types/dashboard.types';
+import DashboardFiltersComponent from './DashboardFilters';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -45,7 +46,9 @@ interface LocalDashboardStats extends DashboardStats {
 interface DashboardProps {
   stats: LocalDashboardStats | null;
   loading: boolean;
+  filters: DashboardFilters;
   onRefresh: () => Promise<void>;
+  onFiltersChange: (filters: DashboardFilters) => void;
 }
 
 // Fade-in animation utility
@@ -61,7 +64,9 @@ const useFadeIn = () => {
 const Dashboard: React.FC<DashboardProps> = React.memo(({ 
   stats, 
   loading, 
-  onRefresh
+  filters,
+  onRefresh,
+  onFiltersChange
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -298,6 +303,12 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
           {t('common.refresh')}
         </button>
       </div>
+
+      {/* Filters Section */}
+      <DashboardFiltersComponent 
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+      />
 
       {/* Status Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">

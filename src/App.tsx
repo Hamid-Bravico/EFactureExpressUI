@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink } from "react-router-do
 import { Company } from "./types/common";
 import { Invoice, NewInvoice } from "./domains/invoices/types/invoice.types";
 import Dashboard from "./domains/dashboard/components/Dashboard";
+import { DashboardFilters } from "./domains/dashboard/types/dashboard.types";
 import InvoiceList from "./domains/invoices/components/InvoiceList";
 import ImportCSV from "./domains/invoices/components/ImportCSV";
 import InvoiceForm from "./domains/invoices/components/InvoiceForm";
@@ -50,6 +51,7 @@ function App() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoiceListData, setInvoiceListData] = useState<any>(null);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
   const [loading, setLoading] = useState(true);
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
@@ -227,10 +229,20 @@ function App() {
   }, []);*/
 
   // ─── FETCH DASHBOARD STATS ─────────────────────────────────────────────────
-  const fetchDashboardStats = useCallback(async () => {
+  const fetchDashboardStats = useCallback(async (filters?: DashboardFilters) => {
     setDashboardLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+      const queryParams = new URLSearchParams();
+      
+      // Add filters
+      if (filters) {
+        if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
+        if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+        if (filters.status !== undefined) queryParams.append('status', filters.status.toString());
+      }
+      
+      const url = `${API_BASE_URL}/dashboard/stats${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await fetch(url, {
         headers: getAuthHeaders(token),
       });
       
@@ -249,6 +261,12 @@ function App() {
       setDashboardLoading(false);
     }
   }, [token, t]);
+
+  // ─── HANDLE DASHBOARD FILTERS ─────────────────────────────────────────────
+  const handleDashboardFiltersChange = useCallback((filters: DashboardFilters) => {
+    setDashboardFilters(filters);
+    fetchDashboardStats(filters);
+  }, [fetchDashboardStats]);
 
   // ─── FETCH LIST ────────────────────────────────────────────────────────────
   const fetchInvoices = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
@@ -1270,7 +1288,9 @@ function App() {
                       <Dashboard
                         stats={dashboardStats}
                         loading={dashboardLoading}
-                        onRefresh={fetchDashboardStats}
+                        filters={dashboardFilters}
+                        onRefresh={() => fetchDashboardStats(dashboardFilters)}
+                        onFiltersChange={handleDashboardFiltersChange}
                       />
                     </ProtectedRoute>
                   }
