@@ -80,7 +80,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    if (!issueDate) newErrors.issueDate = t('quote.form.errors.issueDateRequired');
+    if (!issueDate) newErrors.issueDate = t('quote.form.errors.dateRequired');
     if (!customerId) newErrors.customerId = t('quote.form.errors.customerNameRequired');
     
     // Validate expiry date is after issue date
@@ -95,7 +95,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
       if (!line.description || !line.description.trim()) lineError.description = t('quote.form.errors.descriptionRequired');
       if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('quote.form.errors.quantityPositive');
       if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice < 0) lineError.unitPrice = t('quote.form.errors.unitPricePositive');
-      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('quote.form.errors.taxRateRange');
+      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('quote.form.errors.vatRateRange');
       if (Object.keys(lineError).length > 0) lineErrors[index] = lineError; else hasValidLine = true;
     });
     if (!hasValidLine) newErrors.lines = { 0: { description: t('quote.form.errors.oneLineRequired') } };
@@ -254,7 +254,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
       } else if (error.message) {
         toast.error(error.message);
       } else {
-        toast.error(t('quote.form.errors.saveFailed'));
+        toast.error(t('quote.messages.saveFailed'));
       }
     } finally {
       setIsSubmitting(false);

@@ -1,16 +1,5 @@
 {
   "common": {
-    "email": "Adresse e-mail",
-    "password": "Mot de passe",
-    "signInButton": "Se connecter",
-    "logout": "Déconnexion",
-    "dashboard": "Tableau de bord",
-    "invoices": "Factures",
-    "quotes": "Devis",
-    "newInvoice": "Nouvelle facture",
-    "newQuote": "Nouveau devis",
-    "importCSV": "Importer CSV",
-    "importingCSV": "Importation du fichier CSV...",
     "loading": "Chargement...",
     "error": "Erreur",
     "retry": "Réessayer",
@@ -25,7 +14,6 @@
     "date": "Date",
     "amount": "Montant",
     "customer": "Client",
-    "invoiceNumber": "Facture #",
     "total": "Total",
     "details": "Détails",
     "close": "Fermer",
@@ -36,11 +24,6 @@
     "search": "Rechercher",
     "filter": "Filtrer",
     "noResults": "Aucun résultat trouvé",
-    "selectFile": "Sélectionner un fichier",
-    "dragAndDrop": "Glissez et déposez un fichier ici, ou cliquez pour sélectionner",
-    "fileType": "Type de fichier",
-    "maxSize": "Taille maximale",
-    "upload": "Télécharger",
     "processing": "Traitement...",
     "success": "Succès",
     "warning": "Avertissement",
@@ -49,80 +32,85 @@
     "updating": "Mise à jour...",
     "creating": "Création...",
     "saveChanges": "Enregistrer les modifications",
-    "createInvoice": "Créer une facture",
-    "welcomeMessage": "Bienvenue sur EFacture Express - Votre système de gestion de factures",
-    "emailPlaceholder": "Entrez votre e-mail",
-    "passwordPlaceholder": "Entrez votre mot de passe",
-    "signingIn": "Connexion en cours...",
     "refresh": "Actualiser",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "clear": "Effacer",
+    "notAvailable": "N/A",
+    "errorDetails": "Détails de l'erreur",
+    "dashboard": "Tableau de bord",
+    "invoices": "Factures",
+    "quotes": "Devis",
+    "users": "Utilisateurs",
+    "customers": "Clients",
+    "catalog": "Catalogue",
+    "profile": "Profil",
+    "companyProfile": "Profil de l'entreprise",
+    "pagination": {
+      "showing": "Affichage de",
+      "to": "à",
+      "of": "sur",
+      "results": "résultats",
+      "show": "Afficher",
+      "perPage": "par page"
+    },
+    "file": {
+      "select": "Sélectionner un fichier",
+      "dragAndDrop": "Glissez et déposez un fichier ici, ou cliquez pour sélectionner",
+      "type": "Type de fichier",
+      "maxSize": "Taille maximale",
+      "upload": "Télécharger",
+      "importCSV": "Importer CSV",
+      "importingCSV": "Importation du fichier CSV..."
+    }
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signInButton": "Se connecter",
+    "signingIn": "Connexion en cours...",
+    "logout": "Déconnexion",
     "register": "S'inscrire",
     "registerButton": "S'inscrire",
     "registering": "Inscription en cours...",
+    "email": "Adresse e-mail",
+    "emailPlaceholder": "Entrez votre e-mail",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Entrez votre mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
     "companyName": "Nom de l'entreprise",
     "companyNamePlaceholder": "Entrez le nom de votre entreprise",
-    "ICE": "ICE",
-    "ICEPlaceholder": "Entrez l'ICE de votre entreprise",
+    "address": "Adresse",
+    "addressPlaceholder": "Entrez l'adresse de votre entreprise",
+    "ice": "ICE",
+    "icePlaceholder": "Entrez l'ICE de votre entreprise",
     "taxId": "Identifiant Fiscal",
     "taxIdPlaceholder": "Entrez votre numéro de TVA",
     "identifiantFiscal": "Identifiant Fiscal",
     "identifiantFiscalPlaceholder": "Entrez votre identifiant fiscal",
-    "address": "Adresse",
-    "addressPlaceholder": "Entrez l'adresse de votre entreprise",
-    "confirmPassword": "Confirmer le mot de passe",
-    "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
     "noAccount": "Vous n'avez pas de compte ?",
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
-    "signIn": "Se connecter",
-    "users": "Utilisateurs",
-    "customers": "Clients",
-    "catalog": "Catalogue",
-    "create": "Créer",
-    "profile": "Profil",
-    "companyProfile": "Profil de l'entreprise",
     "memberSince": "Membre depuis",
     "noAddress": "Aucune adresse fournie",
     "noICE": "Aucun ICE fourni",
     "noIdentifiantFiscal": "Aucun identifiant fiscal fourni",
-    "copy": "Copier",
-    "copied": "Copié !",
-    "deletingInvoice": "Suppression de la facture...",
-    "downloadingPDF": "Téléchargement du PDF...",
-    "submittingInvoice": "Soumission de la facture...",
-    "clear": "Effacer",
-    "showing": "Affichage de",
-    "to": "à",
-    "of": "sur",
-    "results": "résultats",
-    "show": "Afficher",
-    "perPage": "par page",
-    "errorDetails": "Détails de l'erreur",
-    "notAvailable": "N/A"
-  },
-  "auth": {
     "tokenRefreshed": "Session actualisée avec succès",
     "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter."
   },
   "errors": {
-    "invalidCredentials": "Identifiants invalides",
     "anErrorOccurred": "Une erreur est survenue",
-    "failedToFetchInvoices": "Échec de la récupération des factures",
-    "failedToDeleteInvoice": "Échec de la suppression de la facture",
-    "failedToDownloadPdf": "Échec du téléchargement du PDF",
-    "failedToSubmitInvoice": "Échec de la soumission de la facture",
-    "failedToUpdateInvoice": "Impossible de mettre à jour la facture : ID manquant",
-    "failedToFetchInvoice": "Échec de la récupération des détails de la facture",
     "applicationError": "Erreur d'application",
     "somethingWentWrong": "Une erreur est survenue. Veuillez réessayer.",
     "invalidFileType": "Type de fichier invalide. Veuillez télécharger un fichier CSV.",
     "fileTooLarge": "Le fichier est trop volumineux. Taille maximale : {{size}}MB.",
     "requiredField": "Ce champ est obligatoire",
+    "invalidEmail": "Veuillez saisir une adresse e-mail valide.",
     "invalidNumber": "Nombre invalide",
-    "invalidDate": "Date invalide",
     "copyFailed": "Échec de la copie dans le presse-papiers",
+    "invalidDate": "Date invalide",
     "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
     "serverError": "Erreur serveur. Veuillez réessayer plus tard.",
     "unauthorized": "Accès non autorisé. Veuillez vous reconnecter.",
-    "bulkActionFailed": "Échec de {{action}} des factures : {{error}}",
     "invoiceNotFound": "Facture introuvable",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
     "registrationFailed": "Échec de l'inscription. Veuillez réessayer.",
@@ -130,47 +118,13 @@
     "taxIdAlreadyExists": "Ce numéro de TVA est déjà enregistré.",
     "databaseError": "Une erreur de base de données est survenue. Veuillez réessayer.",
     "validationFailed": "Veuillez corriger les erreurs de validation ci-dessous.",
-    "cannotUpdateAdmin": "Les administrateurs ne peuvent pas être modifiés",
-    "managersCannotChangeRoles": "Les gestionnaires ne peuvent pas modifier les rôles",
-    "invalidUserId": "ID utilisateur invalide",
     "invalidResponse": "Réponse invalide du serveur",
-    "invalidRole": "Rôle utilisateur invalide",
-    "noCompanyData": "Aucune donnée d'entreprise disponible.",
-    "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
-    "failedToSaveCustomer": "Échec de l'enregistrement du client.",
-    "failedToDeleteCustomer": "Échec de la suppression du client.",
-    "nameIsRequired": "Le nom est requis.",
-    "invalidEmail": "Veuillez saisir une adresse e-mail valide.",
-    "invalidICE": "L'ICE doit comporter 15 chiffres.",
-    "invalidTaxId": "L'ID fiscal doit comporter 8 chiffres.",
-    "companyNameRequired": "Le nom de l'entreprise est requis.",
-    "ICERequired": "Le numéro ICE est requis.",
-    "emailRequired": "L'adresse email est requise.",
-    "passwordRequired": "Le mot de passe est requis.",
-    "failedToLoadQuotes": "Échec du chargement des devis",
-    "tryRefreshing": "Veuillez essayer de rafraîchir la page ou contacter le support si le problème persiste.",
-    "unknown": "Une erreur inconnue s'est produite",
     "unexpectedError": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
-    "failedToImportCSV": "Échec de l'importation du fichier CSV."
-  },
-  "success": {
-    "invoiceCreated": "Facture créée avec succès.",
-    "invoiceUpdated": "Facture mise à jour avec succès.",
-    "invoiceDeleted": "Facture supprimée avec succès.",
-    "invoiceSubmitted": "Facture soumise avec succès.",
-    "bulkInvoicesDeleted": "{{count}} facture(s) supprimée(s) avec succès.",
-    "bulkInvoicesSubmitted": "{{count}} facture(s) soumise(s) avec succès.",
-    "csvImported": "{{count}} éléments ont été importés avec succès.",
-    "quotesImported": "{{count}} devis ont été importés avec succès.",
-    "invoicesImported": "{{count}} factures ont été importées avec succès.",
-    "pdfReady": "Le PDF est prêt à être téléchargé.",
-    "userCreated": "Utilisateur créé avec succès.",
-    "userUpdated": "Utilisateur mis à jour avec succès.",
-    "passwordUpdated": "Mot de passe mis à jour avec succès.",
-    "userDeleted": "Utilisateur supprimé avec succès.",
-    "customerCreated": "Client créé avec succès.",
-    "customerUpdated": "Client mis à jour avec succès.",
-    "customerDeleted": "Client supprimé avec succès."
+    "unknown": "Une erreur inconnue s'est produite",
+    "failedToLoadInvoices": "Échec du chargement des factures",
+    "tryRefreshing": "Essayez d'actualiser la page ou contactez le support si le problème persiste.",
+    "failedToImportCSV": "Échec de l'importation du fichier CSV",
+    "failedToFetchInvoice": "Échec de la récupération des détails de la facture"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -204,12 +158,17 @@
     }
   },
   "invoice": {
+    "title": "Facture",
+    "title_plural": "Factures",
     "create": "Créer une facture",
     "edit": "Modifier la facture",
     "view": "Voir la facture",
     "delete": "Supprimer la facture",
     "submit": "Soumettre la facture",
     "download": "Télécharger le PDF",
+    "deleting": "Suppression de la facture...",
+    "submitting": "Soumission de la facture...",
+    "downloadingPDF": "Téléchargement du PDF...",
     "status": {
       "draft": "Brouillon",
       "pending": "Prêt",
@@ -251,6 +210,8 @@
       "unitPrice": "Prix unitaire",
       "vat": "TVA ({{rate}}%)",
       "status": "Statut",
+      "taxRate": "Taux de TVA (%)",
+      "selectCustomer": "Sélectionner un client",
       "errors": {
         "invoiceNumberRequired": "Le numéro de facture est requis",
         "dateRequired": "La date est requise",
@@ -264,9 +225,7 @@
         "fixErrors": "Veuillez corriger les erreurs dans le formulaire",
         "submissionError": "Une erreur s'est produite lors de la soumission du formulaire. Veuillez vérifier les champs en surbrillance.",
         "saveFailed": "Échec de l'enregistrement de la facture. Veuillez réessayer."
-      },
-      "taxRate": "Taux de TVA (%)",
-      "selectCustomer": "Sélectionner un client"
+      }
     },
     "filters": {
       "title": "Filtres",
@@ -289,7 +248,11 @@
       "submit": "Soumettre la sélection",
       "delete": "Supprimer la sélection",
       "submitting": "Soumission de {{count}} factures...",
-      "deleting": "Suppression de {{count}} factures..."
+      "deleting": "Suppression de {{count}} factures...",
+      "confirm": {
+        "delete": "Êtes-vous sûr de vouloir supprimer les factures sélectionnées ?",
+        "submit": "Êtes-vous sûr de vouloir soumettre les factures sélectionnées ?"
+      }
     },
     "list": {
       "noInvoices": "Aucune facture trouvée",
@@ -300,9 +263,7 @@
       "customer": "Client",
       "amount": "Montant",
       "actions": "Actions",
-      "status": "Statut",
-      "statusUpdateSuccess": "Statut de la facture mis à jour avec succès",
-      "statusUpdateError": "Échec de la mise à jour du statut de la facture"
+      "status": "Statut"
     },
     "actions": {
       "edit": "Modifier la facture",
@@ -324,6 +285,7 @@
       "total": "Total",
       "subtotal": "Sous-total",
       "vat": "TVA",
+      "grandTotal": "Total Général",
       "invoiceInfo": "Informations de la facture",
       "invoiceNumber": "Numéro de facture",
       "date": "Date",
@@ -347,7 +309,9 @@
       "message": "Êtes-vous sûr de vouloir {{action}} {{count}} facture{{plural}} ?{{warning}}",
       "warning": " Cette action ne peut pas être annulée.",
       "makeReady": "Êtes-vous sûr de vouloir marquer la facture #{{invoiceNumber}} comme Prête ?",
-      "backToDraft": "Êtes-vous sûr de vouloir marquer la facture #{{invoiceNumber}} comme Brouillon ?"
+      "backToDraft": "Êtes-vous sûr de vouloir marquer la facture #{{invoiceNumber}} comme Brouillon ?",
+      "delete": "Êtes-vous sûr de vouloir supprimer cette facture ?",
+      "submit": "Êtes-vous sûr de vouloir soumettre cette facture ?"
     },
     "dgiStatus": {
       "checking": "Vérification du statut...",
@@ -355,83 +319,53 @@
       "rejectionReason": "Raison du rejet",
       "errorChecking": "Erreur lors de la vérification du statut",
       "switchToDraft": "Passer en brouillon"
-    }
-  },
-  "import": {
-    "title": "Importer des factures",
-    "description": "Importer plusieurs factures depuis un fichier CSV",
-    "instructions": "Téléchargez le modèle et remplissez-le avec vos données de facturation",
-    "downloadTemplate": "Télécharger le modèle",
-    "selectFile": "Sélectionner un fichier CSV",
-    "uploading": "Téléchargement en cours...",
-    "processing": "Traitement en cours...",
-    "success": "Importation terminée avec succès",
-    "error": "Erreur lors de l'importation",
-    "help": {
-      "title": "Format d'importation CSV",
-      "requiredHeaders": "En-têtes requis :",
-      "optionalHeaders": "En-têtes optionnels :",
-      "requiredFields": [
-        "NumeroFacture - Numéro de facture",
-        "Date - Date de facture",
-        "ClientICE - Numéro ICE du client",
-        "Description - Description de l'article",
-        "Quantite - Quantité",
-        "PrixUnitaire - Prix unitaire",
-        "TauxTVA - Taux de TVA"
-      ],
-      "optionalFields": [
-        "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)"
-      ]
-    }
-  },
-  "users": {
-    "title": "Gestion des utilisateurs",
-    "addUser": "Ajouter un utilisateur",
-    "email": "E-mail",
-    "password": "Mot de passe",
-    "role": "Rôle",
-    "actions": "Actions",
-    "editUser": "Modifier l'utilisateur",
-    "saveChanges": "Enregistrer les modifications",
-    "cancel": "Annuler",
-    "resetOwnPassword": "Réinitialiser mon mot de passe",
-    "newPassword": "Nouveau mot de passe",
-    "passwordRequirements": "Le mot de passe doit contenir au moins 8 caractères"
-  },
-  "customers": {
-    "title": "Clients",
-    "addCustomer": "Ajouter un client",
-    "editCustomer": "Modifier le client",
-    "headers": {
-      "name": "Nom",
-      "ice": "ICE",
-      "taxId": "ID Fiscal",
-      "email": "E-mail",
-      "phone": "Téléphone",
-      "actions": "Actions"
     },
-    "form": {
-      "namePlaceholder": "Nom",
-      "icePlaceholder": "ICE",
-      "taxIdPlaceholder": "ID Fiscal",
-      "addressPlaceholder": "Adresse",
-      "emailPlaceholder": "E-mail",
-      "phonePlaceholder": "Numéro de téléphone",
-      "cancel": "Annuler",
-      "save": "Enregistrer"
+    "messages": {
+        "created": "Facture créée avec succès.",
+        "updated": "Facture mise à jour avec succès.",
+        "deleted": "Facture supprimée avec succès.",
+        "submitted": "Facture soumise avec succès.",
+        "bulkDeleted": "{{count}} facture(s) supprimée(s) avec succès.",
+        "bulkSubmitted": "{{count}} facture(s) soumise(s) avec succès.",
+        "pdfReady": "Le PDF est prêt à être téléchargé.",
+        "statusUpdateSuccess": "Statut de la facture mis à jour avec succès",
+        "statusUpdateError": "Échec de la mise à jour du statut de la facture",
+        "fetchFailed": "Échec de la récupération des factures",
+        "deleteFailed": "Échec de la suppression de la facture",
+        "submitFailed": "Échec de la soumission de la facture",
+        "updateFailed": "Impossible de mettre à jour la facture : ID manquant",
+        "fetchDetailsFailed": "Échec de la récupération des détails de la facture",
+        "bulkActionFailed": "Échec de {{action}} des factures : {{error}}"
     },
-    "list": {
-      "noCustomers": "Aucun client trouvé",
-      "getStarted": "Commencez par ajouter votre premier client."
+    "import": {
+        "title": "Importer des factures",
+        "description": "Importer plusieurs factures depuis un fichier CSV",
+        "instructions": "Téléchargez le modèle et remplissez-le avec vos données de facturation",
+        "downloadTemplate": "Télécharger le modèle",
+        "success": "Importation terminée avec succès",
+        "error": "Erreur lors de l'importation",
+        "help": {
+          "title": "Format d'importation CSV",
+          "requiredHeaders": "En-têtes requis :",
+          "optionalHeaders": "En-têtes optionnels :",
+          "requiredFields": [
+            "NumeroFacture - Numéro de facture",
+            "Date - Date de facture",
+            "ClientICE - Numéro ICE du client",
+            "Description - Description de l'article",
+            "Quantite - Quantité",
+            "PrixUnitaire - Prix unitaire",
+            "TauxTVA - Taux de TVA"
+          ],
+          "optionalFields": [
+            "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)"
+          ]
+        }
     }
-  },
-  "roles": {
-    "admin": "Admin",
-    "manager": "Manager",
-    "clerk": "Employé"
   },
   "quote": {
+    "title": "Devis",
+    "title_plural": "Devis",
     "create": "Créer un devis",
     "edit": "Modifier le devis",
     "view": "Voir le devis",
@@ -444,7 +378,6 @@
       "accepted": "Accepté",
       "rejected": "Rejeté",
       "converted": "Converti",
-
       "draftDescription": "En cours de travail",
       "sentDescription": "Devis envoyé au client",
       "acceptedDescription": "Devis accepté par le client",
@@ -476,6 +409,12 @@
       "unitPrice": "Prix unitaire",
       "vat": "TVA ({{rate}}%)",
       "status": "Statut",
+      "taxRate": "Taux de TVA (%)",
+      "selectCustomer": "Sélectionner un client",
+      "termsAndConditions": "Conditions générales",
+      "privateNotes": "Notes privées",
+      "termsAndConditionsPlaceholder": "Saisissez les conditions de paiement, les délais du projet ou autres conditions de l'offre...",
+      "privateNotesPlaceholder": "Ajoutez des rappels privés ou commentaires (non visibles sur le PDF client)...",
       "errors": {
         "dateRequired": "La date est requise",
         "validUntilRequired": "La date d'expiration est requise",
@@ -491,15 +430,7 @@
         "submissionError": "Une erreur s'est produite lors de la soumission du formulaire. Veuillez vérifier les champs en surbrillance.",
         "saveFailed": "Échec de l'enregistrement du devis. Veuillez réessayer.",
         "submissionFailed": "Échec de la soumission du devis. Veuillez réessayer."
-      },
-      "taxRate": "Taux de TVA (%)",
-      "selectCustomer": "Sélectionner un client",
-      "termsAndConditions": "Conditions générales",
-      "privateNotes": "Notes privées",
-      "termsAndConditionsPlaceholder": "Saisissez les conditions de paiement, les délais du projet ou autres conditions de l'offre...",
-      "privateNotesPlaceholder": "Ajoutez des rappels privés ou commentaires (non visibles sur le PDF client)...",
-      "updateSuccess": "Devis mis à jour avec succès",
-      "createSuccess": "Devis créé avec succès"
+      }
     },
     "filters": {
       "title": "Filtres",
@@ -543,17 +474,6 @@
       "selectedCount_plural": "{{count}} devis sélectionnés",
       "bulkSubmit": "Soumettre la sélection",
       "bulkDelete": "Supprimer la sélection",
-      "statusUpdateSuccess": "Statut du devis mis à jour avec succès",
-      "statusUpdateError": "Échec de la mise à jour du statut du devis",
-      "convertToInvoiceSuccess": "Devis converti en facture avec succès. Numéro de facture : {{invoiceNumber}}",
-      "convertToInvoiceError": "Échec de la conversion du devis en facture",
-      "convertToInvoice": "Convertir en facture",
-      "bulkActions": {
-        "submitSuccess": "{{count}} devis soumis avec succès",
-        "submitError": "Échec de la soumission des devis",
-        "deleteSuccess": "{{count}} devis supprimés avec succès",
-        "deleteError": "Échec de la suppression des devis"
-      },
       "expired": "Expiré"
     },
     "actions": {
@@ -566,10 +486,9 @@
       "viewRejectionReason": "Voir la raison du rejet",
       "copyDgiSubmissionId": "Copier l'ID de soumission DGI",
       "markAsSent": "Marquer comme envoyé",
-      "markAsAccepted": "Marquer comme accepté", 
+      "markAsAccepted": "Marquer comme accepté",
       "markAsRejected": "Marquer comme rejeté",
-      "downloadError": "Échec du téléchargement du PDF",
-      "downloadSuccess": "PDF téléchargé avec succès"
+      "convertToInvoice": "Convertir en facture"
     },
     "details": {
       "title": "Détails du devis",
@@ -579,7 +498,7 @@
       "total": "Total",
       "subtotal": "Sous-total",
       "vat": "TVA",
-      "grandTotal": "Grand Total",
+      "grandTotal": "Total Général",
       "quoteInfo": "Informations du devis",
       "quoteNumber": "Numéro de devis",
       "issueDate": "Date d'émission",
@@ -622,42 +541,54 @@
       "confirmDelete": "Confirmer la suppression du devis",
       "deleteWarning": "Cette action ne peut pas être annulée. Le devis sera définitivement supprimé."
     },
+    "messages": {
+        "created": "Devis créé avec succès",
+        "updated": "Devis mis à jour avec succès",
+        "deleted": "{{count}} devis supprimés avec succès",
+        "submitted": "{{count}} devis soumis avec succès",
+        "statusUpdateSuccess": "Statut du devis mis à jour avec succès",
+        "statusUpdateError": "Échec de la mise à jour du statut du devis",
+        "convertToInvoiceSuccess": "Devis converti en facture avec succès. Numéro de facture : {{invoiceNumber}}",
+        "convertToInvoiceError": "Échec de la conversion du devis en facture",
+        "downloadError": "Échec du téléchargement du PDF",
+        "downloadSuccess": "PDF téléchargé avec succès",
+        "loadFailed": "Échec du chargement des devis"
+    },
     "import": {
-      "title": "Importer des devis",
-      "description": "Importer plusieurs devis depuis un fichier CSV",
-      "instructions": "Téléchargez le modèle et remplissez-le avec vos données de devis",
-      "downloadTemplate": "Télécharger le modèle",
-      "selectFile": "Sélectionner un fichier CSV",
-      "uploading": "Téléchargement...",
-      "processing": "Traitement...",
-      "success": "Import terminé avec succès",
-      "error": "Erreur lors de l'import",
-      "importCSV": "Importer CSV",
-      "help": {
-        "title": "Format d'import CSV",
-        "requiredHeaders": "En-têtes requis :",
-        "optionalHeaders": "En-têtes optionnels :",
-        "requiredFields": [
-          "NumeroDevis - Numéro de devis",
-          "DateEmission - Date d'émission",
-          "ClientICE - Numéro ICE du client",
-          "Description - Description de l'article",
-          "Quantite - Quantité",
-          "PrixUnitaire - Prix unitaire",
-          "TauxTVA - Taux de TVA"
-        ],
-        "optionalFields": [
-          "DateExpiration - Date d'expiration",
-          "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)",
-          "TermesConditions - Termes et conditions",
-          "NotesPrivees - Notes privées"
-        ]
-      }
+        "title": "Importer des devis",
+        "description": "Importer plusieurs devis depuis un fichier CSV",
+        "instructions": "Téléchargez le modèle et remplissez-le avec vos données de devis",
+        "downloadTemplate": "Télécharger le modèle",
+        "success": "{{count}} devis ont été importés avec succès.",
+        "error": "Erreur lors de l'import",
+        "help": {
+          "title": "Format d'import CSV",
+          "requiredHeaders": "En-têtes requis :",
+          "optionalHeaders": "En-têtes optionnels :",
+          "requiredFields": [
+            "NumeroDevis - Numéro de devis",
+            "DateEmission - Date d'émission",
+            "ClientICE - Numéro ICE du client",
+            "Description - Description de l'article",
+            "Quantite - Quantité",
+            "PrixUnitaire - Prix unitaire",
+            "TauxTVA - Taux de TVA"
+          ],
+          "optionalFields": [
+            "DateExpiration - Date d'expiration",
+            "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)",
+            "TermesConditions - Termes et conditions",
+            "NotesPrivees - Notes privées"
+          ]
+        }
     }
   },
   "catalog": {
     "title": "Catalogue",
+    "title_plural": "Articles du catalogue",
     "subtitle": "{{count}} articles dans le catalogue",
+    "create": "Créer un article",
+    "deleting": "Suppression de l'article de catalogue...",
     "actions": {
       "create": "Créer un article",
       "edit": "Modifier l'article",
@@ -670,40 +601,47 @@
       "price": "Prix",
       "actions": "Actions",
       "taxRate": "Taux de TVA",
+      "CodeArticle": "Code Article",
+      "description": "Description",
+      "unitPrice": "Prix unitaire",
+      "defaultTaxRate": "TVA",
       "noItems": "Aucun article de catalogue trouvé",
+      "noCatalogs": "Aucun article de catalogue trouvé",
       "adjustFilters": "Essayez d'ajuster vos filtres",
       "getStarted": "Commencez par créer votre premier article de catalogue"
     },
     "form": {
       "createTitle": "Créer un article de catalogue",
       "editTitle": "Modifier l'article de catalogue",
+      "CodeArticle": "Code Article",
       "name": "Nom",
-      "namePlaceholder": "Entrez le nom de l'article",
-      "sku": "SKU",
-      "skuPlaceholder": "Entrez le SKU (optionnel)",
       "description": "Description",
-      "descriptionPlaceholder": "Entrez la description de l'article (optionnel)",
-      "type": "Type",
       "unitPrice": "Prix unitaire",
       "defaultTaxRate": "Taux de TVA par défaut",
-      "preview": "Aperçu du prix",
-      "taxIncluded": "Taux de TVA : {{rate}}%",
+      "type": "Type",
+      "typeProduct": "Produit",
+      "typeService": "Service",
       "errors": {
         "nameRequired": "Le nom est requis",
-        "unitPricePositive": "Le prix unitaire doit être positif",
-        "taxRateRange": "Le taux de TVA doit être entre 0 et 100",
-        "typeRequired": "Le type est requis",
+        "codeArticleRequired": "Le code article est requis",
+        "descriptionTooShort": "La description doit contenir au moins 3 caractères",
+        "fixErrors": "Veuillez corriger les erreurs ci-dessous",
+        "saveFailed": "Échec de l'enregistrement de l'article",
         "submissionFailed": "Échec de la soumission du formulaire"
       }
     },
     "filters": {
+      "title": "Filtres",
       "show": "Afficher les filtres",
       "hide": "Masquer les filtres",
       "apply": "Appliquer les filtres",
-      "reset": "Réinitialiser les filtres",
+      "reset": "Réinitialiser",
+      "name": "Nom",
       "search": "Rechercher",
-      "searchPlaceholder": "Rechercher par nom ou description",
+      "searchName": "Rechercher par nom ou code article",
       "type": "Type",
+      "all": "Tous les types",
+      "searchPlaceholder": "Rechercher par nom ou description",
       "allTypes": "Tous les types",
       "sort": "Trier par",
       "direction": "Direction",
@@ -716,7 +654,7 @@
     },
     "sort": {
       "name": "Nom",
-      "sku": "SKU",
+      "codeArticle": "Code Article",
       "unitPrice": "Prix unitaire",
       "type": "Type"
     },
@@ -725,7 +663,7 @@
       "service": "Service"
     },
     "table": {
-      "sku": "SKU",
+      "codeArticle": "Code Article",
       "name": "Nom",
       "description": "Description",
       "unitPrice": "Prix unitaire",
@@ -747,46 +685,138 @@
       "title": "Supprimer l'article",
       "message": "Êtes-vous sûr de vouloir supprimer cet article ? Cette action ne peut pas être annulée."
     },
+    "confirm": {
+      "title": "Confirmer {{action}}",
+      "message": "Êtes-vous sûr de vouloir {{action}} cet article{{plural}} ? {{warning}}",
+      "warning": "Cette action ne peut pas être annulée."
+    },
     "bulkDelete": {
       "title": "Supprimer les articles",
       "message": "Êtes-vous sûr de vouloir supprimer {{count}} articles ? Cette action ne peut pas être annulée."
     },
     "messages": {
-      "deleteSuccess": "Article supprimé avec succès",
-      "bulkDeleteSuccess": "{{count}} articles supprimés avec succès",
-      "updateSuccess": "Article mis à jour avec succès",
-      "createSuccess": "Article créé avec succès",
-      "noItems": "Aucun article de catalogue trouvé"
+      "created": "Article créé avec succès",
+      "updated": "Article mis à jour avec succès",
+      "deleted": "Article supprimé avec succès",
+      "bulkDeleted": "{{count}} articles supprimés avec succès",
+      "fetchFailed": "Échec du chargement des articles de catalogue",
+      "deleteFailed": "Échec de la suppression de l'article de catalogue",
+      "saveFailed": "Échec de l'enregistrement de l'article",
+      "loadFailed": "Échec du chargement des articles de catalogue"
     },
     "errors": {
       "noPermission": "Vous n'avez pas la permission d'effectuer cette action",
-      "deleteFailed": "Échec de la suppression de l'article",
-      "bulkDeleteFailed": "Échec de la suppression des articles",
-      "saveFailed": "Échec de la sauvegarde de l'article",
-      "loadFailed": "Échec du chargement des articles de catalogue",
       "accessDenied": "Accès refusé. Vous n'avez pas la permission de voir le catalogue."
     },
     "import": {
+      "title": "Importer des articles de catalogue",
+      "description": "Importer plusieurs articles de catalogue depuis un fichier CSV",
+      "instructions": "Téléchargez le modèle et remplissez-le avec vos données de catalogue",
+      "downloadTemplate": "Télécharger le modèle",
+      "uploading": "Téléchargement...",
+      "processing": "Traitement...",
+      "success": "{{imported}} articles importés avec succès sur {{total}} au total",
+      "error": {
+        "title": "Erreur d'importation",
+        "message": "Certains articles n'ont pas pu être importés. Veuillez vérifier les détails ci-dessous :",
+        "general": "Erreur lors de l'importation"
+      },
       "help": {
-        "title": "Aide Import CSV",
-        "requiredHeaders": "En-têtes CSV requis",
-        "nameDesc": "Le nom de l'article du catalogue",
-        "skuDesc": "Code article (optionnel)",
-        "descriptionDesc": "Description de l'article (optionnel)",
-        "unitPriceDesc": "Prix unitaire en MAD",
-        "taxRateDesc": "Taux de TVA par défaut en pourcentage (0-100)",
-        "typeDesc": "Type d'article (Produit ou Service)",
-        "typeValues": "Valeurs de type valides",
-        "example": "Exemple de format CSV"
+        "title": "Format d'importation CSV",
+        "requiredHeaders": "En-têtes requis :",
+        "optionalHeaders": "En-têtes optionnels :",
+        "requiredFields": [
+          "CodeArticle - Code article",
+          "name - Nom de l'article",
+          "description - Description de l'article",
+          "unitPrice - Prix unitaire",
+          "defaultTaxRate - Taux de TVA",
+          "type - Type d'article (0 pour Produit, 1 pour Service)"
+        ],
+        "optionalFields": [
+          "id - ID de l'article (pour les mises à jour uniquement)"
+        ]
       }
     }
   },
-  "confirmations": {
-    "deleteInvoice": "Êtes-vous sûr de vouloir supprimer cette facture ?",
-    "deleteUser": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
-    "deleteCustomer": "Êtes-vous sûr de vouloir supprimer ce client ?",
-    "submitInvoice": "Êtes-vous sûr de vouloir soumettre cette facture ?",
-    "bulkDelete": "Êtes-vous sûr de vouloir supprimer les factures sélectionnées ?",
-    "bulkSubmit": "Êtes-vous sûr de vouloir soumettre les factures sélectionnées ?"
+  "users": {
+    "title": "Gestion des utilisateurs",
+    "addUser": "Ajouter un utilisateur",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "role": "Rôle",
+    "actions": "Actions",
+    "editUser": "Modifier l'utilisateur",
+    "saveChanges": "Enregistrer les modifications",
+    "cancel": "Annuler",
+    "resetOwnPassword": "Réinitialiser mon mot de passe",
+    "newPassword": "Nouveau mot de passe",
+    "passwordRequirements": "Le mot de passe doit contenir au moins 8 caractères",
+    "messages": {
+        "created": "Utilisateur créé avec succès.",
+        "updated": "Utilisateur mis à jour avec succès.",
+        "deleted": "Utilisateur supprimé avec succès.",
+        "passwordUpdated": "Mot de passe mis à jour avec succès."
+    },
+    "errors": {
+      "cannotUpdateAdmin": "Les administrateurs ne peuvent pas être modifiés",
+      "managersCannotChangeRoles": "Les gestionnaires ne peuvent pas modifier les rôles",
+      "invalidRole": "Rôle utilisateur invalide",
+      "invalidUserId": "ID utilisateur invalide dans le jeton."
+    },
+    "confirm": {
+      "delete": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?"
+    }
+  },
+  "customers": {
+    "title": "Clients",
+    "addCustomer": "Ajouter un client",
+    "editCustomer": "Modifier le client",
+    "headers": {
+      "name": "Nom",
+      "ice": "ICE",
+      "taxId": "ID Fiscal",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "actions": "Actions"
+    },
+    "form": {
+      "namePlaceholder": "Nom",
+      "icePlaceholder": "ICE",
+      "taxIdPlaceholder": "ID Fiscal",
+      "addressPlaceholder": "Adresse",
+      "emailPlaceholder": "E-mail",
+      "phonePlaceholder": "Numéro de téléphone",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "list": {
+      "noCustomers": "Aucun client trouvé",
+      "getStarted": "Commencez par ajouter votre premier client."
+    },
+    "messages": {
+        "created": "Client créé avec succès.",
+        "updated": "Client mis à jour avec succès.",
+        "deleted": "Client supprimé avec succès.",
+        "saveFailed": "Échec de l'enregistrement du client.",
+        "deleteFailed": "Échec de la suppression du client."
+    },
+    "errors": {
+        "nameRequired": "Le nom est requis.",
+        "invalidICE": "L'ICE doit comporter 15 chiffres.",
+        "invalidTaxId": "L'ID fiscal doit comporter 8 chiffres.",
+        "companyNameRequired": "Le nom de l'entreprise est requis.",
+        "ICERequired": "Le numéro ICE est requis.",
+        "emailRequired": "L'adresse email est requise.",
+        "passwordRequired": "Le mot de passe est requis."
+    },
+    "confirm": {
+      "delete": "Êtes-vous sûr de vouloir supprimer ce client ?"
+    }
+  },
+  "roles": {
+    "admin": "Admin",
+    "manager": "Manager",
+    "clerk": "Employé"
   }
-} 
+}

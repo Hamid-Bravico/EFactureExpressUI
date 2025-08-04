@@ -407,23 +407,13 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   }, [editingInvoice, onUpdateInvoice, onCreateInvoice]);
 
   const handleDelete = useCallback((id: number) => {
-    if (window.confirm(t('invoice.confirm.message', { 
-      action: t('invoice.actions.delete'),
-      count: 1,
-      plural: '',
-      warning: t('invoice.confirm.warning')
-    }))) {
+    if (window.confirm(t('invoice.confirm.delete'))) {
       onDelete(id);
     }
   }, [onDelete, t]);
 
   const handleSubmit = useCallback((id: number) => {
-    if (window.confirm(t('invoice.confirm.message', { 
-      action: t('invoice.actions.submit'),
-      count: 1,
-      plural: '',
-      warning: ''
-    }))) {
+    if (window.confirm(t('invoice.confirm.submit'))) {
       onSubmit(id);
     }
   }, [onSubmit, t]);
@@ -1015,11 +1005,8 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
               </h3>
             </div>
             <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-              {t('invoice.confirm.message', { 
-                action: showConfirmDialog.type === 'submit' ? t('invoice.actions.submit') : t('invoice.actions.delete'),
+              {t(showConfirmDialog.type === 'submit' ? 'invoice.bulk.confirm.submit' : 'invoice.bulk.confirm.delete', { 
                 count: showConfirmDialog.count,
-                plural: showConfirmDialog.count !== 1 ? 's' : '',
-                warning: showConfirmDialog.type === 'delete' ? t('invoice.confirm.warning') : ''
               })}
             </p>
             <div className="flex justify-end gap-3">

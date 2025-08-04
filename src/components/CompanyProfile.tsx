@@ -28,7 +28,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
 
   const profileItems = [
     {
-      label: t('common.companyName'),
+      label: t('auth.companyName'),
       value: company.name,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -37,13 +37,13 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       ),
     },
     {
-      label: t('common.ICE'),
+      label: t('auth.ice'),
       value: (
         <div className="flex items-center">
           {company.ICE && company.ICE.trim() ? (
             <span className="font-semibold text-gray-900">{company.ICE}</span>
           ) : (
-            <span className="text-gray-500 italic">{t('common.noICE')}</span>
+            <span className="text-gray-500 italic">{t('auth.noICE')}</span>
           )}
           <button
             onClick={handleCopy}
@@ -65,11 +65,11 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       ),
     },
     {
-      label: t('common.identifiantFiscal'),
+      label: t('auth.identifiantFiscal'),
       value: company.identifiantFiscal && company.identifiantFiscal.trim() ? (
         company.identifiantFiscal
       ) : (
-        <span className="text-gray-500 italic">{t('common.noIdentifiantFiscal')}</span>
+        <span className="text-gray-500 italic">{t('auth.noIdentifiantFiscal')}</span>
       ),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -78,11 +78,11 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       ),
     },
     {
-      label: t('common.address'),
+      label: t('auth.address'),
       value: company.address ? (
         company.address
       ) : (
-        <span className="text-gray-500 italic">{t('common.noAddress')}</span>
+        <span className="text-gray-500 italic">{t('auth.noAddress')}</span>
       ),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -91,7 +91,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       ),
     },
     {
-      label: t('common.memberSince'),
+      label: t('auth.memberSince'),
       value: new Date(company.createdAt).toLocaleDateString(i18n.language, {
         year: 'numeric',
         month: 'long',
@@ -113,7 +113,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
             <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
           </svg>
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 ml-4">{t('common.companyProfile')}</h2>
+        <h2 className="text-3xl font-bold text-gray-800 ml-4">{t('auth.companyProfile')}</h2>
       </div>
       
       <div className="space-y-6">

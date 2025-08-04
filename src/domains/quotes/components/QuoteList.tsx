@@ -351,7 +351,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
 
   const handleDelete = useCallback((id: number) => {
     if (window.confirm(t('quote.confirm.message', { 
-      action: t('quote.actions.delete'),
+      action: t('quote.delete'),
       count: 1,
       plural: '',
       warning: t('quote.confirm.warning')
@@ -437,7 +437,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
       }
       setShowQuoteForm(false);
     } catch (error: any) {
-      toast.error(error.message || t('quote.form.errors.submissionFailed'));
+      toast.error(error.message || t('quote.messages.submissionFailed'));
       throw error;
     }
   }, [editingQuote, onUpdateQuote, onCreateQuote, t]);
@@ -465,7 +465,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('errors.failedToLoadQuotes')}</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('quote.messages.loadFailed')}</h3>
           <p className="text-gray-600 leading-relaxed mb-6">
             {t('errors.tryRefreshing')}
           </p>
@@ -1017,13 +1017,13 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-sm text-gray-700">
-                  {t('common.showing')} <span className="font-medium">{((data.pagination.page - 1) * data.pagination.pageSize) + 1}</span> {t('common.to')} <span className="font-medium">{Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalItems)}</span> {t('common.of')} <span className="font-medium">{data.pagination.totalItems}</span> {t('common.results')}
+                  {t('common.pagination.showing')} <span className="font-medium">{((data.pagination.page - 1) * data.pagination.pageSize) + 1}</span> {t('common.pagination.to')} <span className="font-medium">{Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalItems)}</span> {t('common.pagination.of')} <span className="font-medium">{data.pagination.totalItems}</span> {t('common.pagination.results')}
                 </p>
               </div>
               
               {/* Page Size Selector */}
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-700">{t('common.show')}:</label>
+                <label className="text-sm text-gray-700">{t('common.pagination.show')}:</label>
                 <select
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
@@ -1034,7 +1034,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
-                <span className="text-sm text-gray-700">{t('common.perPage')}</span>
+                <span className="text-sm text-gray-700">{t('common.pagination.perPage')}</span>
               </div>
             </div>
             
@@ -1126,12 +1126,12 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                 )}
               </div>
               <h3 className="text-xl font-semibold text-gray-900">
-                {t('quote.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete') })}
+                {t('quote.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('quote.submit') : t('quote.delete') })}
               </h3>
             </div>
             <p className="text-sm text-gray-600 mb-6 leading-relaxed">
               {t('quote.confirm.message', { 
-                action: showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete'),
+                action: showConfirmDialog.type === 'submit' ? t('quote.submit') : t('quote.delete'),
                 count: showConfirmDialog.count,
                 plural: showConfirmDialog.count !== 1 ? 's' : '',
                 warning: showConfirmDialog.type === 'delete' ? t('quote.confirm.warning') : ''
@@ -1152,7 +1152,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete')}
+                {showConfirmDialog.type === 'submit' ? t('quote.submit') : t('quote.delete')}
               </button>
             </div>
           </div>

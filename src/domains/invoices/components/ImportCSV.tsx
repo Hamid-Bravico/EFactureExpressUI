@@ -99,7 +99,7 @@ const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
               <div>
                 <h4 className="font-medium text-gray-800 mb-2">{t('import.help.requiredHeaders')}</h4>
                 <ul className="space-y-1 text-gray-600">
-                  {t('import.help.requiredFields', { returnObjects: true }).map((field: string, index: number) => (
+                  {(t('import.help.requiredFields', { returnObjects: true }) as string[]).map((field: string, index: number) => (
                     <li key={index} className="flex items-start">
                       <span className="mr-2 text-red-500">•</span>
                       <span className="text-xs">{field}</span>
@@ -111,7 +111,7 @@ const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
               <div>
                 <h4 className="font-medium text-gray-800 mb-2">{t('import.help.optionalHeaders')}</h4>
                 <ul className="space-y-1 text-gray-600">
-                  {t('import.help.optionalFields', { returnObjects: true }).map((field: string, index: number) => (
+                  {(t('import.help.optionalFields', { returnObjects: true }) as string[]).map((field: string, index: number) => (
                     <li key={index} className="flex items-start">
                       <span className="mr-2 text-blue-500">•</span>
                       <span className="text-xs">{field}</span>

@@ -107,7 +107,7 @@ const Users = React.memo(({ token }: UsersProps) => {
       await fetchUsers();
       setShowUserForm(false);
       setNewUser({ email: '', password: '', role: 'Clerk' });
-      toast.success(t('success.userCreated'));
+      toast.success(t('users.messages.created'));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create user';
       toast.error(
@@ -150,7 +150,7 @@ const Users = React.memo(({ token }: UsersProps) => {
           await fetchUsers();
           setEditingUser(null);
           setEditForm({ email: '', role: 'Clerk', password: '' });
-          toast.success(t('success.passwordUpdated'));
+          toast.success(t('users.messages.passwordUpdated'));
           // Log out user after password change
           tokenManager.clearAuthData();
           setTimeout(() => {
@@ -158,13 +158,13 @@ const Users = React.memo(({ token }: UsersProps) => {
           }, 2000);
           return;
         }
-        toast.error(t('errors.cannotUpdateAdmin'));
+        toast.error(t('users.errors.cannotUpdateAdmin'));
         return;
       }
 
       // If current user is Manager, prevent role changes
       if (currentUserRole === 'Manager' && updates.role && updates.role !== currentUser.roles[0]) {
-        toast.error(t('errors.managersCannotChangeRoles'));
+        toast.error(t('users.errors.managersCannotChangeRoles'));
         return;
       }
 
@@ -207,14 +207,14 @@ const Users = React.memo(({ token }: UsersProps) => {
       await fetchUsers();
       setEditingUser(null);
       setEditForm({ email: '', role: 'Clerk', password: '' });
-      toast.success(t('success.userUpdated'));
+      toast.success(t('users.messages.updated'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update user');
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm(t('confirmations.deleteUser'))) return;
+    if (!window.confirm(t('users.confirm.delete'))) return;
 
     try {
       const response = await fetch(`${USER_ENDPOINTS.LIST}/${userId}`, {
@@ -225,7 +225,7 @@ const Users = React.memo(({ token }: UsersProps) => {
       if (!response.ok) throw new Error('Failed to delete user');
       
       await fetchUsers();
-      toast.success(t('success.userDeleted'));
+      toast.success(t('users.messages.deleted'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete user');
     }

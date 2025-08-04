@@ -730,7 +730,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       if (response.ok) {
         // Success response (200 OK)
         const count = data.data?.count || 0;
-        toast.success(data.message || t('success.quotesImported', { count }), { id: toastId });
+        toast.success(data.message || t('quote.messages.imported', { count }), { id: toastId });
         await fetchQuotes();
       } else {
         // Validation error response (400/409) - Show in modal

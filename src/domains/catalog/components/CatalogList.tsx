@@ -1,52 +1,23 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Quote, NewQuote } from '../types/catalog.types';
+import { Catalog, NewCatalog } from '../types/catalog.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import QuoteForm from './CatalogForm';
-import QuoteDetail from './CatalogDetail';
-import QuoteStatusBadge from './CatalogStatusBadge';
+import CatalogForm from './CatalogForm';
 import { 
-  canSelectQuoteForBulkOperation,
-  QuoteStatus
+  canSelectCatalogForBulkOperation
 } from '../utils/catalog.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
+import { decodeJWT } from '../../../utils/jwt';
 
-export interface QuoteListResponse {
-  quotes: Array<{
+export interface CatalogListResponse {
+  items: Array<{
     id: number;
-    quoteNumber: string;
-    issueDate: string;
-    expiryDate?: string;
-    customerName: string;
-    customer?: {
-      id: number;
-      name: string;
-      ice?: string;
-      taxId?: string;
-      address?: string;
-      email?: string;
-      phoneNumber?: string;
-    };
-    customerId?: number;
-    total: number;
-    status: string;
-    createdBy: string;
-    createdById?: string;
-    createdAt: string;
-    subTotal: number;
-    vat: number;
-    lines: Array<{
-      id?: number;
-      description: string;
-      quantity: number;
-      unitPrice: number;
-      total: number;
-      taxRate?: number;
-      quoteId?: number;
-    }>;
-    companyId?: string;
-    termsAndConditions?: string;
-    privateNotes?: string;
+    codeArticle: string;
+    name: string;
+    description: string;
+    unitPrice: number;
+    defaultTaxRate: number;
+    type: number;
   }>;
   pagination: {
     totalItems: number;
@@ -54,78 +25,47 @@ export interface QuoteListResponse {
     pageSize: number;
     totalPages: number;
   };
-  filters: {
-    statuses: Array<{ value: string; label: string; count: number; }>;
-    customers: Array<{ value: string; label: string; count: number; }>;
-  };
 }
 
-interface QuoteListProps {
-  data: QuoteListResponse | null;
+interface CatalogListProps {
+  data: CatalogListResponse | null;
   loading: boolean;
   onDelete: (id: number) => void;
-  onDownloadPdf: (id: number) => void;
   onSubmit: (id: number) => void;
-  onCreateQuote: (quote: NewQuote, customerName?: string) => Promise<void>;
-  onUpdateQuote: (quote: NewQuote, customerName?: string) => Promise<void>;
-  onRefreshQuotes: (filters?: any, sort?: any, pagination?: any) => Promise<void>;
+  onCreateCatalog: (catalog: NewCatalog) => Promise<void>;
+  onUpdateCatalog: (catalog: NewCatalog) => Promise<void>;
+  onRefreshCatalogs: (filters?: any, sort?: any, pagination?: any) => Promise<void>;
   disabled?: boolean;
   token: string | null;
-
-  onBulkDelete?: (ids: number[]) => Promise<void>;
-  onBulkSubmit?: (ids: number[]) => Promise<void>;
-  onUpdateQuoteStatus?: (id: number, status: string) => void;
-  onOptimisticQuoteStatusUpdate?: (id: number, status: string) => void;
-  onConvertToInvoice?: (id: number) => Promise<void>;
 }
 
 interface Filters {
-  dateFrom: string;
-  dateTo: string;
-  customerName: string;
-  status: string;
-  amountFrom: string;
-  amountTo: string;
+  q: string; // SearchTerm for Name and CodeArticle
+  type: string; // Type filter
 }
 
-const QuoteList: React.FC<QuoteListProps> = React.memo(({
+const CatalogList: React.FC<CatalogListProps> = React.memo(({
   data,
   loading,
   onDelete,
-  onDownloadPdf,
-  onSubmit,
-  onCreateQuote,
-  onUpdateQuote,
+  onCreateCatalog,
+  onUpdateCatalog,
   token,
-  onRefreshQuotes,
-  disabled = false,
-
-
-  onBulkDelete,
-  onBulkSubmit,
-  onUpdateQuoteStatus,
-  onOptimisticQuoteStatusUpdate,
-  onConvertToInvoice
+  onRefreshCatalogs,
+  disabled = false
 }) => {
   const { t, i18n } = useTranslation();
-  const [selectedQuotes, setSelectedQuotes] = useState<Set<number>>(new Set());
-  const [selectedQuote, setSelectedQuote] = useState<number | null>(null);
-  const [showQuoteForm, setShowQuoteForm] = useState(false);
-  const [editingQuote, setEditingQuote] = useState<Quote | undefined>();
+  const [selectedCatalogs, setSelectedCatalogs] = useState<Set<number>>(new Set());
+  const [selectedCatalog, setSelectedCatalog] = useState<number | null>(null);
+  const [showCatalogForm, setShowCatalogForm] = useState(false);
+  const [editingCatalog, setEditingCatalog] = useState<Catalog | undefined>();
   const [showFilters, setShowFilters] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState<{ type: 'submit' | 'delete'; count: number } | null>(null);
-  const [rejectionModal, setRejectionModal] = useState<{ quoteId: number; reason: string } | null>(null);
-  const [downloadDropdownOpenId, setDownloadDropdownOpenId] = useState<number | null>(null);
-  const downloadDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   // Filter and sort state
   const [filters, setFilters] = useState<Filters>({
-    dateFrom: '',
-    dateTo: '',
-    customerName: '',
-    status: 'all',
-    amountFrom: '',
-    amountTo: ''
+    q: '',
+    type: 'all'
   });
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -137,76 +77,50 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     if (!token) return 'Clerk';
     
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.role || 'Clerk';
-    } catch {
+      const decodedJWT = decodeJWT(token);
+      return decodedJWT?.role || 'Clerk';
+    } catch (error) {
       return 'Clerk';
     }
   }, []);
 
   // Memoized computed values for better performance
-  const selectableQuotes = useMemo(() => {
-    if (!data?.quotes) return [];
-    return data.quotes.filter(quote => 
-      canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete') ||
-      canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit')
-    );
-  }, [data?.quotes, userRole]);
+  const selectableCatalogs = useMemo(() => {
+    if (!data?.items) return [];
+    return data.items;
+  }, [data?.items, userRole]);
 
   const allSelectable = useMemo(() => {
-    if (!data?.quotes || selectableQuotes.length === 0) return false;
-    return selectedQuotes.size === selectableQuotes.length && selectableQuotes.length > 0;
-  }, [data?.quotes, selectedQuotes.size, selectableQuotes.length]);
-
-  // Close dropdown on outside click
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        downloadDropdownOpenId !== null &&
-        downloadDropdownRefs.current[downloadDropdownOpenId] &&
-        !downloadDropdownRefs.current[downloadDropdownOpenId]?.contains(event.target as Node)
-      ) {
-        setDownloadDropdownOpenId(null);
-      }
-    }
-    if (downloadDropdownOpenId !== null) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [downloadDropdownOpenId]);
+    if (!data?.items || selectableCatalogs.length === 0) return false;
+    return selectedCatalogs.size === selectableCatalogs.length && selectableCatalogs.length > 0;
+  }, [data?.items, selectedCatalogs.size, selectableCatalogs.length]);
 
   // Keyboard navigation support
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       // Close dropdowns on Escape
       if (event.key === 'Escape') {
-        setDownloadDropdownOpenId(null);
         setShowConfirmDialog(null);
-        setRejectionModal(null);
       }
       
       // Select all with Ctrl+A
       if (event.ctrlKey && event.key === 'a') {
         event.preventDefault();
-        if (data?.quotes && selectableQuotes.length > 0) {
-          setSelectedQuotes(new Set(selectableQuotes.map(quote => quote.id)));
+        if (data?.items && selectableCatalogs.length > 0) {
+          setSelectedCatalogs(new Set(selectableCatalogs.map(catalog => catalog.id)));
         }
       }
     }
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [data?.quotes, selectableQuotes]);
+  }, [data?.items, selectableCatalogs]);
 
 
 
   // Update handleSort to only allow valid sortField values
   const handleSort = useCallback((field: string) => {
-    const validFields = ['date', 'expiryDate', 'quoteNumber', 'customer', 'total', 'status'] as const;
+    const validFields = ['name', 'type', 'unitPrice', 'defaultTaxRate', 'CodeArticle', 'description', 'status'] as const;
     if (!validFields.includes(field as any)) return;
     
     const newSortField = field as typeof validFields[number];
@@ -216,37 +130,29 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     setSortDirection(newSortDirection);
     
     // Trigger API call for sorting
-    onRefreshQuotes(filters, { sortField: newSortField, sortDirection: newSortDirection }, { page: currentPage, pageSize });
-  }, [sortField, sortDirection, filters, currentPage, pageSize, onRefreshQuotes]);
+    onRefreshCatalogs(filters, { sortField: newSortField, sortDirection: newSortDirection }, { page: currentPage, pageSize });
+  }, [sortField, sortDirection, filters, currentPage, pageSize, onRefreshCatalogs]);
 
   const handleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!data?.quotes) return;
+    if (!data?.items) return;
     
     if (e.target.checked) {
-      setSelectedQuotes(new Set(selectableQuotes.map(quote => quote.id)));
+      setSelectedCatalogs(new Set(selectableCatalogs.map(catalog => catalog.id)));
     } else {
-      setSelectedQuotes(new Set());
+      setSelectedCatalogs(new Set());
     }
-  }, [data?.quotes, selectableQuotes]);
+  }, [data?.items, selectableCatalogs]);
 
-  const handleSelectQuote = useCallback((id: number, status: string) => {
-    const quoteStatus = status as QuoteStatus;
-    
-    // Check if quote can be selected for any bulk operation
-    const canSelectForDelete = canSelectQuoteForBulkOperation(userRole, quoteStatus, 'delete');
-    const canSelectForSubmit = canSelectQuoteForBulkOperation(userRole, quoteStatus, 'submit');
-    
-    if (canSelectForDelete || canSelectForSubmit) {
-      setSelectedQuotes(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(id)) {
-          newSet.delete(id);
-        } else {
-          newSet.add(id);
-        }
-        return newSet;
-      });
-    }
+  const handleSelectCatalog = useCallback((id: number) => {
+    setSelectedCatalogs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   }, [userRole]);
 
   const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -258,22 +164,17 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
 
   const resetFilters = useCallback(() => {
     setFilters({
-      dateFrom: '',
-      dateTo: '',
-      customerName: '',
-      status: 'all',
-      amountFrom: '',
-      amountTo: ''
+      q: '',
+      type: 'all'
     });
     setCurrentPage(1);
-    // The useEffect will trigger the API call
   }, []);
 
   // Apply filters and trigger API call
   const applyFiltersAndSort = useCallback(() => {
     const sortParams = sortField ? { sortField, sortDirection } : undefined;
-    onRefreshQuotes(filters, sortParams, { page: currentPage, pageSize });
-  }, [filters, sortField, sortDirection, currentPage, pageSize, onRefreshQuotes]);
+    onRefreshCatalogs(filters, sortParams, { page: currentPage, pageSize });
+  }, [filters, sortField, sortDirection, currentPage, pageSize, onRefreshCatalogs]);
 
   // Sync local state with server response
   useEffect(() => {
@@ -283,78 +184,12 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     }
   }, [data?.pagination]);
 
-  const handleBulkSubmit = useCallback(async () => {
-    if (!data?.quotes) return;
-    // Only allow bulk submit for quotes that can be submitted based on permissions
-    const submitIds = Array.from(selectedQuotes).filter(id => {
-      const quote = data.quotes.find(q => q.id === id);
-      return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit');
-    });
-    if (submitIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'submit',
-      count: submitIds.length
-    });
-  }, [selectedQuotes, data?.quotes, userRole]);
-
-  const handleBulkDelete = useCallback(async () => {
-    if (!data?.quotes) return;
-    // Allow bulk delete for quotes that can be deleted based on permissions
-    const deleteIds = Array.from(selectedQuotes).filter(id => {
-      const quote = data.quotes.find(q => q.id === id);
-      return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete');
-    });
-    if (deleteIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'delete',
-      count: deleteIds.length
-    });
-  }, [selectedQuotes, data?.quotes, userRole]);
-
-  const confirmBulkAction = useCallback(async () => {
-    if (!showConfirmDialog || !data?.quotes) return;
-
-    setShowConfirmDialog(null);
-
-    try {
-      if (showConfirmDialog.type === 'submit') {
-        // Only submit quotes that can be submitted based on permissions
-        const submitIds = Array.from(selectedQuotes).filter(id => {
-          const quote = data.quotes.find(q => q.id === id);
-          return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit');
-        });
-        
-        if (onBulkSubmit && submitIds.length > 0) {
-          await onBulkSubmit(submitIds);
-        }
-      } else {
-        // Delete quotes that can be deleted based on permissions
-        const deleteIds = Array.from(selectedQuotes).filter(id => {
-          const quote = data.quotes.find(q => q.id === id);
-          return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete');
-        });
-        
-        if (onBulkDelete && deleteIds.length > 0) {
-          await onBulkDelete(deleteIds);
-        }
-      }
-      setSelectedQuotes(new Set());
-    } catch (error) {
-      toast.error(
-        t('errors.bulkActionFailed', { 
-          action: showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete'),
-          error: error instanceof Error ? error.message : t('errors.unknown')
-        })
-      );
-    }
-  }, [showConfirmDialog, selectedQuotes, data?.quotes, onBulkSubmit, onBulkDelete, userRole, t]);
-
   const handleDelete = useCallback((id: number) => {
-    if (window.confirm(t('quote.confirm.message', { 
-      action: t('quote.actions.delete'),
+    if (window.confirm(t('catalog.confirm.message', { 
+      action: t('common.delete'),
       count: 1,
       plural: '',
-      warning: t('quote.confirm.warning')
+      warning: t('catalog.confirm.warning')
     }))) {
       onDelete(id);
     }
@@ -367,8 +202,8 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     
     // Trigger API call for page size change
     const sortParams = sortField ? { sortField, sortDirection } : undefined;
-    onRefreshQuotes(filters, sortParams, { page: 1, pageSize: newPageSize });
-  }, [filters, sortField, sortDirection, onRefreshQuotes]);
+    onRefreshCatalogs(filters, sortParams, { page: 1, pageSize: newPageSize });
+  }, [filters, sortField, sortDirection, onRefreshCatalogs]);
 
   const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat(i18n.language, {
@@ -377,74 +212,55 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     }).format(amount);
   }, [i18n.language]);
 
-  const isQuoteExpired = useCallback((expiryDate?: string) => {
+  const isCatalogExpired = useCallback((expiryDate?: string) => {
     if (!expiryDate) return false;
     return new Date(expiryDate) < new Date();
   }, []);
 
-  const canEditQuote = useCallback((quote: any) => {
-    return quote.status === 'Draft'; // Only draft quotes can be edited
-  }, []);
-
-  const canDeleteQuote = useCallback((quote: any) => {
-    return userRole === 'Admin' || userRole === 'Manager' || quote.status === 'Draft';
+  const canEditCatalog = useCallback((catalog: any) => {
+    // Admin and Manager can edit all catalogs, Clerk cannot edit
+    const canEdit = userRole === 'Admin' || userRole === 'Manager';
+    return canEdit;
   }, [userRole]);
 
-  const handleEditQuote = useCallback((quoteData: any) => {
-    // Map the quote data to match the Quote interface
-    const quote: Quote = {
+  const canDeleteCatalog = useCallback((catalog: any) => {
+    // Admin and Manager can delete catalogs
+    const canDelete = userRole === 'Admin' || userRole === 'Manager';
+    return canDelete;
+  }, [userRole]);
+
+  const handleEditCatalog = useCallback((quoteData: any) => {
+    // Map the catalog data to match the Catalog interface
+    const catalog: Catalog = {
       id: quoteData.id,
-      quoteNumber: quoteData.quoteNumber,
-      issueDate: quoteData.issueDate,
-      expiryDate: quoteData.expiryDate,
-      customer: {
-        id: quoteData.customer?.id || quoteData.customerId || 0,
-        name: quoteData.customerName
-      },
-      subTotal: quoteData.subTotal,
-      vat: quoteData.vat,
-      total: quoteData.total,
-      lines: quoteData.lines.map((line: any) => ({
-        id: line.id || 0,
-        description: line.description,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        total: line.total,
-        quoteId: quoteData.id,
-        taxRate: line.taxRate || 0
-      })),
-      status: quoteData.status,
-      createdAt: quoteData.createdAt,
-      createdBy: {
-        createdById: quoteData.createdById || '',
-        name: quoteData.createdBy,
-        email: ''
-      },
-      vatRate: quoteData.vatRate,
-      termsAndConditions: quoteData.termsAndConditions,
-      privateNotes: quoteData.privateNotes
+      CodeArticle: quoteData.codeArticle || '',
+      Name: quoteData.name,
+      Description: quoteData.description || '',
+      UnitPrice: quoteData.unitPrice,
+      DefaultTaxRate: quoteData.defaultTaxRate,
+      Type: quoteData.type
     };
-    setEditingQuote(quote);
-    setShowQuoteForm(true);
+    setEditingCatalog(catalog);
+    setShowCatalogForm(true);
   }, []);
 
-  const handleQuoteFormSubmit = useCallback(async (quoteData: NewQuote, customerName?: string) => {
+  const handleCatalogFormSubmit = useCallback(async (quoteData: NewCatalog) => {
     try {
-      if (editingQuote) {
-        await onUpdateQuote(quoteData, customerName);
+      if (editingCatalog) {
+        await onUpdateCatalog(quoteData);
       } else {
-        await onCreateQuote(quoteData, customerName);
+        await onCreateCatalog(quoteData);
       }
-      setShowQuoteForm(false);
+      setShowCatalogForm(false);
     } catch (error: any) {
-      toast.error(error.message || t('quote.form.errors.submissionFailed'));
+      toast.error(error.message || t('catalog.form.errors.submissionFailed'));
       throw error;
     }
-  }, [editingQuote, onUpdateQuote, onCreateQuote, t]);
+  }, [editingCatalog, onUpdateCatalog, onCreateCatalog, t]);
 
-  const handleQuoteFormClose = useCallback(() => {
-    setShowQuoteForm(false);
-    setEditingQuote(undefined);
+  const handleCatalogFormClose = useCallback(() => {
+    setShowCatalogForm(false);
+    setEditingCatalog(undefined);
   }, []);
 
   if (loading) {
@@ -465,12 +281,12 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('errors.failedToLoadQuotes')}</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('catalog.messages.fetchFailed')}</h3>
           <p className="text-gray-600 leading-relaxed mb-6">
             {t('errors.tryRefreshing')}
           </p>
           <button
-            onClick={() => onRefreshQuotes()}
+            onClick={() => onRefreshCatalogs()}
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,14 +310,14 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">{t('quote.filters.title')}</h2>
+            <h2 className="text-xl font-semibold text-gray-900">{t('catalog.filters.title')}</h2>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {showFilters ? t('quote.filters.hide') : t('quote.filters.show')}
+              {showFilters ? t('catalog.filters.hide') : t('catalog.filters.show')}
               <svg 
                 className={`w-4 h-4 ml-1.5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} 
                 fill="none" 
@@ -518,7 +334,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
               <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              {t('quote.filters.apply')}
+              {t('catalog.filters.apply')}
             </button>
             <button
               onClick={resetFilters}
@@ -527,7 +343,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
               <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              {t('quote.filters.reset')}
+              {t('catalog.filters.reset')}
             </button>
           </div>
         </div>
@@ -537,41 +353,16 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700 flex items-center">
                 <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {t('quote.filters.dateRange')}
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="date"
-                  name="dateFrom"
-                  value={filters.dateFrom}
-                  onChange={handleFilterChange}
-                  className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
-                />
-                <input
-                  type="date"
-                  name="dateTo"
-                  value={filters.dateTo}
-                  onChange={handleFilterChange}
-                  className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                {t('quote.filters.customerName')}
+                {t('catalog.filters.name')}
               </label>
               <input
                 type="text"
-                name="customerName"
-                value={filters.customerName}
+                name="q"
+                value={filters.q}
                 onChange={handleFilterChange}
-                placeholder={t('quote.filters.searchCustomer')}
+                placeholder={t('catalog.filters.searchName')}
                 className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
               />
             </div>
@@ -581,114 +372,25 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                 <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {t('quote.filters.status')}
+                {t('catalog.filters.type')}
               </label>
               <select
-                name="status"
-                value={filters.status}
+                name="type"
+                value={filters.type}
                 onChange={handleFilterChange}
                 className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
               >
-                <option value="all">{t('quote.filters.all')}</option>
-                <option value="0">{t('quote.status.draft')}</option>
-                <option value="1">{t('quote.status.sent')}</option>
-                <option value="2">{t('quote.status.accepted')}</option>
-                <option value="3">{t('quote.status.rejected')}</option>
-                <option value="4">{t('quote.status.converted')}</option>
-                <option value="5">{t('quote.list.expired')}</option>
+                <option value="all">{t('catalog.filters.all')}</option>
+                <option value="0">{t('catalog.form.typeProduct')}</option>
+                <option value="1">{t('catalog.form.typeService')}</option>
               </select>
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-                {t('quote.filters.amountRange')}
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="number"
-                  name="amountFrom"
-                  value={filters.amountFrom}
-                  onChange={handleFilterChange}
-                  placeholder={t('quote.filters.min')}
-                  className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
-                />
-                <input
-                  type="number"
-                  name="amountTo"
-                  value={filters.amountTo}
-                  onChange={handleFilterChange}
-                  placeholder={t('quote.filters.max')}
-                  className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
-                />
-              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Floating Bulk Actions Bar */}
-      {selectedQuotes.size > 0 && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-30 animate-fade-in-scale">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-6 py-4 backdrop-blur-sm bg-white/95">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
-                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  {t('quote.bulk.selected', { count: selectedQuotes.size })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {(userRole === 'Admin' || userRole === 'Manager') && (
-                  <button
-                    onClick={handleBulkSubmit}
-                    disabled={disabled}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${
-                      disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    {t('quote.bulk.submit')}
-                  </button>
-                )}
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={disabled}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
-                    disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                  }`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {t('quote.bulk.delete')}
-                </button>
-                <button
-                  onClick={() => setSelectedQuotes(new Set())}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  title={t('quote.bulk.clearSelection')}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  {t('common.clear')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-             {/* Quotes Table */}
-       {!data?.quotes || data.quotes.length === 0 ? (
+        {/* Catalogs Table */}
+       {!data?.items || data.items.length === 0 ? (
          <div className="text-center py-16">
            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 max-w-md mx-auto">
              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mx-auto mb-6">
@@ -696,11 +398,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                </svg>
              </div>
-             <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('quote.list.noQuotes')}</h3>
+             <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('catalog.list.noItems')}</h3>
              <p className="text-gray-600 leading-relaxed">
                {Object.values(filters).some(v => v !== '' && v !== 'all') 
-                 ? t('quote.list.adjustFilters')
-                 : t('quote.list.getStarted')}
+                 ? t('catalog.list.adjustFilters')
+                 : t('catalog.list.getStarted')}
              </p>
            </div>
          </div>
@@ -721,11 +423,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                    <th 
                      scope="col" 
                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
-                     onClick={() => handleSort('quoteNumber')}
+                     onClick={() => handleSort('CodeArticle')}
                    >
                      <div className="flex items-center gap-2">
-                       {t('quote.list.quoteNumber')}
-                       {sortField === 'quoteNumber' && (
+                       {t('catalog.list.CodeArticle')}
+                       {sortField === 'CodeArticle' && (
                          <svg className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                          </svg>
@@ -735,11 +437,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                    <th 
                      scope="col" 
                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
-                     onClick={() => handleSort('date')}
+                     onClick={() => handleSort('name')}
                    >
                      <div className="flex items-center gap-2">
-                       {t('quote.list.issueDate')}
-                       {sortField === 'date' && (
+                       {t('catalog.list.name')}
+                       {sortField === 'name' && (
                          <svg className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                          </svg>
@@ -749,11 +451,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                    <th 
                      scope="col" 
                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
-                     onClick={() => handleSort('expiryDate')}
+                     onClick={() => handleSort('description')}
                    >
                      <div className="flex items-center gap-2">
-                       {t('quote.list.expiryDate')}
-                       {sortField === 'expiryDate' && (
+                       {t('catalog.list.description')}
+                       {sortField === 'description' && (
                          <svg className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                          </svg>
@@ -763,25 +465,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                    <th 
                      scope="col" 
                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
-                     onClick={() => handleSort('customer')}
-                   >
-                     <div className="flex items-center gap-2">
-                       {t('quote.list.customer')}
-                       {sortField === 'customer' && (
-                         <svg className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                         </svg>
-                       )}
-                     </div>
-                   </th>
-                   <th 
-                     scope="col" 
-                     className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
-                     onClick={() => handleSort('total')}
+                     onClick={() => handleSort('unitPrice')}
                    >
                      <div className="flex items-center justify-end gap-2">
-                       {t('quote.list.amount')}
-                       {sortField === 'total' && (
+                       {t('catalog.list.unitPrice')}
+                       {sortField === 'unitPrice' && (
                          <svg className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                          </svg>
@@ -791,11 +479,25 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                    <th 
                      scope="col" 
                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
-                     onClick={() => handleSort('status')}
+                     onClick={() => handleSort('defaultTaxRate')}
                    >
                      <div className="flex items-center gap-2">
-                       {t('quote.list.status')}
-                       {sortField === 'status' && (
+                       {t('catalog.list.defaultTaxRate')}
+                       {sortField === 'defaultTaxRate' && (
+                         <svg className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                         </svg>
+                       )}
+                     </div>
+                   </th>
+                   <th 
+                     scope="col" 
+                     className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
+                     onClick={() => handleSort('type')}
+                   >
+                     <div className="flex items-center gap-2">
+                       {t('catalog.list.type')}
+                       {sortField === 'type' && (
                          <svg className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                          </svg>
@@ -803,77 +505,49 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                      </div>
                    </th>
                    <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                     {t('quote.list.actions')}
+                     {t('catalog.list.actions')}
                    </th>
                  </tr>
                </thead>
                <tbody className="bg-white divide-y divide-gray-50">
-                 {data?.quotes?.map((quote) => (
-                   <React.Fragment key={quote.id}>
+                 {data?.items?.map((catalog) => (
+                   <React.Fragment key={catalog.id}>
                      <tr 
                        className="hover:bg-blue-50/40 cursor-pointer transition-all duration-300 group"
-                       onClick={() => setSelectedQuote(selectedQuote === quote.id ? null : quote.id)}
+                       onClick={() => setSelectedCatalog(selectedCatalog === catalog.id ? null : catalog.id)}
                      >
                        <td className="px-4 py-2 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-r"></div>
                          <input
                            type="checkbox"
                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                           checked={selectedQuotes.has(quote.id)}
-                           onChange={() => handleSelectQuote(quote.id, quote.status)}
-                           disabled={
-                             !canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete') &&
-                             !canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit')
-                           }
+                           checked={selectedCatalogs.has(catalog.id)}
+                           onChange={() => handleSelectCatalog(catalog.id)}
+                           disabled={disabled}
                          />
                        </td>
                        <td className="px-4 py-2 whitespace-nowrap">
                          <div 
-                           className={`text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center ${quote.createdBy ? 'cursor-help relative group/tooltip' : ''}`}
-                           title={quote.createdBy ? t('quote.tooltip.createdBy', { 
-                             date: quote.createdAt ? new Date(quote.createdAt).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US') : 'Unknown date',
-                             name: quote.createdBy
-                           }) : undefined}
+                           className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center"
                          >
                            <span className="text-blue-600 mr-1">#</span>
-                           {quote.quoteNumber}
-                           {quote.createdBy && (
-                             <svg className="w-3 h-3 text-gray-400 ml-1 opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                             </svg>
-                           )}
+                           {catalog.codeArticle || '-'}
                          </div>
                        </td>
                        <td className="px-4 py-2 whitespace-nowrap">
                          <div className="text-sm text-gray-700 flex items-center">
-                           <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                           </svg>
-                           {new Date(quote.issueDate).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}
-                         </div>
-                       </td>
-                       <td className="px-4 py-2 whitespace-nowrap">
-                         <div className="text-sm text-gray-700 flex items-center">
-                           <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                           </svg>
-                           {quote.expiryDate ? new Date(quote.expiryDate).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US') : '-'}
-                                                 {isQuoteExpired(quote.expiryDate) && (
-                        <span className="ml-1 px-1 py-0 text-xs font-medium text-red-600 bg-red-100 rounded text-[10px]">
-                          {t('quote.list.expired')}
-                        </span>
-                      )}
-                         </div>
-                       </td>
-                       <td className="px-4 py-2 whitespace-nowrap">
-                         <div 
-                           className="text-sm font-medium text-gray-900 flex items-center cursor-help"
-                           title={quote.customer?.name || quote.customerName || 'Unknown Customer'}
-                         >
                            <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                            </svg>
-                           {quote.customer?.name || quote.customerName || 'Unknown Customer'}
+                           {catalog.name}
+                         </div>
+                       </td>
+                       <td className="px-4 py-2 whitespace-nowrap">
+                         <div className="text-sm text-gray-700 flex items-center">
+                           <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                           </svg>
+                           {catalog.description || '-'}
                          </div>
                        </td>
                        <td className="px-4 py-2 whitespace-nowrap text-right">
@@ -881,23 +555,32 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                            <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                            </svg>
-                           {formatCurrency(quote.total)}
+                           {formatCurrency(catalog.unitPrice)}
                          </div>
                        </td>
-                       <td className="px-6 py-4 whitespace-nowrap">
-                         <div className="animate-status-change">
-                           <QuoteStatusBadge 
-                             status={quote.status}
-                           />
+                       <td className="px-4 py-2 whitespace-nowrap text-right">
+                         <div className="text-sm font-semibold text-gray-900 flex items-center justify-end">
+                           <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                           </svg>
+                           {catalog.defaultTaxRate}%
+                         </div>
+                       </td>
+                       <td className="px-4 py-2 whitespace-nowrap text-left">
+                         <div className="text-sm font-semibold text-gray-900 flex items-center">
+                           <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                           </svg>
+                           {catalog.type === 0 ? t('catalog.form.typeProduct') : t('catalog.form.typeService')}
                          </div>
                        </td>
                                               <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
                          <div className="flex items-center justify-end gap-1.5 relative">
-                           {canEditQuote(quote) && (
+                           {canEditCatalog(catalog) && (
                              <button
                                onClick={(e) => {
                                  e.stopPropagation();
-                                 handleEditQuote(quote);
+                                 handleEditCatalog(catalog);
                                }}
                                className="text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-blue-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-blue-200"
                                disabled={disabled}
@@ -909,11 +592,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                              </button>
                            )}
                            
-                           {canDeleteQuote(quote) && (
+                           {canDeleteCatalog(catalog) && (
                              <button
                                onClick={(e) => {
                                  e.stopPropagation();
-                                 handleDelete(quote.id);
+                                 handleDelete(catalog.id);
                                }}
                                className="text-red-600 hover:text-red-700 disabled:opacity-50 transition-all duration-200 p-1.5 rounded-lg hover:bg-red-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-red-200"
                                disabled={disabled}
@@ -927,51 +610,6 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                          </div>
                        </td>
                      </tr>
-                     {selectedQuote === quote.id && (
-                       <tr>
-                         <td colSpan={8} className="px-6 py-4 bg-gray-50">
-                           <QuoteDetail
-                             quote={{
-                               id: quote.id,
-                               quoteNumber: quote.quoteNumber,
-                               issueDate: quote.issueDate,
-                               expiryDate: quote.expiryDate,
-                               customer: {
-                                 id: quote.customer?.id || quote.customerId || 0,
-                                 name: quote.customer?.name || quote.customerName || 'Unknown Customer',
-                                 ice: quote.customer?.ice
-                               },
-                               subTotal: quote.subTotal,
-                               vat: quote.vat,
-                               total: quote.total,
-                               lines: quote.lines.map((line: any) => ({
-                                 id: line.id || 0,
-                                 description: line.description,
-                                 quantity: line.quantity,
-                                 unitPrice: line.unitPrice,
-                                 total: line.total,
-                                 quoteId: quote.id,
-                                 taxRate: line.taxRate || 0
-                               })),
-                               status: quote.status,
-                               createdAt: quote.createdAt,
-                               createdBy: {
-                                 createdById: quote.createdById || '',
-                                 name: quote.createdBy,
-                                 email: ''
-                               },
-                               termsAndConditions: quote.termsAndConditions,
-                               privateNotes: quote.privateNotes
-                             }}
-                             onOptimisticStatusUpdate={onOptimisticQuoteStatusUpdate}
-                             onConvertToInvoice={onConvertToInvoice}
-                             onDownloadPdf={onDownloadPdf}
-                             disabled={disabled}
-                             token={token}
-                           />
-                         </td>
-                       </tr>
-                     )}
                    </React.Fragment>
                  ))}
                </tbody>
@@ -990,7 +628,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                   const newPage = data.pagination.page - 1;
                   setCurrentPage(newPage);
                   const sortParams = sortField ? { sortField, sortDirection } : undefined;
-                  onRefreshQuotes(filters, sortParams, { page: newPage, pageSize });
+                  onRefreshCatalogs(filters, sortParams, { page: newPage, pageSize });
                 }
               }}
               disabled={data.pagination.page <= 1}
@@ -1004,7 +642,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                   const newPage = data.pagination.page + 1;
                   setCurrentPage(newPage);
                   const sortParams = sortField ? { sortField, sortDirection } : undefined;
-                  onRefreshQuotes(filters, sortParams, { page: newPage, pageSize });
+                  onRefreshCatalogs(filters, sortParams, { page: newPage, pageSize });
                 }
               }}
               disabled={data.pagination.page >= data.pagination.totalPages}
@@ -1017,13 +655,16 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-sm text-gray-700">
-                  {t('common.showing')} <span className="font-medium">{((data.pagination.page - 1) * data.pagination.pageSize) + 1}</span> {t('common.to')} <span className="font-medium">{Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalItems)}</span> {t('common.of')} <span className="font-medium">{data.pagination.totalItems}</span> {t('common.results')}
+                  {t('common.pagination.showing')}{' '}
+                  <span className="font-medium">{((data.pagination.page - 1) * data.pagination.pageSize) + 1}</span> {t('common.pagination.to')}{' '}
+                  <span className="font-medium">{Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalItems)}</span> {t('common.pagination.of')}{' '}
+                  <span className="font-medium">{data.pagination.totalItems}</span> {t('common.pagination.results')}
                 </p>
               </div>
               
               {/* Page Size Selector */}
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-700">{t('common.show')}:</label>
+                <label className="text-sm text-gray-700">{t('common.pagination.show')}:</label>
                 <select
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
@@ -1034,7 +675,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
-                <span className="text-sm text-gray-700">{t('common.perPage')}</span>
+                <span className="text-sm text-gray-700">{t('common.pagination.perPage')}</span>
               </div>
             </div>
             
@@ -1047,7 +688,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                         const newPage = data.pagination.page - 1;
                         setCurrentPage(newPage);
                         const sortParams = sortField ? { sortField, sortDirection } : undefined;
-                        onRefreshQuotes(filters, sortParams, { page: newPage, pageSize });
+                        onRefreshCatalogs(filters, sortParams, { page: newPage, pageSize });
                       }
                     }}
                     disabled={data.pagination.page <= 1}
@@ -1070,7 +711,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                         onClick={() => {
                           setCurrentPage(pageNum);
                           const sortParams = sortField ? { sortField, sortDirection } : undefined;
-                          onRefreshQuotes(filters, sortParams, { page: pageNum, pageSize });
+                          onRefreshCatalogs(filters, sortParams, { page: pageNum, pageSize });
                         }}
                         className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                           pageNum === data.pagination.page
@@ -1089,7 +730,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                         const newPage = data.pagination.page + 1;
                         setCurrentPage(newPage);
                         const sortParams = sortField ? { sortField, sortDirection } : undefined;
-                        onRefreshQuotes(filters, sortParams, { page: newPage, pageSize });
+                        onRefreshCatalogs(filters, sortParams, { page: newPage, pageSize });
                       }
                     }}
                     disabled={data.pagination.page >= data.pagination.totalPages}
@@ -1126,16 +767,16 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                 )}
               </div>
               <h3 className="text-xl font-semibold text-gray-900">
-                {t('quote.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete') })}
+                {t('catalog.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('common.submit') : t('common.delete') })}
               </h3>
             </div>
             <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-              {t('quote.confirm.message', { 
-                action: showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete'),
-                count: showConfirmDialog.count,
-                plural: showConfirmDialog.count !== 1 ? 's' : '',
-                warning: showConfirmDialog.type === 'delete' ? t('quote.confirm.warning') : ''
-              })}
+                                {t('catalog.confirm.message', { 
+                    action: showConfirmDialog.type === 'submit' ? t('common.submit') : t('common.delete'),
+                    count: showConfirmDialog.count,
+                    plural: showConfirmDialog.count !== 1 ? 's' : '',
+                    warning: showConfirmDialog.type === 'delete' ? t('catalog.confirm.warning') : ''
+                  })}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -1145,57 +786,33 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                 {t('common.cancel')}
               </button>
               <button
-                onClick={confirmBulkAction}
+                onClick={() => {
+                  if (showConfirmDialog?.type === 'delete') {
+                    onDelete(selectedCatalogs.size);
+                  } else {
+                    //onSubmit(selectedCatalogs.size);
+                  }
+                  setShowConfirmDialog(null);
+                }}
                 className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 ${
                   showConfirmDialog.type === 'submit'
                     ? 'bg-green-600 hover:bg-green-700'
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete')}
+                {showConfirmDialog.type === 'submit' ? t('common.submit') : t('common.delete')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Rejection Reason Modal */}
-      {rejectionModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
-            <div className="flex items-center mb-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mr-4">
-                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {t('quote.dgiStatus.rejectionReason')}
-              </h3>
-            </div>
-            <div className="mb-6">
-              <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg leading-relaxed">
-                {rejectionModal.reason}
-              </p>
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setRejectionModal(null)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Quote Form Modal */}
-      {showQuoteForm && (
-        <QuoteForm
-          onSubmit={handleQuoteFormSubmit}
-          onClose={handleQuoteFormClose}
-          quote={editingQuote}
+      {/* Catalog Form Modal */}
+      {showCatalogForm && (
+        <CatalogForm
+          onSubmit={handleCatalogFormSubmit}
+          onClose={handleCatalogFormClose}
+          catalog={editingCatalog}
           disabled={disabled}
         />
       )}
@@ -1203,4 +820,4 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   );
 });
 
-export default QuoteList; 
+export default CatalogList; 

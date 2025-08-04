@@ -1,8 +1,12 @@
 import { UserRole } from '../../../utils/shared.permissions';
 
 export const CATALOG_TYPE = {
-  PRODUCT: 'Product',
-  SERVICE: 'Service'
+  PRODUCT: 0,
+  SERVICE: 1
+} as const;
+
+export const CATALOG_FIELDS = {
+  CODE_ARTICLE: 'CodeArticle'
 } as const;
 
 export const canModifyCatalog = (userRole: UserRole): boolean => {

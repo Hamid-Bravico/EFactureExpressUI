@@ -1,168 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { NewQuote, NewLine, Quote } from '../types/catalog.types';
-import { Customer } from '../../../types/common';
+import { NewCatalog, Catalog } from '../types/catalog.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { getAuthHeaders } from '../../../config/api';
 import { 
-  QUOTE_STATUS
+  CATALOG_TYPE
 } from '../utils/catalog.permissions';
-import { tokenManager } from '../../../utils/tokenManager';
 
-interface QuoteFormProps {
-  onSubmit: (quote: NewQuote, customerName?: string) => Promise<void>;
+interface CatalogFormProps {
+  onSubmit: (catalog: NewCatalog, customerName?: string) => Promise<void>;
   onClose: () => void;
-  quote?: Quote;
+  catalog?: Catalog;
   disabled?: boolean;
 }
 
 interface FormErrors {
-  issueDate?: string;
-  expiryDate?: string;
-  customerId?: string;
-  lines?: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } };
+  name?: string;
+  description?: string;
+  quantity?: string;
+  unitPrice?: string; 
+  defaultTaxRate?: string;
+  CodeArticle?: string;
+  type?: string;
 }
 
 interface BackendErrorResponse {
   [key: string]: string[];
 }
 
-const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disabled = false }) => {
+const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, disabled = false }) => {
   const { t, i18n } = useTranslation();
-  const [issueDate, setIssueDate] = useState(quote?.issueDate || new Date().toISOString().split('T')[0]);
-  const [expiryDate, setExpiryDate] = useState(quote?.expiryDate || "");
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customerId, setCustomerId] = useState<number | null>(quote?.customer?.id || null);
-  const [status, setStatus] = useState(quote ? quote.status : QUOTE_STATUS.DRAFT);
-  const [termsAndConditions, setTermsAndConditions] = useState(quote?.termsAndConditions || "");
-  const [privateNotes, setPrivateNotes] = useState(quote?.privateNotes || "");
-  const [lines, setLines] = useState<NewLine[]>(
-    quote?.lines
-      ? quote.lines.map(line => ({
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          taxRate: line.taxRate,
-        }))
-      : [{ description: '', quantity: 1, unitPrice: 0, taxRate: 20 }]
-  );
+  const [CodeArticle, setCodeArticle] = useState(catalog?.CodeArticle || "");
+  const [name, setName] = useState(catalog?.Name || "");
+  const [description, setDescription] = useState(catalog?.Description || "");
+  const [unitPrice, setUnitPrice] = useState(catalog?.UnitPrice || 0);
+  const [defaultTaxRate, setTaxRate] = useState(catalog?.DefaultTaxRate || 0);
+  const [type, setType] = useState(catalog?.Type ?? CATALOG_TYPE.PRODUCT);
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendErrors, setBackendErrors] = useState<BackendErrorResponse>({});
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL || '/api'}/customers`, {
-      headers: getAuthHeaders(tokenManager.getToken()),
-    })
-    .then(res => res.json())
-    .then(setCustomers)
-    .catch(() => setCustomers([]));
-  }, []);
-
-  useEffect(() => {
-    if (quote) {
-      const formattedIssueDate = new Date(quote.issueDate).toISOString().split('T')[0];
-      const formattedExpiryDate = quote.expiryDate ? new Date(quote.expiryDate).toISOString().split('T')[0] : "";
-      setIssueDate(formattedIssueDate);
-      setExpiryDate(formattedExpiryDate);
-      setCustomerId(quote.customer?.id || null);
-      setLines(quote.lines.map(line => ({
-        description: line.description.trim(),
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        taxRate: line.taxRate,
-      })));
-      setStatus(quote.status);
-      setTermsAndConditions(quote.termsAndConditions || "");
-      setPrivateNotes(quote.privateNotes || "");
+    if (catalog) {
+      setCodeArticle(catalog.CodeArticle || "");
+      setType(catalog.Type);
+      setName(catalog.Name || "");
+      setDescription(catalog.Description || "");
+      setUnitPrice(catalog.UnitPrice || 0);
+      setTaxRate(catalog.DefaultTaxRate || 0);
     }
-  }, [quote]);
+  }, [catalog]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    if (!issueDate) newErrors.issueDate = t('quote.form.errors.issueDateRequired');
-    if (!customerId) newErrors.customerId = t('quote.form.errors.customerNameRequired');
     
-    // Validate expiry date is after issue date
-    if (expiryDate && issueDate && new Date(expiryDate) <= new Date(issueDate)) {
-      newErrors.expiryDate = t('quote.form.errors.expiryDateAfterIssueDate');
+    // Trim values and check for empty strings
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+    
+    if (!trimmedName) {
+      newErrors.name = t('catalog.form.errors.nameRequired');
     }
     
-    const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } } = {};
-    let hasValidLine = false;
-    lines.forEach((line, index) => {
-      const lineError: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } = {};
-      if (!line.description || !line.description.trim()) lineError.description = t('quote.form.errors.descriptionRequired');
-      if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('quote.form.errors.quantityPositive');
-      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice < 0) lineError.unitPrice = t('quote.form.errors.unitPricePositive');
-      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('quote.form.errors.taxRateRange');
-      if (Object.keys(lineError).length > 0) lineErrors[index] = lineError; else hasValidLine = true;
-    });
-    if (!hasValidLine) newErrors.lines = { 0: { description: t('quote.form.errors.oneLineRequired') } };
-    else if (Object.keys(lineErrors).length > 0) newErrors.lines = lineErrors;
+    if (trimmedDescription && trimmedDescription.length < 3) {
+      newErrors.description = t('catalog.form.errors.descriptionTooShort');
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const updateLine = (index: number, field: keyof NewLine | 'taxRate', value: string) => {
-    setLines(prev =>
-      prev.map((ln, i) =>
-        i === index
-          ? { ...ln, [field]: field === "description" ? value.trim() : Number(value) }
-          : ln
-      )
-    );
-  
-    if (errors.lines?.[index]) {
-      setErrors(prev => {
-        const prevLines = prev.lines || {};
-        const thisLineErrors = prevLines[index] || {};
-        const updatedLineErrors = { ...thisLineErrors, [field]: undefined };
-        const updatedLinesMap = { ...prevLines, [index]: updatedLineErrors };
-  
-        return {
-          ...prev,
-          lines: updatedLinesMap
-        };
-      });
-    }
-  };
-
-  const addLine = () => {
-    setLines((prev) => [
-      ...prev,
-      { description: "", quantity: 1, unitPrice: 0, taxRate: 20 },
-    ]);
-  };
-
-  const removeLine = (index: number) => {
-    if (lines.length <= 1) {
-      toast.error(t('quote.form.errors.cannotRemoveLastLine'));
-      return;
-    }
-    setLines((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const computeTotals = () => {
-    const sub = lines.reduce(
-      (sum, ln) => sum + ln.quantity * ln.unitPrice,
-      0
-    );
-    const vat = lines.reduce(
-      (sum, ln) => sum + ln.quantity * ln.unitPrice * (ln.taxRate ?? 20) / 100,
-      0
-    );
-    return { subTotal: +sub.toFixed(2), vat: +vat.toFixed(2), total: +(sub + vat).toFixed(2) };
-  };
-
-  const getQuoteErrorMessage = (field: string): string | undefined => {
+  const getCatalogErrorMessage = (field: string): string | undefined => {
     const fieldMap: { [key: string]: string } = {
-      'quoteNumber': 'QuoteNumber',
-      'issueDate': 'IssueDate',
-      'expiryDate': 'ExpiryDate',
-      'date': 'Date',
-      'customerId': 'CustomerId',
-      'status': 'Status'
+      'name': 'Name',
+      'unitPrice': 'UnitPrice',
+      'CodeArticle': 'CodeArticle'
     };
     
     const backendKey = fieldMap[field];
@@ -172,22 +84,11 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     return undefined;
   };
 
-  const getLineErrorMessage = (key: string): string | undefined => {
-    const arr = backendErrors[key];
-    if (Array.isArray(arr) && arr.length > 0) {
-      return arr[0];
-    }
-    return undefined;
-  };
-
-  const clearQuoteError = (field: string) => {
+  const clearCatalogError = (field: string) => {
     const fieldMap: { [key: string]: string } = {
-      'quoteNumber': 'QuoteNumber',
-      'issueDate': 'IssueDate',
-      'expiryDate': 'ExpiryDate',
-      'date': 'Date',
-      'customerId': 'CustomerId',
-      'status': 'Status'
+      'name': 'Name',
+      'unitPrice': 'UnitPrice',
+      'CodeArticle': 'CodeArticle'
     };
     
     const backendKey = fieldMap[field];
@@ -200,20 +101,12 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     }
   };
 
-  const clearLineError = (field: string) => {
-    setBackendErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[field];
-      return newErrors;
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disabled || isSubmitting) return;
 
     if (!validateForm()) {
-      toast.error(t('quote.form.errors.fixErrors'));
+      toast.error(t('catalog.form.errors.fixErrors'));
       return;
     }
 
@@ -221,29 +114,18 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     setBackendErrors({});
 
     try {
-      const { subTotal, vat, total } = computeTotals();
 
-      const selectedCustomer = customers.find(c => c.id === customerId);
-      const newQuote: NewQuote = {
-        ...(quote?.id && { id: quote.id }),
-        issueDate,
-        ...(expiryDate && { expiryDate }),
-        customerId: customerId!,
-        subTotal,
-        vat,
-        total,
-        status,
-        lines: lines.map(ln => ({ 
-          description: ln.description.trim(), 
-          quantity: ln.quantity, 
-          unitPrice: ln.unitPrice, 
-          taxRate: ln.taxRate 
-        })),
-        termsAndConditions: termsAndConditions.trim(),
-        privateNotes: privateNotes.trim(),
+      const newCatalog: NewCatalog = {
+        ...(catalog?.id && { id: catalog.id }),
+        Name: name.trim(),
+        CodeArticle: CodeArticle.trim(),
+        Description: description.trim(),
+        UnitPrice: unitPrice,
+        DefaultTaxRate: defaultTaxRate,
+        Type: type
       };
 
-      await onSubmit(newQuote, selectedCustomer?.name);
+      await onSubmit(newCatalog);
       onClose();
     } catch (error: any) {
       if (error.errors) {
@@ -254,7 +136,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
       } else if (error.message) {
         toast.error(error.message);
       } else {
-        toast.error(t('quote.form.errors.saveFailed'));
+        toast.error(t('catalog.messages.saveFailed'));
       }
     } finally {
       setIsSubmitting(false);
@@ -280,15 +162,15 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-bold text-gray-800">
-              {quote ? t('quote.form.editTitle') : t('quote.form.createTitle')}
+              {catalog ? t('catalog.form.editTitle') : t('catalog.form.createTitle')}
             </h2>
-            {quote && (
+            {catalog && (
               <p className="text-sm text-gray-600 mt-1">
-                {t('quote.form.quoteNumber')}: <span className="font-medium">{quote.quoteNumber}</span>
+                {t('catalog.form.CodeArticle')}: <span className="font-medium">{catalog.CodeArticle}</span>
               </p>
             )}
           </div>
@@ -304,249 +186,189 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('quote.form.date')}</label>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">{t('catalog.form.CodeArticle')}</label>
               <input
-                type="date"
-                value={issueDate}
+                type="text"
+                value={CodeArticle}
                 onChange={(e) => {
-                  setIssueDate(e.target.value);
-                  if (errors.issueDate) {
-                    setErrors(prev => ({ ...prev, issueDate: undefined }));
+                  setCodeArticle(e.target.value);
+                  if (errors.CodeArticle) {
+                    setErrors(prev => ({ ...prev, CodeArticle: undefined }));
                   }
-                  clearQuoteError('issueDate');
+                  clearCatalogError('CodeArticle');
                 }}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.issueDate || getQuoteErrorMessage('issueDate') ? 'border-red-500' : 'border-gray-300'
+                  errors.CodeArticle || getCatalogErrorMessage('CodeArticle') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                disabled={disabled || isSubmitting}
+              />
+              {(errors.CodeArticle || getCatalogErrorMessage('CodeArticle')) && (
+                <div className="text-red-500 text-xs mt-1">
+                  {errors.CodeArticle || getCatalogErrorMessage('CodeArticle')}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">{t('catalog.form.name')}</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) {
+                    setErrors(prev => ({ ...prev, name: undefined }));
+                  }
+                  clearCatalogError('name');
+                }}
+                onBlur={(e) => {
+                  if (!e.target.value.trim()) {
+                    setErrors(prev => ({ ...prev, name: t('catalog.form.errors.nameRequired') }));
+                  }
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.name || getCatalogErrorMessage('name') ? 'border-red-500' : 'border-gray-300'
                 }`}
                 disabled={disabled || isSubmitting}
                 required
               />
-              {(errors.issueDate || getQuoteErrorMessage('issueDate')) && (
+              {(errors.name || getCatalogErrorMessage('name')) && (
                 <div className="text-red-500 text-xs mt-1">
-                  {errors.issueDate || getQuoteErrorMessage('issueDate')}
+                  {errors.name || getCatalogErrorMessage('name')}
                 </div>
               )}
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('quote.form.expiryDate')}</label>
-              <input
-                type="date"
-                value={expiryDate}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm text-gray-600 mb-1">{t('catalog.form.unitPrice')}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={unitPrice}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setUnitPrice(Math.max(0, value));
+                    if (errors.unitPrice) {
+                      setErrors(prev => ({ ...prev, unitPrice: undefined }));
+                    }
+                    clearCatalogError('unitPrice');
+                  }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.unitPrice || getCatalogErrorMessage('unitPrice') ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  disabled={disabled || isSubmitting}
+                  required
+                />
+                {(errors.unitPrice || getCatalogErrorMessage('unitPrice')) && (
+                  <div className="text-red-500 text-xs mt-1">
+                    {errors.unitPrice || getCatalogErrorMessage('unitPrice')}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm text-gray-600 mb-1">{t('catalog.form.defaultTaxRate')}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={defaultTaxRate}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setTaxRate(Math.max(0, Math.min(100, value)));
+                    if (errors.defaultTaxRate) {
+                      setErrors(prev => ({ ...prev, defaultTaxRate: undefined }));
+                    }
+                    clearCatalogError('defaultTaxRate');
+                  }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.defaultTaxRate || getCatalogErrorMessage('defaultTaxRate') ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  disabled={disabled || isSubmitting}
+                />
+                {(errors.defaultTaxRate || getCatalogErrorMessage('defaultTaxRate')) && (
+                  <div className="text-red-500 text-xs mt-1">
+                    {errors.defaultTaxRate || getCatalogErrorMessage('defaultTaxRate')}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">{t('catalog.form.description')}</label>
+              <textarea
+                value={description}
                 onChange={(e) => {
-                  setExpiryDate(e.target.value);
-                  if (errors.expiryDate) {
-                    setErrors(prev => ({ ...prev, expiryDate: undefined }));
+                  setDescription(e.target.value);
+                  if (errors.description) {
+                    setErrors(prev => ({ ...prev, description: undefined }));
                   }
-                  clearQuoteError('expiryDate');
+                  clearCatalogError('description');
+                }}
+                onBlur={(e) => {
+                  const trimmedValue = e.target.value.trim();
+                  if (trimmedValue && trimmedValue.length < 3) {
+                    setErrors(prev => ({ ...prev, description: t('catalog.form.errors.descriptionTooShort') }));
+                  }
                 }}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.expiryDate || getQuoteErrorMessage('expiryDate') ? 'border-red-500' : 'border-gray-300'
+                  errors.description || getCatalogErrorMessage('description') ? 'border-red-500' : 'border-gray-300'
                 }`}
                 disabled={disabled || isSubmitting}
+                rows={3}
               />
-              {(errors.expiryDate || getQuoteErrorMessage('expiryDate')) && (
+              {(errors.description || getCatalogErrorMessage('description')) && (
                 <div className="text-red-500 text-xs mt-1">
-                  {errors.expiryDate || getQuoteErrorMessage('expiryDate')}
+                  {errors.description || getCatalogErrorMessage('description')}
                 </div>
               )}
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('quote.form.customerName')}</label>
-              <select
-                value={customerId ?? ''}
-                onChange={e => { setCustomerId(Number(e.target.value)); if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined })); clearQuoteError('customerId'); }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.customerId || getQuoteErrorMessage('customerId') ? 'border-red-500' : 'border-gray-300'}`}
-                disabled={disabled || isSubmitting}
-                required
-              >
-                <option value="">{t('quote.form.selectCustomer')}</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              {(errors.customerId || getQuoteErrorMessage('customerId')) && (
-                <div className="text-red-500 text-xs mt-1">{errors.customerId || getQuoteErrorMessage('customerId')}</div>
-              )}
-            </div>
-
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-800">{t('quote.form.linesTitle')}</h3>
-              <button
-                type="button"
-                onClick={addLine}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-                disabled={disabled || isSubmitting}
-              >
-                {t('quote.form.addLine')}
-              </button>
-            </div>
-
-            {lines.map((ln, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-4 mb-4 items-end">
-                {(() => {
-                                     const descKey = `Lines[${idx}].Description`;
-                   const qtyKey = `Lines[${idx}].Quantity`;
-                   const priceKey = `Lines[${idx}].UnitPrice`;
-                   const taxKey = `Lines[${idx}].TaxRate`;
-
-                   const descError = getLineErrorMessage(descKey);
-                   const qtyError = getLineErrorMessage(qtyKey);
-                   const priceError = getLineErrorMessage(priceKey);
-                   const taxError = getLineErrorMessage(taxKey);
-
-                  return (
-                    <>
-                      <div className="col-span-6">
-                        <label className="block text-sm text-gray-600 mb-1">{t('quote.form.description')}</label>
-                        <input
-                          type="text"
-                          value={ln.description}
-                          onChange={(e) => {
-                            updateLine(idx, 'description', e.target.value);
-                            clearLineError(descKey);
-                          }}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
-                            errors.lines?.[idx]?.description || descError ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          disabled={disabled || isSubmitting}
-                          required
-                        />
-                        {descError && (
-                          <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{descError}</div>
-                        )}
-                      </div>
-
-                      <div className="col-span-2">
-                        <label className="block text-sm text-gray-600 mb-1">{t('quote.form.quantity')}</label>
-                        <input
-                          type="number"
-                          value={ln.quantity}
-                          onChange={(e) => {
-                            updateLine(idx, 'quantity', e.target.value);
-                            clearLineError(qtyKey);
-                          }}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
-                            errors.lines?.[idx]?.quantity || qtyError ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          disabled={disabled || isSubmitting}
-                          min="0.01"
-                          step="0.01"
-                          required
-                        />
-                        {qtyError && (
-                          <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{qtyError}</div>
-                        )}
-                      </div>
-
-                      <div className="col-span-2">
-                        <label className="block text-sm text-gray-600 mb-1">{t('quote.form.unitPrice')}</label>
-                        <input
-                          type="number"
-                          value={ln.unitPrice}
-                          onChange={(e) => {
-                            updateLine(idx, 'unitPrice', e.target.value);
-                            clearLineError(priceKey);
-                          }}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.unitPrice || priceError ? 'border-red-500' : 'border-gray-300'}`}
-                          disabled={disabled || isSubmitting}
-                          step="0.01"
-                          min="0"
-                          required
-                        />
-                        {priceError && (
-                          <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{priceError}</div>
-                        )}
-                      </div>
-
-                                             <div className="col-span-2">
-                         <div className="flex items-end gap-2">
-                           <div className="flex-1">
-                             <label className="block text-sm text-gray-600 mb-1">{t('quote.form.taxRate')}</label>
-                             <input
-                               type="number"
-                               value={ln.taxRate ?? 20}
-                               onChange={e => { 
-                                 updateLine(idx, 'taxRate', e.target.value); 
-                                 clearLineError(`Lines[${idx}].TaxRate`);
-                               }}
-                               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate || taxError ? 'border-red-500' : 'border-gray-300'}`}
-                               disabled={disabled || isSubmitting}
-                               min="0"
-                               max="100"
-                               step="0.1"
-                               required
-                             />
-                             {(errors.lines?.[idx]?.taxRate || taxError) && (
-                               <div className="text-red-500 text-xs mt-1 transition-opacity duration-200">{errors.lines?.[idx]?.taxRate || taxError}</div>
-                             )}
-                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeLine(idx)}
-                            className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                            disabled={disabled || isSubmitting || lines.length === 1}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">{t('catalog.form.type')}</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setType(CATALOG_TYPE.PRODUCT);
+                    if (errors.type) {
+                      setErrors(prev => ({ ...prev, type: undefined }));
+                    }
+                    clearCatalogError('type');
+                  }}
+                  disabled={disabled || isSubmitting}
+                  className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
+                    type === CATALOG_TYPE.PRODUCT
+                      ? 'bg-blue-100 border-blue-500 text-blue-700'
+                      : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                  } ${(disabled || isSubmitting) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {t('catalog.form.typeProduct')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setType(CATALOG_TYPE.SERVICE);
+                    if (errors.type) {
+                      setErrors(prev => ({ ...prev, type: undefined }));
+                    }
+                    clearCatalogError('type');
+                  }}
+                  disabled={disabled || isSubmitting}
+                  className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
+                    type === CATALOG_TYPE.SERVICE
+                      ? 'bg-blue-100 border-blue-500 text-blue-700'
+                      : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                  } ${(disabled || isSubmitting) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {t('catalog.form.typeService')}
+                </button>
               </div>
-            ))}
-
-            <div className="mt-6 border-t border-gray-200 pt-4">
-              <div className="flex justify-end space-y-2">
-                <div className="w-64">
-                  <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>{t('quote.form.subtotal')}:</span>
-                    <span>{formatCurrency(computeTotals().subTotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>{t('quote.form.vat', { rate: 20 })}:</span>
-                    <span>{formatCurrency(computeTotals().vat)}</span>
-                  </div>
-                  <div className="flex justify-between text-base font-medium text-gray-900">
-                    <span>{t('quote.form.total')}:</span>
-                    <span>{formatCurrency(computeTotals().total)}</span>
-                  </div>
+              {(errors.type || getCatalogErrorMessage('type')) && (
+                <div className="text-red-500 text-xs mt-1">
+                  {errors.type || getCatalogErrorMessage('type')}
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Terms & Conditions and Private Notes Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Terms & Conditions Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-800 mb-4">{t('quote.form.termsAndConditions')}</h3>
-              <textarea
-                value={termsAndConditions}
-                onChange={(e) => setTermsAndConditions(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical min-h-32"
-                placeholder={t('quote.form.termsAndConditionsPlaceholder')}
-                disabled={disabled || isSubmitting}
-              />
-            </div>
-
-            {/* Private Notes Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-800 mb-4">{t('quote.form.privateNotes')}</h3>
-              <textarea
-                value={privateNotes}
-                onChange={(e) => setPrivateNotes(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical min-h-32"
-                placeholder={t('quote.form.privateNotesPlaceholder')}
-                disabled={disabled || isSubmitting}
-              />
+              )}
             </div>
           </div>
 
@@ -566,7 +388,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
               }`}
               disabled={disabled || isSubmitting}
             >
-              {isSubmitting ? t('common.saving') : (quote ? t('common.saveChanges') : t('quote.create'))}
+              {isSubmitting ? t('common.saving') : (catalog ? t('common.saveChanges') : t('catalog.create'))}
             </button>
           </div>
         </form>
@@ -575,4 +397,4 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
   );
 };
 
-export default QuoteForm; 
+export default CatalogForm; 

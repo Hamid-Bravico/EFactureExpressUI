@@ -461,7 +461,7 @@ function App() {
         optimisticallyRemoveInvoice(tempInvoice.id);
       }
       
-      toast.success(t('success.invoiceCreated'));
+      toast.success(t('invoice.messages.created'));
     } catch (err: any) {
       // Revert any optimistic updates that might have been applied
       if (err.tempInvoiceId) {
@@ -554,7 +554,7 @@ function App() {
         silentlyUpdateInvoiceInList(updatedInvoice);
       }
       
-      toast.success(t('success.invoiceUpdated'));
+      toast.success(t('invoice.messages.updated'));
     } catch (err: any) {
       throw err;
     }
@@ -642,7 +642,7 @@ function App() {
         }
       }
       
-      toast.success(t('success.invoiceDeleted'), { id: toastId });
+      toast.success(t('invoice.messages.deleted'), { id: toastId });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
@@ -669,7 +669,7 @@ function App() {
       }
       const data = await response.json();
       window.open(data.url, '_blank');
-      toast.success(t('success.pdfReady'), { id: toastId });
+      toast.success(t('invoice.messages.pdfReady'), { id: toastId });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
@@ -732,7 +732,7 @@ function App() {
         // If response is empty, keep the optimistic update
       }
       
-      toast.success(t('success.invoiceSubmitted'), { id: toastId });
+      toast.success(t('invoice.messages.submitted'), { id: toastId });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
       toast.error(errorMessage, { id: toastId });
@@ -768,7 +768,7 @@ function App() {
       if (response.ok) {
         // Success response (200 OK)
         const count = data.data?.count || 0;
-        toast.success(data.message || t('success.invoicesImported', { count }), { id: toastId });
+        toast.success(data.message || t('invoice.messages.imported', { count }), { id: toastId });
         await fetchInvoices();
       } else {
         // Validation error response (400/409) - Show in modal
@@ -878,7 +878,7 @@ function App() {
         }
       }
       
-      toast.success(t('success.bulkInvoicesDeleted', { count: ids.length }), { id: toastId });
+      toast.success(t('invoice.messages.bulkDeleted', { count: ids.length }), { id: toastId });
     } catch (err) {
       // Revert all optimistic updates
       originalInvoices.forEach(invoice => optimisticallyAddInvoice(invoice));
@@ -947,7 +947,7 @@ function App() {
         }
       });
       
-      toast.success(t('success.bulkInvoicesSubmitted', { count: ids.length }), { id: toastId });
+      toast.success(t('invoice.messages.bulkSubmitted', { count: ids.length }), { id: toastId });
     } catch (err) {
       // Revert all optimistic updates
       originalInvoices.forEach(invoice => optimisticallyUpdateInvoice(invoice));
@@ -1424,7 +1424,7 @@ function App() {
                   path="/catalog"
                   element={
                     <ProtectedRoute>
-                      <CatalogManagement />
+                      <CatalogManagement token={token} />
                     </ProtectedRoute>
                   }
                 />

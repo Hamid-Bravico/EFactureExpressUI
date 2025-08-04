@@ -1,16 +1,5 @@
 {
   "common": {
-    "email": "Email address",
-    "password": "Password",
-    "signInButton": "Sign in",
-    "logout": "Logout",
-    "dashboard": "Dashboard",
-    "invoices": "Invoices",
-    "quotes": "Quotes",
-    "newInvoice": "New Invoice",
-    "newQuote": "New Quote",
-    "importCSV": "Import CSV",
-    "importingCSV": "Importing CSV file...",
     "loading": "Loading...",
     "error": "Error",
     "retry": "Retry",
@@ -25,7 +14,6 @@
     "date": "Date",
     "amount": "Amount",
     "customer": "Customer",
-    "invoiceNumber": "Invoice #",
     "total": "Total",
     "details": "Details",
     "close": "Close",
@@ -36,11 +24,6 @@
     "search": "Search",
     "filter": "Filter",
     "noResults": "No results found",
-    "selectFile": "Select File",
-    "dragAndDrop": "Drag and drop a file here, or click to select",
-    "fileType": "File type",
-    "maxSize": "Maximum size",
-    "upload": "Upload",
     "processing": "Processing...",
     "success": "Success",
     "warning": "Warning",
@@ -49,68 +32,73 @@
     "updating": "Updating...",
     "creating": "Creating...",
     "saveChanges": "Save Changes",
-    "createInvoice": "Create Invoice",
-    "welcomeMessage": "Welcome to EFacture Express - Your Invoice Management System",
-    "emailPlaceholder": "Enter your email",
-    "passwordPlaceholder": "Enter your password",
-    "signingIn": "Signing in...",
     "refresh": "Refresh",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "clear": "Clear",
+    "notAvailable": "N/A",
+    "errorDetails": "Error Details",
+    "dashboard": "Dashboard",
+    "invoices": "Invoices",
+    "quotes": "Quotes",
+    "users": "Users",
+    "customers": "Customers",
+    "catalog": "Catalog",
+    "profile": "Profile",
+    "companyProfile": "Company Profile",
+    "pagination": {
+      "showing": "Showing",
+      "to": "to",
+      "of": "of",
+      "results": "results",
+      "show": "Show",
+      "perPage": "per page"
+    },
+    "file": {
+      "select": "Select File",
+      "dragAndDrop": "Drag and drop a file here, or click to select",
+      "type": "File type",
+      "maxSize": "Maximum size",
+      "upload": "Upload",
+      "importCSV": "Import CSV",
+      "importingCSV": "Importing CSV file..."
+    }
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signInButton": "Sign in",
+    "signingIn": "Signing in...",
+    "logout": "Logout",
     "register": "Register",
     "registerButton": "Register",
     "registering": "Registering...",
+    "email": "Email address",
+    "emailPlaceholder": "Enter your email",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm your password",
     "companyName": "Company Name",
     "companyNamePlaceholder": "Enter your company name",
+    "address": "Address",
+    "addressPlaceholder": "Enter your company address",
+    "ice": "ICE",
+    "icePlaceholder": "Enter your company ICE",
     "taxId": "Tax ID",
     "taxIdPlaceholder": "Enter your tax ID",
     "identifiantFiscal": "Identifiant Fiscal",
     "identifiantFiscalPlaceholder": "Enter your Identifiant Fiscal",
-    "address": "Address",
-    "addressPlaceholder": "Enter your company address",
-    "confirmPassword": "Confirm Password",
-    "confirmPasswordPlaceholder": "Confirm your password",
     "noAccount": "Don't have an account?",
     "alreadyHaveAccount": "Already have an account?",
-    "signIn": "Sign in",
-    "users": "Users",
-    "customers": "Customers",
-    "catalog": "Catalog",
-    "create": "Create",
-    "profile": "Profile",
-    "companyProfile": "Company Profile",
     "memberSince": "Member Since",
     "noAddress": "No address provided",
     "noICE": "No ICE provided",
     "noIdentifiantFiscal": "No Identifiant Fiscal provided",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "deletingInvoice": "Deleting invoice...",
-    "downloadingPDF": "Downloading PDF...",
-    "submittingInvoice": "Submitting invoice...",
-    "ICE": "ICE",
-    "ICEPlaceholder": "Enter your company ICE",
-    "clear": "Clear",
-    "showing": "Showing",
-    "to": "to",
-    "of": "of",
-    "results": "results",
-    "show": "Show",
-    "perPage": "per page",
-    "errorDetails": "Error Details",
-    "notAvailable": "N/A"
-  },
-  "auth": {
     "tokenRefreshed": "Session refreshed successfully",
     "tokenRefreshFailed": "Session expired. Please log in again."
   },
   "errors": {
-    "invalidCredentials": "Invalid credentials",
     "anErrorOccurred": "An error occurred",
-    "failedToFetchInvoices": "Failed to fetch invoices",
-    "failedToDeleteInvoice": "Failed to delete invoice",
-    "failedToDownloadPdf": "Failed to download PDF",
-    "failedToSubmitInvoice": "Failed to submit invoice",
-    "failedToUpdateInvoice": "Cannot update invoice: Missing invoice ID",
-    "failedToFetchInvoice": "Failed to fetch invoice details",
     "applicationError": "Application Error",
     "somethingWentWrong": "Something went wrong. Please try again.",
     "invalidFileType": "Invalid file type. Please upload a CSV file.",
@@ -123,7 +111,6 @@
     "networkError": "Network error. Please check your connection.",
     "serverError": "Server error. Please try again later.",
     "unauthorized": "Unauthorized access. Please log in again.",
-    "bulkActionFailed": "Failed to {{action}} invoices: {{error}}",
     "invoiceNotFound": "Invoice not found",
     "passwordsDoNotMatch": "Passwords do not match",
     "registrationFailed": "Registration failed. Please try again.",
@@ -131,45 +118,13 @@
     "taxIdAlreadyExists": "This Tax ID is already registered.",
     "databaseError": "A database error occurred. Please try again.",
     "validationFailed": "Please fix the validation errors below.",
-    "cannotUpdateAdmin": "Admin users cannot be modified",
-    "managersCannotChangeRoles": "Managers cannot change user roles",
-    "passwordUpdated": "Password has been updated successfully",
     "invalidResponse": "Invalid response from server",
-    "invalidRole": "Invalid user role",
-    "invalidUserId": "Invalid user ID in token.",
-    "failedToSaveCustomer": "Failed to save customer.",
-    "failedToDeleteCustomer": "Failed to delete customer.",
-    "nameIsRequired": "Name is required.",
-    "invalidICE": "ICE must be 15 digits.",
-    "invalidTaxId": "Tax ID must be 8 digits.",
-    "companyNameRequired": "Company name is required.",
-    "ICERequired": "ICE number is required.",
-    "emailRequired": "Email is required.",
-    "passwordRequired": "Password is required.",
     "unexpectedError": "An unexpected error occurred. Please try again later.",
-    "failedToImportCSV": "Failed to import CSV file.",
-    "failedToLoadQuotes": "Failed to load quotes",
-    "tryRefreshing": "Please try refreshing the page or contact support if the problem persists.",
-    "unknown": "Unknown error occurred"
-  },
-  "success": {
-    "invoiceCreated": "Invoice created successfully.",
-    "invoiceUpdated": "Invoice updated successfully.",
-    "invoiceDeleted": "Invoice deleted successfully.",
-    "invoiceSubmitted": "Invoice submitted successfully.",
-    "bulkInvoicesDeleted": "{{count}} invoices deleted successfully.",
-    "bulkInvoicesSubmitted": "{{count}} invoices submitted successfully.",
-    "csvImported": "{{count}} items were imported successfully.",
-    "quotesImported": "{{count}} quotes were imported successfully.",
-    "invoicesImported": "{{count}} invoices were imported successfully.",
-    "pdfReady": "PDF is ready for download.",
-    "userCreated": "User created successfully.",
-    "userUpdated": "User updated successfully.",
-    "passwordUpdated": "Password updated successfully.",
-    "userDeleted": "User deleted successfully.",
-    "customerCreated": "Customer created successfully.",
-    "customerUpdated": "Customer updated successfully.",
-    "customerDeleted": "Customer deleted successfully."
+    "unknown": "Unknown error occurred",
+    "failedToLoadInvoices": "Failed to load invoices",
+    "tryRefreshing": "Try refreshing the page or contact support if the problem persists.",
+    "failedToImportCSV": "Failed to import CSV file",
+    "failedToFetchInvoice": "Failed to fetch invoice details"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -203,12 +158,17 @@
     }
   },
   "invoice": {
+    "title": "Invoice",
+    "title_plural": "Invoices",
     "create": "Create Invoice",
     "edit": "Edit Invoice",
     "view": "View Invoice",
     "delete": "Delete Invoice",
     "submit": "Submit Invoice",
     "download": "Download PDF",
+    "deleting": "Deleting invoice...",
+    "submitting": "Submitting invoice...",
+    "downloadingPDF": "Downloading PDF...",
     "status": {
       "draft": "Draft",
       "pending": "Ready",
@@ -250,6 +210,8 @@
       "unitPrice": "Unit Price",
       "vat": "VAT ({{rate}}%)",
       "status": "Status",
+      "taxRate": "Tax Rate (%)",
+      "selectCustomer": "Select Customer",
       "errors": {
         "invoiceNumberRequired": "Invoice number is required",
         "dateRequired": "Date is required",
@@ -263,9 +225,7 @@
         "fixErrors": "Please fix the errors in the form",
         "submissionError": "There was an error submitting the form. Please check the highlighted fields.",
         "saveFailed": "Failed to save invoice. Please try again."
-      },
-      "taxRate": "Tax Rate (%)",
-      "selectCustomer": "Select Customer"
+      }
     },
     "filters": {
       "title": "Filters",
@@ -288,7 +248,11 @@
       "submit": "Submit Selection",
       "delete": "Delete Selection",
       "submitting": "Submitting {{count}} invoices...",
-      "deleting": "Deleting {{count}} invoices..."
+      "deleting": "Deleting {{count}} invoices...",
+      "confirm": {
+        "delete": "Are you sure you want to delete the selected invoices?",
+        "submit": "Are you sure you want to submit the selected invoices?"
+      }
     },
     "list": {
       "noInvoices": "No Invoices Found",
@@ -299,9 +263,7 @@
       "customer": "Customer",
       "amount": "Amount",
       "actions": "Actions",
-      "status": "Status",
-      "statusUpdateSuccess": "Invoice status updated successfully",
-      "statusUpdateError": "Failed to update invoice status"
+      "status": "Status"
     },
     "actions": {
       "edit": "Edit Invoice",
@@ -347,7 +309,9 @@
       "message": "Are you sure you want to {{action}} {{count}} invoice{{plural}}?{{warning}}",
       "warning": " This action cannot be undone.",
       "makeReady": "Are you sure you want to mark invoice #{{invoiceNumber}} as Ready?",
-      "backToDraft": "Are you sure you want to mark invoice #{{invoiceNumber}} as Draft?"
+      "backToDraft": "Are you sure you want to mark invoice #{{invoiceNumber}} as Draft?",
+      "delete": "Are you sure you want to delete this invoice?",
+      "submit": "Are you sure you want to submit this invoice?"
     },
     "dgiStatus": {
       "checking": "Checking status...",
@@ -355,84 +319,53 @@
       "rejectionReason": "Rejection Reason",
       "errorChecking": "Error checking status",
       "switchToDraft": "Switch to Draft"
-    }
-  },
-  "import": {
-    "title": "Import Invoices",
-    "description": "Import multiple invoices from a CSV file",
-    "instructions": "Download the template and fill it with your invoice data",
-    "downloadTemplate": "Download Template",
-    "selectFile": "Select CSV File",
-    "uploading": "Uploading...",
-    "processing": "Processing...",
-    "success": "Import completed successfully",
-    "error": "Error during import",
-    "importCSV": "Import CSV",
-    "help": {
-      "title": "CSV Import Format",
-      "requiredHeaders": "Required Headers:",
-      "optionalHeaders": "Optional Headers:",
-      "requiredFields": [
-        "NumeroFacture - Invoice number",
-        "Date - Invoice date",
-        "ClientICE - Customer ICE number",
-        "Description - Item description",
-        "Quantite - Quantity",
-        "PrixUnitaire - Unit price",
-        "TauxTVA - VAT rate"
-      ],
-      "optionalFields": [
-        "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)"
-      ]
-    }
-  },
-  "users": {
-    "title": "User Management",
-    "addUser": "Add User",
-    "email": "Email",
-    "password": "Password",
-    "role": "Role",
-    "actions": "Actions",
-    "editUser": "Edit User",
-    "saveChanges": "Save Changes",
-    "cancel": "Cancel",
-    "resetOwnPassword": "Reset Own Password",
-    "newPassword": "New Password",
-    "passwordRequirements": "Password must be at least 8 characters long"
-  },
-  "customers": {
-    "title": "Customers",
-    "addCustomer": "Add Customer",
-    "editCustomer": "Edit Customer",
-    "headers": {
-      "name": "Name",
-      "ice": "ICE",
-      "taxId": "Tax ID",
-      "email": "Email",
-      "phone": "Phone",
-      "actions": "Actions"
     },
-    "form": {
-      "namePlaceholder": "Name",
-      "icePlaceholder": "ICE",
-      "taxIdPlaceholder": "Tax ID",
-      "addressPlaceholder": "Address",
-      "emailPlaceholder": "Email",
-      "phonePlaceholder": "Phone Number",
-      "cancel": "Cancel",
-      "save": "Save"
+    "messages": {
+        "created": "Invoice created successfully.",
+        "updated": "Invoice updated successfully.",
+        "deleted": "Invoice deleted successfully.",
+        "submitted": "Invoice submitted successfully.",
+        "bulkDeleted": "{{count}} invoices deleted successfully.",
+        "bulkSubmitted": "{{count}} invoices submitted successfully.",
+        "pdfReady": "PDF is ready for download.",
+        "statusUpdateSuccess": "Invoice status updated successfully",
+        "statusUpdateError": "Failed to update invoice status",
+        "fetchFailed": "Failed to fetch invoices",
+        "deleteFailed": "Failed to delete invoice",
+        "submitFailed": "Failed to submit invoice",
+        "updateFailed": "Cannot update invoice: Missing invoice ID",
+        "fetchDetailsFailed": "Failed to fetch invoice details",
+        "bulkActionFailed": "Failed to {{action}} invoices: {{error}}"
     },
-    "list": {
-      "noCustomers": "No Customers Found",
-      "getStarted": "Get started by adding your first customer."
+    "import": {
+        "title": "Import Invoices",
+        "description": "Import multiple invoices from a CSV file",
+        "instructions": "Download the template and fill it with your invoice data",
+        "downloadTemplate": "Download Template",
+        "success": "Import completed successfully",
+        "error": "Error during import",
+        "help": {
+          "title": "CSV Import Format",
+          "requiredHeaders": "Required Headers:",
+          "optionalHeaders": "Optional Headers:",
+          "requiredFields": [
+            "NumeroFacture - Invoice number",
+            "Date - Invoice date",
+            "ClientICE - Customer ICE number",
+            "Description - Item description",
+            "Quantite - Quantity",
+            "PrixUnitaire - Unit price",
+            "TauxTVA - VAT rate"
+          ],
+          "optionalFields": [
+            "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)"
+          ]
+        }
     }
-  },
-  "roles": {
-    "admin": "Admin",
-    "manager": "Manager",
-    "clerk": "Clerk"
   },
   "quote": {
+    "title": "Quote",
+    "title_plural": "Quotes",
     "create": "Create Quote",
     "edit": "Edit Quote",
     "view": "View Quote",
@@ -445,7 +378,6 @@
       "accepted": "Accepted",
       "rejected": "Rejected",
       "converted": "Converted",
-
       "draftDescription": "Work in progress",
       "sentDescription": "Quote has been sent to customer",
       "acceptedDescription": "Quote has been accepted by customer",
@@ -477,6 +409,12 @@
       "unitPrice": "Unit Price",
       "vat": "VAT ({{rate}}%)",
       "status": "Status",
+      "taxRate": "Tax Rate (%)",
+      "selectCustomer": "Select Customer",
+      "termsAndConditions": "Terms & Conditions",
+      "privateNotes": "Private Notes",
+      "termsAndConditionsPlaceholder": "Enter payment terms, project timelines, or other conditions of the offer...",
+      "privateNotesPlaceholder": "Add private reminders or comments (not visible on client PDF)...",
       "errors": {
         "dateRequired": "Date is required",
         "validUntilRequired": "Expiry date is required",
@@ -492,15 +430,7 @@
         "submissionError": "There was an error submitting the form. Please check the highlighted fields.",
         "submissionFailed": "Failed to submit quote. Please try again.",
         "saveFailed": "Failed to save quote. Please try again."
-      },
-      "taxRate": "Tax Rate (%)",
-      "selectCustomer": "Select Customer",
-      "termsAndConditions": "Terms & Conditions",
-      "privateNotes": "Private Notes",
-      "termsAndConditionsPlaceholder": "Enter payment terms, project timelines, or other conditions of the offer...",
-      "privateNotesPlaceholder": "Add private reminders or comments (not visible on client PDF)...",
-      "updateSuccess": "Quote updated successfully",
-      "createSuccess": "Quote created successfully"
+      }
     },
     "filters": {
       "title": "Filters",
@@ -544,17 +474,6 @@
       "selectedCount_plural": "{{count}} quotes selected",
       "bulkSubmit": "Submit Selected",
       "bulkDelete": "Delete Selected",
-      "statusUpdateSuccess": "Quote status updated successfully",
-      "statusUpdateError": "Failed to update quote status",
-      "convertToInvoiceSuccess": "Quote converted to invoice successfully. Invoice number: {{invoiceNumber}}",
-      "convertToInvoiceError": "Failed to convert quote to invoice",
-      "convertToInvoice": "Convert to Invoice",
-      "bulkActions": {
-        "submitSuccess": "Successfully submitted {{count}} quotes",
-        "submitError": "Failed to submit quotes",
-        "deleteSuccess": "Successfully deleted {{count}} quotes",
-        "deleteError": "Failed to delete quotes"
-      },
       "expired": "Expired"
     },
     "actions": {
@@ -567,10 +486,9 @@
       "viewRejectionReason": "View Rejection Reason",
       "copyDgiSubmissionId": "Copy DGI Submission ID",
       "markAsSent": "Mark as Sent",
-      "markAsAccepted": "Mark as Accepted", 
+      "markAsAccepted": "Mark as Accepted",
       "markAsRejected": "Mark as Rejected",
-      "downloadError": "Failed to download PDF",
-      "downloadSuccess": "PDF downloaded successfully"
+      "convertToInvoice": "Convert to Invoice"
     },
     "details": {
       "title": "Quote Details",
@@ -623,42 +541,54 @@
       "confirmDelete": "Confirm Delete Quote",
       "deleteWarning": "This action cannot be undone. The quote will be permanently deleted."
     },
+    "messages": {
+        "created": "Quote created successfully",
+        "updated": "Quote updated successfully",
+        "deleted": "{{count}} quotes deleted successfully",
+        "submitted": "{{count}} quotes submitted successfully",
+        "statusUpdateSuccess": "Quote status updated successfully",
+        "statusUpdateError": "Failed to update quote status",
+        "convertToInvoiceSuccess": "Quote converted to invoice successfully. Invoice number: {{invoiceNumber}}",
+        "convertToInvoiceError": "Failed to convert quote to invoice",
+        "downloadError": "Failed to download PDF",
+        "downloadSuccess": "PDF downloaded successfully",
+        "loadFailed": "Failed to load quotes"
+    },
     "import": {
-      "title": "Import Quotes",
-      "description": "Import multiple quotes from a CSV file",
-      "instructions": "Download the template and fill it with your quote data",
-      "downloadTemplate": "Download Template",
-      "selectFile": "Select CSV File",
-      "uploading": "Uploading...",
-      "processing": "Processing...",
-      "success": "Import completed successfully",
-      "error": "Error during import",
-      "importCSV": "Import CSV",
-      "help": {
-        "title": "CSV Import Format",
-        "requiredHeaders": "Required Headers:",
-        "optionalHeaders": "Optional Headers:",
-        "requiredFields": [
-          "NumeroDevis - Quote number",
-          "DateEmission - Issue date",
-          "ClientICE - Customer ICE number",
-          "Description - Item description",
-          "Quantite - Quantity",
-          "PrixUnitaire - Unit price",
-          "TauxTVA - VAT rate"
-        ],
-        "optionalFields": [
-          "DateExpiration - Expiry date",
-          "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)",
-          "TermesConditions - Terms and conditions",
-          "NotesPrivees - Private notes"
-        ]
-      }
+        "title": "Import Quotes",
+        "description": "Import multiple quotes from a CSV file",
+        "instructions": "Download the template and fill it with your quote data",
+        "downloadTemplate": "Download Template",
+        "success": "{{count}} quotes were imported successfully.",
+        "error": "Error during import",
+        "help": {
+          "title": "CSV Import Format",
+          "requiredHeaders": "Required Headers:",
+          "optionalHeaders": "Optional Headers:",
+          "requiredFields": [
+            "NumeroDevis - Quote number",
+            "DateEmission - Issue date",
+            "ClientICE - Customer ICE number",
+            "Description - Item description",
+            "Quantite - Quantity",
+            "PrixUnitaire - Unit price",
+            "TauxTVA - VAT rate"
+          ],
+          "optionalFields": [
+            "DateExpiration - Expiry date",
+            "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)",
+            "TermesConditions - Terms and conditions",
+            "NotesPrivees - Private notes"
+          ]
+        }
     }
   },
   "catalog": {
     "title": "Catalog",
+    "title_plural": "Catalog Items",
     "subtitle": "{{count}} items in catalog",
+    "create": "Create Item",
+    "deleting": "Deleting catalog item...",
     "actions": {
       "create": "Create Item",
       "edit": "Edit Item",
@@ -671,40 +601,47 @@
       "price": "Price",
       "actions": "Actions",
       "taxRate": "Tax Rate",
+      "CodeArticle": "Article Code",
+      "description": "Description",
+      "unitPrice": "Unit Price",
+      "defaultTaxRate": "VAT Rate",
       "noItems": "No catalog items found",
+      "noCatalogs": "No catalog items found",
       "adjustFilters": "Try adjusting your filters",
       "getStarted": "Get started by creating your first catalog item"
     },
     "form": {
       "createTitle": "Create Catalog Item",
       "editTitle": "Edit Catalog Item",
+      "CodeArticle": "Article Code",
       "name": "Name",
-      "namePlaceholder": "Enter item name",
-      "sku": "SKU",
-      "skuPlaceholder": "Enter SKU (optional)",
       "description": "Description",
-      "descriptionPlaceholder": "Enter item description (optional)",
-      "type": "Type",
       "unitPrice": "Unit Price",
       "defaultTaxRate": "Default Tax Rate",
-      "preview": "Price Preview",
-      "taxIncluded": "Tax rate: {{rate}}%",
+      "type": "Type",
+      "typeProduct": "Product",
+      "typeService": "Service",
       "errors": {
         "nameRequired": "Name is required",
-        "unitPricePositive": "Unit price must be positive",
-        "taxRateRange": "Tax rate must be between 0 and 100",
-        "typeRequired": "Type is required",
+        "codeArticleRequired": "Article code is required",
+        "descriptionTooShort": "Description must be at least 3 characters",
+        "fixErrors": "Please fix the errors below",
+        "saveFailed": "Failed to save item",
         "submissionFailed": "Failed to submit form"
       }
     },
     "filters": {
+      "title": "Filters",
       "show": "Show Filters",
       "hide": "Hide Filters",
       "apply": "Apply Filters",
-      "reset": "Reset Filters",
+      "reset": "Reset",
+      "name": "Name",
       "search": "Search",
-      "searchPlaceholder": "Search by name or description",
+      "searchName": "Search by name or article code",
       "type": "Type",
+      "all": "All Types",
+      "searchPlaceholder": "Search by name or description",
       "allTypes": "All Types",
       "sort": "Sort By",
       "direction": "Direction",
@@ -717,7 +654,7 @@
     },
     "sort": {
       "name": "Name",
-      "sku": "SKU",
+      "codeArticle": "Article Code",
       "unitPrice": "Unit Price",
       "type": "Type"
     },
@@ -726,7 +663,7 @@
       "service": "Service"
     },
     "table": {
-      "sku": "SKU",
+      "codeArticle": "Article Code",
       "name": "Name",
       "description": "Description",
       "unitPrice": "Unit Price",
@@ -748,46 +685,138 @@
       "title": "Delete Item",
       "message": "Are you sure you want to delete this item? This action cannot be undone."
     },
+    "confirm": {
+      "title": "Confirm {{action}}",
+      "message": "Are you sure you want to {{action}} this {{count}} item{{plural}}? {{warning}}",
+      "warning": "This action cannot be undone."
+    },
     "bulkDelete": {
       "title": "Delete Items",
       "message": "Are you sure you want to delete {{count}} items? This action cannot be undone."
     },
     "messages": {
-      "deleteSuccess": "Item deleted successfully",
-      "bulkDeleteSuccess": "{{count}} items deleted successfully",
-      "updateSuccess": "Item updated successfully",
-      "createSuccess": "Item created successfully",
-      "noItems": "No catalog items found"
+      "created": "Item created successfully",
+      "updated": "Item updated successfully",
+      "deleted": "Item deleted successfully",
+      "bulkDeleted": "{{count}} items deleted successfully",
+      "fetchFailed": "Failed to fetch catalog items",
+      "deleteFailed": "Failed to delete catalog item",
+      "saveFailed": "Failed to save item",
+      "loadFailed": "Failed to load catalog items"
     },
     "errors": {
-      "noPermission": "You don't have permission to perform this action",
-      "deleteFailed": "Failed to delete item",
-      "bulkDeleteFailed": "Failed to delete items",
-      "saveFailed": "Failed to save item",
-      "loadFailed": "Failed to load catalog items",
-      "accessDenied": "Access denied. You don't have permission to view the catalog."
+        "noPermission": "You don't have permission to perform this action",
+        "accessDenied": "Access denied. You don't have permission to view the catalog."
     },
     "import": {
+      "title": "Import Catalog Items",
+      "description": "Import multiple catalog items from a CSV file",
+      "instructions": "Download the template and fill it with your catalog data",
+      "downloadTemplate": "Download Template",
+      "uploading": "Uploading...",
+      "processing": "Processing...",
+      "success": "{{imported}} items imported successfully out of {{total}} total",
+      "error": {
+        "title": "Import Error",
+        "message": "Some items could not be imported. Please check the details below:",
+        "general": "Error during import"
+      },
       "help": {
-        "title": "CSV Import Help",
-        "requiredHeaders": "Required CSV Headers",
-        "nameDesc": "The name of the catalog item",
-        "skuDesc": "Stock Keeping Unit (optional)",
-        "descriptionDesc": "Item description (optional)",
-        "unitPriceDesc": "Unit price in MAD",
-        "taxRateDesc": "Default tax rate as percentage (0-100)",
-        "typeDesc": "Item type (Product or Service)",
-        "typeValues": "Valid Type Values",
-        "example": "Example CSV Format"
+        "title": "CSV Import Format",
+        "requiredHeaders": "Required Headers:",
+        "optionalHeaders": "Optional Headers:",
+        "requiredFields": [
+          "CodeArticle - Article code",
+          "name - Item name",
+          "description - Item description",
+          "unitPrice - Unit price",
+          "defaultTaxRate - VAT rate",
+          "type - Item type (0 for Product, 1 for Service)"
+        ],
+        "optionalFields": [
+          "id - Item ID (for updates only)"
+        ]
       }
     }
   },
-  "confirmations": {
-    "deleteInvoice": "Are you sure you want to delete this invoice?",
-    "deleteUser": "Are you sure you want to delete this user?",
-    "deleteCustomer": "Are you sure you want to delete this customer?",
-    "submitInvoice": "Are you sure you want to submit this invoice?",
-    "bulkDelete": "Are you sure you want to delete the selected invoices?",
-    "bulkSubmit": "Are you sure you want to submit the selected invoices?"
+  "users": {
+    "title": "User Management",
+    "addUser": "Add User",
+    "email": "Email",
+    "password": "Password",
+    "role": "Role",
+    "actions": "Actions",
+    "editUser": "Edit User",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "resetOwnPassword": "Reset Own Password",
+    "newPassword": "New Password",
+    "passwordRequirements": "Password must be at least 8 characters long",
+    "messages": {
+        "created": "User created successfully.",
+        "updated": "User updated successfully.",
+        "deleted": "User deleted successfully.",
+        "passwordUpdated": "Password updated successfully."
+    },
+    "errors": {
+        "cannotUpdateAdmin": "Admin users cannot be modified",
+        "managersCannotChangeRoles": "Managers cannot change user roles",
+        "invalidRole": "Invalid user role",
+        "invalidUserId": "Invalid user ID in token."
+    },
+    "confirm": {
+      "delete": "Are you sure you want to delete this user?"
+    }
+  },
+  "customers": {
+    "title": "Customers",
+    "addCustomer": "Add Customer",
+    "editCustomer": "Edit Customer",
+    "headers": {
+      "name": "Name",
+      "ice": "ICE",
+      "taxId": "Tax ID",
+      "email": "Email",
+      "phone": "Phone",
+      "actions": "Actions"
+    },
+    "form": {
+      "namePlaceholder": "Name",
+      "icePlaceholder": "ICE",
+      "taxIdPlaceholder": "Tax ID",
+      "addressPlaceholder": "Address",
+      "emailPlaceholder": "Email",
+      "phonePlaceholder": "Phone Number",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "list": {
+      "noCustomers": "No Customers Found",
+      "getStarted": "Get started by adding your first customer."
+    },
+    "messages": {
+        "created": "Customer created successfully.",
+        "updated": "Customer updated successfully.",
+        "deleted": "Customer deleted successfully.",
+        "saveFailed": "Failed to save customer.",
+        "deleteFailed": "Failed to delete customer."
+    },
+    "errors": {
+        "nameRequired": "Name is required.",
+        "invalidICE": "ICE must be 15 digits.",
+        "invalidTaxId": "Tax ID must be 8 digits.",
+        "companyNameRequired": "Company name is required.",
+        "ICERequired": "ICE number is required.",
+        "emailRequired": "Email is required.",
+        "passwordRequired": "Password is required."
+    },
+    "confirm": {
+      "delete": "Are you sure you want to delete this customer?"
+    }
+  },
+  "roles": {
+    "admin": "Admin",
+    "manager": "Manager",
+    "clerk": "Clerk"
   }
-} 
+}

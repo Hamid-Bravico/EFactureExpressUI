@@ -54,16 +54,16 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
   const validate = () => {
     const newFieldErrors: Record<string, string[]> = {};
     if (!form.name?.trim()) {
-      newFieldErrors.Name = [t('errors.nameIsRequired')];
+      newFieldErrors.Name = [t('customers.errors.nameRequired')];
     }
     if (form.email && !/\S+@\S+\.\S+/.test(form.email)) {
       newFieldErrors.Email = [t('errors.invalidEmail')];
     }
     if (form.ice && !/^\d{15}$/.test(form.ice)) {
-      newFieldErrors.ICE = [t('errors.invalidICE')];
+      newFieldErrors.ICE = [t('customers.errors.invalidICE')];
     }
     if (form.taxId && !/^\d{8}$/.test(form.taxId)) {
-      newFieldErrors.TaxId = [t('errors.invalidTaxId')];
+      newFieldErrors.TaxId = [t('customers.errors.invalidTaxId')];
     }
     setFieldErrors(newFieldErrors);
     return Object.keys(newFieldErrors).length === 0;
@@ -97,7 +97,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
             throw new Error(errorData.title || t('errors.validationFailed'));
           }
         }
-        throw new Error(t('errors.failedToSaveCustomer'));
+        throw new Error(t('customers.messages.saveFailed'));
       }
 
       const contentType = res.headers.get('content-type');
@@ -105,7 +105,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
       setShowForm(false);
       setEditingCustomer(null);
       setForm({});
-      toast.success(editingCustomer ? t('success.customerUpdated') : t('success.customerCreated'), { id: toastId });
+      toast.success(editingCustomer ? t('customers.messages.updated') : t('customers.messages.created'), { id: toastId });
       
       if (editingCustomer) {
         setCustomers(prevCustomers => 
@@ -138,15 +138,15 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
   }, []);
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm(t('confirmations.deleteCustomer'))) return;
+    if (!window.confirm(t('customers.confirm.delete'))) return;
     const toastId = toast.loading(t('common.deleting'));
     try {
       const res = await fetch(CUSTOMER_ENDPOINTS.DELETE(id), { 
         method: 'DELETE',
         headers: getSecureHeaders(token),
       });
-      if (!res.ok) throw new Error(t('errors.failedToDeleteCustomer'));
-      toast.success(t('success.customerDeleted'), { id: toastId });
+      if (!res.ok) throw new Error(t('customers.messages.deleteFailed'));
+      toast.success(t('customers.messages.deleted'), { id: toastId });
       setCustomers(prevCustomers => prevCustomers.filter(c => c.id !== id));
     } catch (e: any) {
       toast.error(e.message || t('errors.anErrorOccurred'), { id: toastId });

@@ -1,18 +1,20 @@
-// Quote types
+// Catalog types
 export interface Catalog {
   id: number;
-  sku: string;
-  name: string;
-  description: string;
-  unitPrice: number;
-  defaultTaxRate: number;
+  CodeArticle: string;
+  Name: string;
+  Description: string;
+  UnitPrice: number;
+  DefaultTaxRate: number;
+  Type: number;
 }
 
 export interface NewCatalog {
-  sku: string;
-  name: string;
-  description: string;
-  unitPrice: number;
-  quantity: number;
-  taxRate: number;
+  id?: number;
+  CodeArticle: string;
+  Name: string;
+  Description: string;
+  UnitPrice: number;
+  DefaultTaxRate: number;
+  Type: number;
 }
