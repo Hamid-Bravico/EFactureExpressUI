@@ -5,8 +5,10 @@ export interface PdfUrlResponse {
 export interface Company {
   id: number;
   name: string;
-  ICE: string;
+  ICE?: string;
+  ice?: string;
   identifiantFiscal?: string;
+  identifiantfiscal?: string;
   address: string;
   createdAt: string;
 }

@@ -31,6 +31,7 @@
     "saving": "Saving...",
     "updating": "Updating...",
     "creating": "Creating...",
+    "updateSuccess": "Updated successfully",
     "saveChanges": "Save Changes",
     "refresh": "Refresh",
     "copy": "Copy",
@@ -94,6 +95,7 @@
     "noAddress": "No address provided",
     "noICE": "No ICE provided",
     "noIdentifiantFiscal": "No Identifiant Fiscal provided",
+    "noCompanyName": "No company name provided",
     "tokenRefreshed": "Session refreshed successfully",
     "tokenRefreshFailed": "Session expired. Please log in again."
   },
@@ -124,7 +126,9 @@
     "failedToLoadInvoices": "Failed to load invoices",
     "tryRefreshing": "Try refreshing the page or contact support if the problem persists.",
     "failedToImportCSV": "Failed to import CSV file",
-    "failedToFetchInvoice": "Failed to fetch invoice details"
+    "failedToFetchInvoice": "Failed to fetch invoice details",
+    "updateCompanyFailed": "Failed to update company information",
+    "identifiantFiscalTooLong": "Identifiant Fiscal cannot exceed 8 characters."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -211,7 +215,7 @@
       "description": "Description",
       "quantity": "Quantity",
       "unitPrice": "Unit Price",
-      "vat": "VAT ({{rate}}%)",
+      "vat": "VAT",
       "status": "Status",
       "taxRate": "Tax Rate (%)",
       "selectCustomer": "Select Customer",
@@ -412,7 +416,7 @@
       "description": "Description",
       "quantity": "Quantity",
       "unitPrice": "Unit Price",
-      "vat": "VAT ({{rate}}%)",
+      "vat": "VAT",
       "status": "Status",
       "taxRate": "Tax Rate (%)",
       "selectCustomer": "Select Customer",
@@ -815,6 +819,8 @@
         "invalidICE": "ICE must be 15 digits.",
         "invalidTaxId": "Tax ID must be 8 digits.",
         "companyNameRequired": "Company name is required.",
+        "companyNameTooLong": "Company name cannot exceed 120 characters.",
+        "addressTooLong": "Address cannot exceed 255 characters.",
         "ICERequired": "ICE number is required.",
         "emailRequired": "Email is required.",
         "passwordRequired": "Password is required."

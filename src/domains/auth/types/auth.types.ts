@@ -34,8 +34,10 @@ export interface AuthResponse {
   company: {
     id: number;
     name: string;
-    ICE: string;
+    ICE?: string;
+    ice?: string;
     identifiantFiscal?: string;
+    identifiantfiscal?: string;
     address: string;
   };
 }

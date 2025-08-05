@@ -330,7 +330,7 @@ function App() {
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
   const handleLogin = useCallback(async (email: string, password: string) => {
-          const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
+    const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
       method: "POST",
       headers: getJsonHeaders(), // Using regular headers for login (no CSRF required)
       body: JSON.stringify({ email: email.trim(), password: password.trim() }),
@@ -389,13 +389,13 @@ function App() {
       // Optimistically add a temporary invoice
       const tempInvoice: Invoice = {
         id: Date.now(), // Temporary ID
-        invoiceNumber: newInvoice.invoiceNumber || 'TEMP-' + Date.now(),
+        invoiceNumber: 'TEMP-' + Date.now(),
         date: newInvoice.date,
-        customer: { id: newInvoice.customerId, name: customerName || 'Unknown Customer' }, // Use actual customer name
-        subTotal: newInvoice.subTotal,
-        vat: newInvoice.vat,
-        total: newInvoice.total,
-        status: newInvoice.status,
+        customer: { id: newInvoice.customerId, name: customerName || 'Unknown Customer' },
+        subTotal: 0, // Will be calculated by backend
+        vat: 0, // Will be calculated by backend
+        total: 0, // Will be calculated by backend
+        status: 0, // Default draft status
         lines: newInvoice.lines.map(line => ({
           id: Date.now() + Math.random(), // Temporary ID
           description: line.description,
@@ -408,7 +408,7 @@ function App() {
         createdAt: new Date().toISOString(),
         createdBy: {
           createdById: '',
-          name: userEmail.split('@')[0] || 'User', // Use email prefix as name
+          name: userEmail.split('@')[0] || 'User',
           email: userEmail
         }
       };
@@ -428,7 +428,6 @@ function App() {
         optimisticallyRemoveInvoice(tempInvoice.id);
         return;
       }
-      //console.log(await response.json());
       if (!response.ok) {
         let errorData;
         try {
@@ -446,7 +445,9 @@ function App() {
       
       if (responseText.trim()) {
         try {
-          const createdInvoice = JSON.parse(responseText);
+          const responseData = JSON.parse(responseText);
+          // Handle nested response structure
+          const createdInvoice = responseData.invoice || responseData;
           // Replace temporary invoice with real one
           optimisticallyRemoveInvoice(tempInvoice.id);
           optimisticallyAddInvoice(createdInvoice);
@@ -485,16 +486,11 @@ function App() {
       // Optimistically update the invoice
       const updatedInvoice: Invoice = {
         ...originalInvoice,
-        invoiceNumber: invoice.invoiceNumber || originalInvoice.invoiceNumber,
         date: invoice.date,
         customer: { 
           id: invoice.customerId, 
           name: customerName || originalInvoice.customer.name 
         },
-        subTotal: invoice.subTotal,
-        vat: invoice.vat,
-        total: invoice.total,
-        status: invoice.status,
         lines: invoice.lines.map(line => ({
           id: Date.now() + Math.random(), // Temporary ID for new lines
           description: line.description,
@@ -538,7 +534,9 @@ function App() {
       const responseText = await response.text();
       if (responseText.trim()) {
         try {
-          const serverUpdatedInvoice = JSON.parse(responseText);
+          const responseData = JSON.parse(responseText);
+          // Handle nested response structure
+          const serverUpdatedInvoice = responseData.invoice || responseData;
           // Update with server response to ensure consistency
           optimisticallyUpdateInvoice(serverUpdatedInvoice);
           // Silently update the list data to preserve sorting/filtering
@@ -1241,7 +1239,7 @@ function App() {
                               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                               <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
                             </svg>
-                            <span className="truncate">{company.ICE ? `ICE: ${company.ICE}` : 'ICE:'}</span>
+                            <span className="truncate">{(company.ICE || company.ice) ? `ICE: ${company.ICE || company.ice}` : 'ICE:'}</span>
                           </div>
                         </div>
                       )}
@@ -1256,12 +1254,12 @@ function App() {
                       </NavLink>
                       <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors duration-150"
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors duration-150 border-t border-gray-200 mt-2 pt-2"
                       >
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
                         </svg>
-                        <span>{t('common.logout')}</span>
+                        <span className="font-medium">{t('auth.logout')}</span>
                       </button>
                     </div>
                   )}
@@ -1408,7 +1406,18 @@ function App() {
                   path="/profile"
                   element={
                     <ProtectedRoute>
-                      <CompanyProfile company={company} />
+                      <CompanyProfile 
+                        company={company} 
+                        token={token} 
+                        onUpdate={(updatedCompany) => {
+                          if (company) {
+                            const updatedCompanyData = { ...company, ...updatedCompany };
+                            setCompany(updatedCompanyData);
+                            // Update the stored company data
+                            tokenManager.updateCompanyData(updatedCompany);
+                          }
+                        }}
+                      />
                     </ProtectedRoute>
                   }
                 />

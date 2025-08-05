@@ -372,7 +372,8 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
           unitPrice: line.unitPrice || 0,
           total: line.total || 0,
           invoiceId: invoice.id,
-          taxRate: line.taxRate || 20 // Use actual tax rate from server
+          taxRate: line.taxRate || 20, // Use actual tax rate from server
+          catalogItemId: line.catalogItemId || null
         })),
         createdAt: invoice.createdAt || new Date().toISOString(),
         createdBy: {

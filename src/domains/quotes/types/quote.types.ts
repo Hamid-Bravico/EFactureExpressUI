@@ -7,6 +7,7 @@ export interface QuoteLine {
   total: number;
   quoteId: number;
   taxRate: number;
+  catalogItemId?: number | null;
 }
 
 export interface Quote {
@@ -37,7 +38,15 @@ export interface NewLine {
   quantity: number;
   unitPrice: number;
   taxRate: number;
+  CatalogItemId?: null;
 }
+
+export interface CatalogQuoteLine {
+  CatalogItemId: number;
+  quantity: number;
+}
+
+export type QuoteLineCreate = NewLine | CatalogQuoteLine;
 
 export interface NewQuote {
   id?: number; // Optional id for updates
@@ -49,7 +58,7 @@ export interface NewQuote {
   vat: number;
   total: number;
   status: string; // "Draft", "Sent", "Accepted", "Rejected", "Converted"
-  lines: NewLine[];
+  lines: QuoteLineCreate[];
   termsAndConditions?: string;
   privateNotes?: string;
 }

@@ -78,6 +78,15 @@ class TokenManager {
     return companyData ? JSON.parse(companyData) : null;
   }
 
+  // Update company data
+  updateCompanyData(updatedCompany: any): void {
+    const currentCompany = this.getCompanyData();
+    if (currentCompany) {
+      const updatedData = { ...currentCompany, ...updatedCompany };
+      sessionStorage.setItem(this.COMPANY_KEY, JSON.stringify(updatedData));
+    }
+  }
+
   // Clear all auth data
   clearAuthData(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);

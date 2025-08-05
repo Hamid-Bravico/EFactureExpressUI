@@ -411,7 +411,8 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
         unitPrice: line.unitPrice,
         total: line.total,
         quoteId: quoteData.id,
-        taxRate: line.taxRate || 0
+        taxRate: line.taxRate || 0,
+        catalogItemId: line.catalogItemId || null
       })),
       status: quoteData.status,
       createdAt: quoteData.createdAt,

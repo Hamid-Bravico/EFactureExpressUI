@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
 import { Company } from '../types/common';
 import { useTranslation } from 'react-i18next';
+import { COMPANY_ENDPOINTS } from '../domains/auth/api/company.endpoints';
+import { secureApiClient } from '../config/api';
+import { toast } from 'react-hot-toast';
 
 interface CompanyProfileProps {
   company: Company | null;
+  token?: string | null;
+  onUpdate?: (updatedCompany: Partial<Company>) => void;
 }
 
-const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
+const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdate }) => {
   const { t, i18n } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState({
+    name: '',
+    identifiantFiscal: '',
+    address: ''
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
 
   if (!company) {
     return (
@@ -19,17 +31,202 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
   }
 
   const handleCopy = () => {
-    if (company?.ICE) {
-      navigator.clipboard.writeText(company.ICE);
+    const iceValue = company?.ICE || company?.ice;
+    if (iceValue) {
+      navigator.clipboard.writeText(iceValue);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleEdit = (field: string) => {
+    setEditingField(field);
+    setEditValues({
+      name: company.name || '',
+      identifiantFiscal: company.identifiantFiscal || company.identifiantfiscal || '',
+      address: company.address || ''
+    });
+  };
+
+  const validateField = (field: string, value: string): boolean => {
+    const trimmedValue = value.trim();
+    
+    if (field === 'name') {
+      if (!trimmedValue) {
+        toast.error(t('errors.companyNameRequired'));
+        return false;
+      }
+      if (trimmedValue.length > 120) {
+        toast.error(t('errors.companyNameTooLong'));
+        return false;
+      }
+    } else if (field === 'identifiantFiscal') {
+      if (trimmedValue && trimmedValue.length > 8) {
+        toast.error(t('errors.identifiantFiscalTooLong'));
+        return false;
+      }
+    } else if (field === 'address') {
+      if (trimmedValue && trimmedValue.length > 255) {
+        toast.error(t('errors.addressTooLong'));
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  const handleSave = async (field: string) => {
+    const trimmedValue = editValues[field as keyof typeof editValues].trim();
+    
+    if (!validateField(field, trimmedValue)) {
+      return;
+    }
+
+    setIsUpdating(true);
+    
+    try {
+      const updateData: any = {};
+      
+      if (field === 'name') {
+        updateData.name = trimmedValue;
+      } else if (field === 'identifiantFiscal') {
+        updateData.identifiantFiscal = trimmedValue || null;
+      } else if (field === 'address') {
+        updateData.address = trimmedValue || null;
+      }
+
+      const response = await secureApiClient.put(COMPANY_ENDPOINTS.UPDATE, updateData, true, true);
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          
+          if (errorData.errors) {
+            // Handle validation errors
+            const errorMessages = Object.values(errorData.errors).flat() as string[];
+            errorMessages.forEach(message => {
+              toast.error(message);
+            });
+            return;
+          } else if (errorData.title) {
+            toast.error(errorData.title);
+            return;
+          }
+        }
+        
+        // Fallback for non-JSON errors
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Check if response has content before parsing
+      const responseText = await response.text();
+      let updatedCompany = null;
+      
+      if (responseText.trim()) {
+        try {
+          updatedCompany = JSON.parse(responseText);
+        } catch (parseError) {
+          console.warn('Failed to parse response as JSON:', responseText);
+        }
+      }
+      
+      if (onUpdate) {
+        // If we have response data, use it; otherwise use the values we sent
+        const updateData = updatedCompany || {
+          [field]: editValues[field as keyof typeof editValues].trim()
+        };
+        onUpdate(updateData);
+      }
+      
+      toast.success(t('common.updateSuccess'));
+      setEditingField(null);
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast.error(t('errors.updateCompanyFailed'));
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingField(null);
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setEditValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const renderEditableField = (field: string, currentValue: string, label: string) => {
+    const isEditing = editingField === field;
+    
+    if (isEditing) {
+      return (
+        <div className="flex items-center space-x-2">
+          <input
+            type="text"
+            value={editValues[field as keyof typeof editValues]}
+            onChange={(e) => handleInputChange(field, e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            autoFocus
+          />
+          <button
+            onClick={() => handleSave(field)}
+            disabled={isUpdating}
+            className={`px-3 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center ${
+              isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            title={t('common.save')}
+          >
+            {isUpdating ? (
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={handleCancel}
+            disabled={isUpdating}
+            className={`px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center ${
+              isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            title={t('common.cancel')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-between">
+        <span className="font-semibold text-gray-900">
+          {currentValue || <span className="text-gray-500 italic">{t(`auth.no${label}`)}</span>}
+        </span>
+        <button
+          onClick={() => handleEdit(field)}
+          className="ml-4 px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors duration-200"
+        >
+          {t('common.edit')}
+        </button>
+      </div>
+    );
+  };
+
   const profileItems = [
     {
       label: t('auth.companyName'),
-      value: company.name,
+      value: renderEditableField('name', company.name, 'CompanyName'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
@@ -40,15 +237,18 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
       label: t('auth.ice'),
       value: (
         <div className="flex items-center">
-          {company.ICE && company.ICE.trim() ? (
-            <span className="font-semibold text-gray-900">{company.ICE}</span>
+          {(company.ICE || company.ice) ? (
+            <span className="font-semibold text-gray-900">{company.ICE || company.ice}</span>
           ) : (
             <span className="text-gray-500 italic">{t('auth.noICE')}</span>
           )}
           <button
             onClick={handleCopy}
+            disabled={!(company.ICE || company.ice)}
             className={`ml-4 px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${
-              copied
+              !(company.ICE || company.ice)
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : copied
                 ? 'bg-green-100 text-green-700'
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
             }`}
@@ -66,11 +266,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
     },
     {
       label: t('auth.identifiantFiscal'),
-      value: company.identifiantFiscal && company.identifiantFiscal.trim() ? (
-        company.identifiantFiscal
-      ) : (
-        <span className="text-gray-500 italic">{t('auth.noIdentifiantFiscal')}</span>
-      ),
+      value: renderEditableField('identifiantFiscal', company.identifiantFiscal || company.identifiantfiscal || '', 'IdentifiantFiscal'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm2 4a1 1 0 112 0 1 1 0 01-2 0zm-1 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
@@ -79,11 +275,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
     },
     {
       label: t('auth.address'),
-      value: company.address ? (
-        company.address
-      ) : (
-        <span className="text-gray-500 italic">{t('auth.noAddress')}</span>
-      ),
+      value: renderEditableField('address', company.address || '', 'Address'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -113,7 +305,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
             <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
           </svg>
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 ml-4">{t('auth.companyProfile')}</h2>
+        <h2 className="text-3xl font-bold text-gray-800 ml-4">{t('common.companyProfile')}</h2>
       </div>
       
       <div className="space-y-6">
@@ -124,7 +316,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company }) => {
               <div className="flex-shrink-0 mr-4">{nonNullItem.icon}</div>
               <div className="w-full">
                 <p className="text-sm font-medium text-gray-500">{nonNullItem.label}</p>
-                <div className="text-lg font-semibold text-gray-900 mt-1">{nonNullItem.value}</div>
+                <div className="text-lg mt-1">{nonNullItem.value}</div>
               </div>
             </div>
           );

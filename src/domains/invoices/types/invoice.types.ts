@@ -6,6 +6,7 @@ export interface InvoiceLine {
   total: number;
   invoiceId: number;
   taxRate: number;
+  catalogItemId?: number | null;
 }
 
 export interface Invoice {
@@ -48,12 +49,7 @@ export interface NewLine {
 
 export interface NewInvoice {
   id?: number; // Optional id for updates
-  invoiceNumber?: string; // Optional since it's auto-generated
   date: string;
   customerId: number;
-  subTotal: number;
-  vat: number;
-  total: number;
-  status: number; // 0 = Draft, 1 = Ready, 2 = AwaitingClearance, 3 = Validated, 4 = Rejected
   lines: NewLine[];
 }

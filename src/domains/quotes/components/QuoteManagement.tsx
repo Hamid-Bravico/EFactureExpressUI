@@ -98,15 +98,32 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         createdAt: new Date().toISOString(),
         subTotal: quote.subTotal,
         vat: quote.vat,
-        lines: quote.lines.map(line => ({
-          id: Date.now() + Math.random(),
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          total: line.quantity * line.unitPrice,
-          quoteId: Date.now(),
-          taxRate: line.taxRate
-        })),
+        lines: quote.lines.map(line => {
+          if ('CatalogItemId' in line && line.CatalogItemId) {
+            return {
+              id: Date.now() + Math.random(),
+              description: '',
+              quantity: line.quantity,
+              unitPrice: 0,
+              total: line.quantity * 0,
+              quoteId: Date.now(),
+              taxRate: 0,
+              CatalogItemId: line.CatalogItemId,
+            };
+          } else {
+            const manual = line as any;
+            return {
+              id: Date.now() + Math.random(),
+              description: manual.description,
+              quantity: manual.quantity,
+              unitPrice: manual.unitPrice,
+              total: manual.quantity * manual.unitPrice,
+              quoteId: Date.now(),
+              taxRate: manual.taxRate,
+              CatalogItemId: null,
+            };
+          }
+        }),
         companyId: '',
         termsAndConditions: quote.termsAndConditions,
         privateNotes: quote.privateNotes
@@ -193,15 +210,32 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         vat: quote.vat,
         total: quote.total,
         status: quote.status,
-        lines: quote.lines.map(line => ({
-          id: Date.now() + Math.random(),
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          total: line.quantity * line.unitPrice,
-          quoteId: quote.id!,
-          taxRate: line.taxRate
-        })),
+        lines: quote.lines.map(line => {
+          if ('CatalogItemId' in line && line.CatalogItemId) {
+            return {
+              id: Date.now() + Math.random(),
+              description: '',
+              quantity: line.quantity,
+              unitPrice: 0,
+              total: line.quantity * 0,
+              quoteId: quote.id!,
+              taxRate: 0,
+              CatalogItemId: line.CatalogItemId,
+            };
+          } else {
+            const manual = line as any;
+            return {
+              id: Date.now() + Math.random(),
+              description: manual.description,
+              quantity: manual.quantity,
+              unitPrice: manual.unitPrice,
+              total: manual.quantity * manual.unitPrice,
+              quoteId: quote.id!,
+              taxRate: manual.taxRate,
+              CatalogItemId: null,
+            };
+          }
+        }),
         termsAndConditions: quote.termsAndConditions,
         privateNotes: quote.privateNotes
       };

@@ -61,12 +61,11 @@ export class SecureApiClient {
   }
 
   private handleTokenRefresh = (event: CustomEvent) => {
-    console.log('Token refreshed successfully');
+    // Token refreshed successfully
   };
 
   private handleTokenRefreshFailed = () => {
-    console.log('Token refresh failed, user should be logged out');
-    // Redirect to login or show logout message
+    // Token refresh failed, user should be logged out
     window.location.href = '/login';
   };
 

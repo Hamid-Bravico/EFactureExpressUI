@@ -31,6 +31,7 @@
     "saving": "Enregistrement...",
     "updating": "Mise à jour...",
     "creating": "Création...",
+    "updateSuccess": "Mis à jour avec succès",
     "saveChanges": "Enregistrer les modifications",
     "refresh": "Actualiser",
     "copy": "Copier",
@@ -94,6 +95,7 @@
     "noAddress": "Aucune adresse fournie",
     "noICE": "Aucun ICE fourni",
     "noIdentifiantFiscal": "Aucun identifiant fiscal fourni",
+    "noCompanyName": "Aucun nom d'entreprise fourni",
     "tokenRefreshed": "Session actualisée avec succès",
     "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter."
   },
@@ -124,7 +126,9 @@
     "failedToLoadInvoices": "Échec du chargement des factures",
     "tryRefreshing": "Essayez d'actualiser la page ou contactez le support si le problème persiste.",
     "failedToImportCSV": "Échec de l'importation du fichier CSV",
-    "failedToFetchInvoice": "Échec de la récupération des détails de la facture"
+    "failedToFetchInvoice": "Échec de la récupération des détails de la facture",
+    "updateCompanyFailed": "Échec de la mise à jour des informations de l'entreprise",
+    "identifiantFiscalTooLong": "L'identifiant fiscal ne peut pas dépasser 8 caractères."
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -211,7 +215,7 @@
       "description": "Description",
       "quantity": "Quantité",
       "unitPrice": "Prix unitaire",
-      "vat": "TVA ({{rate}}%)",
+      "vat": "TVA",
       "status": "Statut",
       "taxRate": "Taux de TVA (%)",
       "selectCustomer": "Sélectionner un client",
@@ -412,7 +416,7 @@
       "description": "Description",
       "quantity": "Quantité",
       "unitPrice": "Prix unitaire",
-      "vat": "TVA ({{rate}}%)",
+      "vat": "TVA",
       "status": "Statut",
       "taxRate": "Taux de TVA (%)",
       "selectCustomer": "Sélectionner un client",
@@ -815,6 +819,8 @@
         "invalidICE": "L'ICE doit comporter 15 chiffres.",
         "invalidTaxId": "L'ID fiscal doit comporter 8 chiffres.",
         "companyNameRequired": "Le nom de l'entreprise est requis.",
+        "companyNameTooLong": "Le nom de l'entreprise ne peut pas dépasser 120 caractères.",
+        "addressTooLong": "L'adresse ne peut pas dépasser 255 caractères.",
         "ICERequired": "Le numéro ICE est requis.",
         "emailRequired": "L'adresse email est requise.",
         "passwordRequired": "Le mot de passe est requis."

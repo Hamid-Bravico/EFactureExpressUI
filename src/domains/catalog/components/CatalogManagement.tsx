@@ -69,7 +69,6 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       }
       
       const data = await res.json();
-      console.log('Fetched catalog data:', data);
       setCatalogs(data);
     } catch (e: any) {
       setError(e.message || 'Error fetching catalogs');
