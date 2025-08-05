@@ -485,7 +485,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
 
               return (
                 <div key={idx} className="grid grid-cols-12 gap-4 mb-4 items-end">
-                  <div className="col-span-6">
+                  <div className="col-span-5">
                     <label className="block text-sm text-gray-600 mb-1">{t('quote.form.description')}</label>
                     <input
                       type="text"
@@ -531,21 +531,23 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
                       <div className="text-red-500 text-xs mt-1">{priceError}</div>
                     )}
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-3">
                     <div className="flex items-end gap-2">
                       <div className="flex-1">
                         <label className="block text-sm text-gray-600 mb-1">{t('quote.form.taxRate')}</label>
-                        <input
-                          type="number"
+                        <select
                           value={ln.taxRate ?? 20}
                           onChange={e => { updateLine(idx, 'taxRate', e.target.value); clearLineError(taxKey); }}
                           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate || taxError ? 'border-red-500' : 'border-gray-300'}`}
                           disabled={disabled || isSubmitting}
-                          min="0"
-                          max="100"
-                          step="0.1"
                           required
-                        />
+                        >
+                          <option value={20}>20%</option>
+                          <option value={14}>14%</option>
+                          <option value={10}>10%</option>
+                          <option value={7}>7%</option>
+                          <option value={0}>0%</option>
+                        </select>
                         {taxError && (
                           <div className="text-red-500 text-xs mt-1">{taxError}</div>
                         )}
