@@ -275,7 +275,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
             to="/invoices"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
           >
-            {t('common.createInvoice')}
+            {t('invoice.create')}
           </Link>
         </div>
       </div>
@@ -446,7 +446,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({
               <div key={invoice.id} className="flex items-center justify-between py-3 px-1 hover:bg-blue-50/40 transition-all duration-200 rounded cursor-pointer animate-fade-in" style={{animationDelay:`${320+idx*40}ms`}}>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
-                    {t('common.invoiceNumber')} {invoice.invoiceNumber}
+                    {t('invoice.invoiceNumber')} {invoice.invoiceNumber}
                   </p>
                   <p className="text-xs text-gray-400">
                     {new Date(invoice.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}

@@ -149,6 +149,8 @@
     "monthlyAmount": "Montant mensuel",
     "customerAmount": "Montant par client",
     "filters": {
+      "title": "Filtres",
+      "active": "Actif",
       "dateFrom": "Date de début",
       "dateTo": "Date de fin",
       "status": "Statut",
@@ -166,6 +168,7 @@
     "delete": "Supprimer la facture",
     "submit": "Soumettre la facture",
     "download": "Télécharger le PDF",
+    "invoiceNumber": "Numéro de facture",
     "deleting": "Suppression de la facture...",
     "submitting": "Soumission de la facture...",
     "downloadingPDF": "Téléchargement du PDF...",
@@ -342,10 +345,12 @@
         "description": "Importer plusieurs factures depuis un fichier CSV",
         "instructions": "Téléchargez le modèle et remplissez-le avec vos données de facturation",
         "downloadTemplate": "Télécharger le modèle",
+        "uploading": "Téléchargement...",
         "success": "Importation terminée avec succès",
         "error": "Erreur lors de l'importation",
         "help": {
           "title": "Format d'importation CSV",
+          "description": "Le fichier doit être au format CSV avec les en-têtes suivants sur la première ligne. L'ordre des colonnes n'a pas d'importance.",
           "requiredHeaders": "En-têtes requis :",
           "optionalHeaders": "En-têtes optionnels :",
           "requiredFields": [
@@ -563,6 +568,7 @@
         "error": "Erreur lors de l'import",
         "help": {
           "title": "Format d'import CSV",
+          "description": "Le fichier doit être au format CSV avec les en-têtes suivants sur la première ligne. L'ordre des colonnes n'a pas d'importance.",
           "requiredHeaders": "En-têtes requis :",
           "optionalHeaders": "En-têtes optionnels :",
           "requiredFields": [
@@ -674,7 +680,9 @@
     "bulk": {
       "selected": "{{count}} article(s) sélectionné(s)",
       "delete": "Supprimer la sélection",
-      "clear": "Effacer la sélection"
+      "clear": "Effacer la sélection",
+      "deleting": "Suppression de {{count}} articles...",
+      "deleted": "{{count}} articles supprimés avec succès"
     },
     "pagination": {
       "info": "Affichage de {{from}} à {{to}} sur {{total}} articles",
@@ -699,6 +707,7 @@
       "updated": "Article mis à jour avec succès",
       "deleted": "Article supprimé avec succès",
       "bulkDeleted": "{{count}} articles supprimés avec succès",
+      "bulkDeleteError": "Échec de la suppression des articles de catalogue",
       "fetchFailed": "Échec du chargement des articles de catalogue",
       "deleteFailed": "Échec de la suppression de l'article de catalogue",
       "saveFailed": "Échec de l'enregistrement de l'article",
@@ -723,18 +732,18 @@
       },
       "help": {
         "title": "Format d'importation CSV",
-        "requiredHeaders": "En-têtes requis :",
-        "optionalHeaders": "En-têtes optionnels :",
+        "description": "Le fichier doit être au format CSV avec les en-têtes suivants sur la première ligne. L'ordre des colonnes n'a pas d'importance.",
+        "requiredHeaders": "En-têtes Requis :",
+        "optionalHeaders": "En-têtes Optionnels :",
         "requiredFields": [
-          "CodeArticle - Code article",
-          "name - Nom de l'article",
-          "description - Description de l'article",
-          "unitPrice - Prix unitaire",
-          "defaultTaxRate - Taux de TVA",
-          "type - Type d'article (0 pour Produit, 1 pour Service)"
+          "Nom - Le nom de l'article ou du service.",
+          "Prix Unitaire - Le prix de vente avant taxes."
         ],
         "optionalFields": [
-          "id - ID de l'article (pour les mises à jour uniquement)"
+          "Code Article - Le code unique pour l'article. Laisser vide si non applicable.",
+          "Description - Une description détaillée de l'article.",
+          "Taux TVA - Le taux de TVA en pourcentage (ex: 20 pour 20%). Si omis, la valeur par défaut est 0.",
+          "Type - Le type d'article. Doit être le texte Produit ou Service. Si omis, la valeur par défaut est Service."
         ]
       }
     }

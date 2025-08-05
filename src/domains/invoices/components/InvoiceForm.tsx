@@ -3,7 +3,7 @@ import { NewInvoice, NewLine, Invoice } from '../types/invoice.types';
 import { Customer } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { getAuthHeaders } from '../../../config/api';
+import { getSecureHeaders } from '../../../config/api';
 import { tokenManager } from '../../../utils/tokenManager';
 
 interface InvoiceFormProps {
@@ -44,7 +44,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL || '/api'}/customers`, {
-      headers: getAuthHeaders(tokenManager.getToken()),
+      headers: getSecureHeaders(tokenManager.getToken()),
     })
     .then(res => res.json())
     .then(setCustomers)
@@ -486,7 +486,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               }`}
               disabled={disabled || isSubmitting}
             >
-              {isSubmitting ? t('common.saving') : (invoice ? t('common.saveChanges') : t('common.createInvoice'))}
+                              {isSubmitting ? t('common.saving') : (invoice ? t('common.saveChanges') : t('invoice.create'))}
             </button>
           </div>
         </form>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { CUSTOMER_ENDPOINTS } from '../api/customer.endpoints';
 import { Customer } from '../../../types/common';
 import { decodeJWT } from '../../../utils/jwt';
@@ -34,7 +34,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     setError('');
     try {
       const res = await fetch(CUSTOMER_ENDPOINTS.LIST, {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       if (!res.ok) throw new Error('Failed to fetch customers');
       setCustomers(await res.json());

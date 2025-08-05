@@ -149,6 +149,8 @@
     "monthlyAmount": "Monthly Amount",
     "customerAmount": "Customer Amount",
     "filters": {
+      "title": "Filters",
+      "active": "Active",
       "dateFrom": "Date From",
       "dateTo": "Date To",
       "status": "Status",
@@ -166,6 +168,7 @@
     "delete": "Delete Invoice",
     "submit": "Submit Invoice",
     "download": "Download PDF",
+    "invoiceNumber": "Invoice Number",
     "deleting": "Deleting invoice...",
     "submitting": "Submitting invoice...",
     "downloadingPDF": "Downloading PDF...",
@@ -342,10 +345,12 @@
         "description": "Import multiple invoices from a CSV file",
         "instructions": "Download the template and fill it with your invoice data",
         "downloadTemplate": "Download Template",
+        "uploading": "Uploading...",
         "success": "Import completed successfully",
         "error": "Error during import",
         "help": {
           "title": "CSV Import Format",
+          "description": "The file must be in CSV format with the following headers on the first line. The order of columns does not matter.",
           "requiredHeaders": "Required Headers:",
           "optionalHeaders": "Optional Headers:",
           "requiredFields": [
@@ -563,6 +568,7 @@
         "error": "Error during import",
         "help": {
           "title": "CSV Import Format",
+          "description": "The file must be in CSV format with the following headers on the first line. The order of columns does not matter.",
           "requiredHeaders": "Required Headers:",
           "optionalHeaders": "Optional Headers:",
           "requiredFields": [
@@ -674,7 +680,9 @@
     "bulk": {
       "selected": "{{count}} item(s) selected",
       "delete": "Delete Selected",
-      "clear": "Clear Selection"
+      "clear": "Clear Selection",
+      "deleting": "Deleting {{count}} items...",
+      "deleted": "{{count}} items deleted successfully"
     },
     "pagination": {
       "info": "Showing {{from}} to {{to}} of {{total}} items",
@@ -699,6 +707,7 @@
       "updated": "Item updated successfully",
       "deleted": "Item deleted successfully",
       "bulkDeleted": "{{count}} items deleted successfully",
+      "bulkDeleteError": "Failed to delete catalog items",
       "fetchFailed": "Failed to fetch catalog items",
       "deleteFailed": "Failed to delete catalog item",
       "saveFailed": "Failed to save item",
@@ -723,18 +732,18 @@
       },
       "help": {
         "title": "CSV Import Format",
+        "description": "The file must be in CSV format with the following headers on the first line. The order of columns does not matter.",
         "requiredHeaders": "Required Headers:",
         "optionalHeaders": "Optional Headers:",
         "requiredFields": [
-          "CodeArticle - Article code",
-          "name - Item name",
-          "description - Item description",
-          "unitPrice - Unit price",
-          "defaultTaxRate - VAT rate",
-          "type - Item type (0 for Product, 1 for Service)"
+          "Name - The name of the item or service.",
+          "Unit Price - The selling price before taxes."
         ],
         "optionalFields": [
-          "id - Item ID (for updates only)"
+          "Article Code - The unique code for the item. Leave empty if not applicable.",
+          "Description - A detailed description of the item.",
+          "VAT Rate - The VAT rate as a percentage (e.g., 20 for 20%). If omitted, the default value is 0.",
+          "Type - The item type. Must be the text Product or Service. If omitted, the default value is Service."
         ]
       }
     }

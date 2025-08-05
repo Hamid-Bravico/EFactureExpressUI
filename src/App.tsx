@@ -11,7 +11,7 @@ import QuoteManagement from "./domains/quotes/components/QuoteManagement";
 import LoginPage from "./domains/auth/components/LoginPage";
 import RegisterPage from "./domains/auth/components/RegisterPage";
 import Users from "./domains/users/components/Users";
-import { API_BASE_URL, getAuthHeaders, getSecureJsonHeaders, getSecureHeaders, getJsonHeaders } from "./config/api";
+import { API_BASE_URL, getSecureJsonHeaders, getSecureHeaders, getJsonHeaders } from "./config/api";
 import { AUTH_ENDPOINTS } from "./domains/auth/api/auth.endpoints";
 import { INVOICE_ENDPOINTS } from "./domains/invoices/api/invoice.endpoints";
 import { APP_CONFIG } from "./config/app";
@@ -244,7 +244,7 @@ function App() {
       
       const url = `${API_BASE_URL}/dashboard/stats${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await fetch(url, {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       
       if (response.status === 401) {
@@ -299,7 +299,7 @@ function App() {
       
       const url = `${INVOICE_ENDPOINTS.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await fetch(url, {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       
       if (response.status === 401) {
@@ -630,7 +630,7 @@ function App() {
         
         try {
           const response = await fetch(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
           
           if (response.ok) {
@@ -653,7 +653,7 @@ function App() {
     const toastId = toast.loading(t('common.downloadingPDF'));
     try {
       const response = await fetch(INVOICE_ENDPOINTS.PDF(id), {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
 
       if (response.status === 401) {
@@ -741,7 +741,7 @@ function App() {
 
   const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
-    const toastId = toast.loading(t('common.importingCSV'));
+            const toastId = toast.loading(t('common.file.importingCSV'));
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -866,7 +866,7 @@ function App() {
         
         try {
           const response = await fetch(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
           
           if (response.ok) {
@@ -1346,7 +1346,7 @@ function App() {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            {t('common.newInvoice')}
+                            {t('invoice.create')}
                           </button>
                         </div>
 

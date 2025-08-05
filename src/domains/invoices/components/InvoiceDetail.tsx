@@ -4,7 +4,7 @@ import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
-import { getAuthHeaders, getSecureHeaders } from '../../../config/api';
+import { getSecureHeaders } from '../../../config/api';
 import { INVOICE_ENDPOINTS } from '../api/invoice.endpoints';
 import { 
   getInvoiceActionPermissions, 
@@ -68,7 +68,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       const token = tokenManager.getToken();
       if (!token) throw new Error('No token');
       const res = await fetch(INVOICE_ENDPOINTS.JSON(invoiceId), {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
@@ -95,7 +95,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       }
       
       const res = await fetch(INVOICE_ENDPOINTS.DGI_STATUS(invoiceId), {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       
       if (!res.ok) {

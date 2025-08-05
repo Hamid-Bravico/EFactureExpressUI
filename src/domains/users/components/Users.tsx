@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { USER_ENDPOINTS } from '../api/user.endpoints';
 import { User, NewUser, UpdateUser } from '../types/user.types';
 import { decodeJWT } from '../../../utils/jwt';
@@ -38,7 +38,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     setError('');
     try {
       const response = await fetch(USER_ENDPOINTS.LIST, {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
 
       if (response.status === 401) {

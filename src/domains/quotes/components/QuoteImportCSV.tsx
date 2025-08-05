@@ -67,7 +67,7 @@ const QuoteImportCSV: React.FC<QuoteImportCSVProps> = ({ onImport, loading = fal
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
-              {t('common.importCSV')}
+                              {t('common.file.importCSV')}
             </>
           )}
         </button>
@@ -95,28 +95,42 @@ const QuoteImportCSV: React.FC<QuoteImportCSVProps> = ({ onImport, loading = fal
             
             <h3 className="font-semibold text-gray-900 mb-3">{t('quote.import.help.title')}</h3>
             
+            <p className="text-gray-600 mb-4 text-sm">{t('quote.import.help.description')}</p>
+            
             <div className="space-y-3">
               <div>
                 <h4 className="font-medium text-gray-800 mb-2">{t('quote.import.help.requiredHeaders')}</h4>
                 <ul className="space-y-1 text-gray-600">
-                  {(t('quote.import.help.requiredFields', { returnObjects: true }) as string[]).map((field: string, index: number) => (
-                    <li key={index} className="flex items-start">
-                      <span className="mr-2 text-red-500">•</span>
-                      <span className="text-xs">{field}</span>
-                    </li>
-                  ))}
+                  {(t('quote.import.help.requiredFields', { returnObjects: true }) as string[]).map((field: string, index: number) => {
+                    const [columnName, description] = field.split(' - ');
+                    return (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2 text-red-500">•</span>
+                        <span className="text-xs">
+                          <span className="font-mono font-semibold text-blue-600 bg-blue-50 px-1 py-0.5 rounded border">{columnName}</span>
+                          <span className="text-gray-500"> - {description}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
               
               <div>
                 <h4 className="font-medium text-gray-800 mb-2">{t('quote.import.help.optionalHeaders')}</h4>
                 <ul className="space-y-1 text-gray-600">
-                  {(t('quote.import.help.optionalFields', { returnObjects: true }) as string[]).map((field: string, index: number) => (
-                    <li key={index} className="flex items-start">
-                      <span className="mr-2 text-blue-500">•</span>
-                      <span className="text-xs">{field}</span>
-                    </li>
-                  ))}
+                  {(t('quote.import.help.optionalFields', { returnObjects: true }) as string[]).map((field: string, index: number) => {
+                    const [columnName, description] = field.split(' - ');
+                    return (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2 text-blue-500">•</span>
+                        <span className="text-xs">
+                          <span className="font-mono font-semibold text-green-600 bg-green-50 px-1 py-0.5 rounded border">{columnName}</span>
+                          <span className="text-gray-500"> - {description}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>

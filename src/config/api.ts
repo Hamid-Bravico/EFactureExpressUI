@@ -8,9 +8,12 @@ export const getAcceptLanguageHeader = (): string => {
   return currentLanguage === 'fr' ? 'fr-FR' : 'en-US';
 };
 
-export const getAuthHeaders = (token?: string | null): Record<string, string> => {
+
+
+export const getSecureHeaders = (token?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {
     'Accept-Language': getAcceptLanguageHeader(),
+    ...getCsrfHeader(),
   };
   
   if (token) {
@@ -20,18 +23,17 @@ export const getAuthHeaders = (token?: string | null): Record<string, string> =>
   return headers;
 };
 
-export const getSecureHeaders = (token?: string | null): Record<string, string> => {
-  return {
-    ...getAuthHeaders(token),
-    ...getCsrfHeader(),
-  };
-};
-
 export const getJsonHeaders = (token?: string | null): Record<string, string> => {
-  return {
-    ...getAuthHeaders(token),
+  const headers: Record<string, string> = {
+    'Accept-Language': getAcceptLanguageHeader(),
     'Content-Type': 'application/json',
   };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
 };
 
 export const getSecureJsonHeaders = (token?: string | null): Record<string, string> => {

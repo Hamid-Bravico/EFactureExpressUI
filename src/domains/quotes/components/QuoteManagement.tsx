@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { NewQuote } from '../types/quote.types';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +60,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
       const url = `${QUOTE_ENDPOINTS?.LIST || '/api/quotes'}?${params.toString()}`;
       const res = await fetch(url, {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       
       if (!res.ok) {
@@ -317,7 +317,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         
         try {
           const response = await fetch(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
           
           if (response.ok) {
@@ -386,7 +386,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         
         try {
           const response = await fetch(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
           
           if (response.ok) {
@@ -680,7 +680,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
       const res = await fetch(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`, {
         method: 'POST',
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
 
       if (!res.ok) {
@@ -704,7 +704,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
-    const toastId = toast.loading(t('common.importingCSV'));
+    const toastId = toast.loading(t('common.file.importingCSV'));
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -730,7 +730,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       if (response.ok) {
         // Success response (200 OK)
         const count = data.data?.count || 0;
-        toast.success(data.message || t('quote.messages.imported', { count }), { id: toastId });
+        toast.success(data.message || t('catalog.messages.imported', { count }), { id: toastId });
         await fetchQuotes();
       } else {
         // Validation error response (400/409) - Show in modal
@@ -794,7 +794,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          {t('common.newQuote')}
+                          {t('quote.create')}
         </button>
       </div>
 

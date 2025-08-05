@@ -3,7 +3,7 @@ import { NewQuote, NewLine, Quote } from '../types/quote.types';
 import { Customer } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { getAuthHeaders } from '../../../config/api';
+import { getSecureHeaders } from '../../../config/api';
 import { 
   QUOTE_STATUS
 } from '../utils/quote.permissions';
@@ -52,7 +52,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL || '/api'}/customers`, {
-      headers: getAuthHeaders(tokenManager.getToken()),
+      headers: getSecureHeaders(tokenManager.getToken()),
     })
     .then(res => res.json())
     .then(setCustomers)

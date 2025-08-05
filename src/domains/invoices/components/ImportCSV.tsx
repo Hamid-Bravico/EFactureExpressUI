@@ -60,14 +60,14 @@ const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              {t('import.uploading')}
+              {t('invoice.import.uploading')}
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
-              {t('common.importCSV')}
+                              {t('common.file.importCSV')}
             </>
           )}
         </button>
@@ -82,7 +82,7 @@ const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
           onFocus={() => setShowTooltip(true)}
           onBlur={() => setShowTooltip(false)}
           className="inline-flex items-center justify-center w-6 h-6 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded-full hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-          title={t('import.help.title')}
+          title={t('invoice.import.help.title')}
         >
           ?
         </button>
@@ -93,30 +93,44 @@ const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-200"></div>
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-white" style={{ marginTop: '1px' }}></div>
             
-            <h3 className="font-semibold text-gray-900 mb-3">{t('import.help.title')}</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t('invoice.import.help.title')}</h3>
+            
+            <p className="text-gray-600 mb-4 text-sm">{t('invoice.import.help.description')}</p>
             
             <div className="space-y-3">
               <div>
-                <h4 className="font-medium text-gray-800 mb-2">{t('import.help.requiredHeaders')}</h4>
+                <h4 className="font-medium text-gray-800 mb-2">{t('invoice.import.help.requiredHeaders')}</h4>
                 <ul className="space-y-1 text-gray-600">
-                  {(t('import.help.requiredFields', { returnObjects: true }) as string[]).map((field: string, index: number) => (
-                    <li key={index} className="flex items-start">
-                      <span className="mr-2 text-red-500">•</span>
-                      <span className="text-xs">{field}</span>
-                    </li>
-                  ))}
+                  {(t('invoice.import.help.requiredFields', { returnObjects: true }) as string[]).map((field: string, index: number) => {
+                    const [columnName, description] = field.split(' - ');
+                    return (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2 text-red-500">•</span>
+                        <span className="text-xs">
+                          <span className="font-mono font-semibold text-blue-600 bg-blue-50 px-1 py-0.5 rounded border">{columnName}</span>
+                          <span className="text-gray-500"> - {description}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
               
               <div>
-                <h4 className="font-medium text-gray-800 mb-2">{t('import.help.optionalHeaders')}</h4>
+                <h4 className="font-medium text-gray-800 mb-2">{t('invoice.import.help.optionalHeaders')}</h4>
                 <ul className="space-y-1 text-gray-600">
-                  {(t('import.help.optionalFields', { returnObjects: true }) as string[]).map((field: string, index: number) => (
-                    <li key={index} className="flex items-start">
-                      <span className="mr-2 text-blue-500">•</span>
-                      <span className="text-xs">{field}</span>
-                    </li>
-                  ))}
+                  {(t('invoice.import.help.optionalFields', { returnObjects: true }) as string[]).map((field: string, index: number) => {
+                    const [columnName, description] = field.split(' - ');
+                    return (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-2 text-blue-500">•</span>
+                        <span className="text-xs">
+                          <span className="font-mono font-semibold text-green-600 bg-green-50 px-1 py-0.5 rounded border">{columnName}</span>
+                          <span className="text-gray-500"> - {description}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>

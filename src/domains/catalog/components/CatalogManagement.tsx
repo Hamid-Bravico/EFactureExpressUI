@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getAuthHeaders, getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { CATALOG_ENDPOINTS } from '../api/catalog.endpoints';
 import { NewCatalog } from '../types/catalog.types';
 import { useTranslation } from 'react-i18next';
@@ -61,7 +61,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
 
       const url = `${CATALOG_ENDPOINTS?.LIST || '/api/catalog'}?${params.toString()}`;
       const res = await fetch(url, {
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
       });
       
       if (!res.ok) {
@@ -277,16 +277,23 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         throw new Error(t('catalog.messages.deleteFailed'));
       }
 
-      // If the page will be incomplete, refresh the current page data
-      if (willPageBeIncomplete) {
-        // Silently refresh the current page to get the missing items
+      // Handle pagination after deletion
+      const remainingItems = catalogs!.items.length - 1;
+      const currentPage = catalogs!.pagination.page;
+      const pageSize = catalogs!.pagination.pageSize;
+      const totalItems = catalogs!.pagination.totalItems - 1;
+      const totalPages = Math.ceil(totalItems / pageSize);
+
+      // If we're on the first page and it becomes empty, stay on page 1
+      if (remainingItems === 0 && currentPage === 1) {
+        // Page is empty but we're on page 1, just refresh to get updated data
         const queryParams = new URLSearchParams();
-        queryParams.append('page', catalogs!.pagination.page.toString());
-        queryParams.append('size', catalogs!.pagination.pageSize.toString());
+        queryParams.append('page', '1');
+        queryParams.append('size', pageSize.toString());
         
         try {
           const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
           
           if (response.ok) {
@@ -294,19 +301,18 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             setCatalogs(refreshedData);
           }
         } catch (error) {
-          // Failed to refresh page data - this is not critical, so we don't show an error
           console.warn('Failed to refresh page data after deletion:', error);
         }
-      } else if (catalogs && catalogs.items.length === 1 && catalogs.pagination.page > 1) {
+      } else if (remainingItems === 0 && currentPage > 1) {
         // If we deleted the last item on a page that's not the first page, go to previous page
-        const newPage = catalogs.pagination.page - 1;
+        const newPage = currentPage - 1;
         const queryParams = new URLSearchParams();
         queryParams.append('page', newPage.toString());
-        queryParams.append('size', catalogs.pagination.pageSize.toString());
+        queryParams.append('size', pageSize.toString());
         
         try {
           const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getAuthHeaders(token),
+            headers: getSecureHeaders(token),
           });
           
           if (response.ok) {
@@ -315,6 +321,24 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           }
         } catch (error) {
           console.warn('Failed to navigate to previous page after deletion:', error);
+        }
+      } else if (willPageBeIncomplete) {
+        // If the page will be incomplete, refresh the current page data
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', currentPage.toString());
+        queryParams.append('size', pageSize.toString());
+        
+        try {
+          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
+            headers: getSecureHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setCatalogs(refreshedData);
+          }
+        } catch (error) {
+          console.warn('Failed to refresh page data after deletion:', error);
         }
       }
 
@@ -325,52 +349,183 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
     }
   }, [token, t, catalogs]);
 
+  const handleBulkDelete = useCallback(async (ids: number[]) => {
+    const toastId = toast.loading(t('catalog.bulk.deleting', { count: ids.length }));
+    
+    // Store original data for rollback
+    const originalData = catalogs;
+    
+    // Check if this bulk deletion will make the page incomplete
+    const willPageBeIncomplete = catalogs && 
+      catalogs.items.length === catalogs.pagination.pageSize && 
+      ids.length > 0 && 
+      catalogs.pagination.page < catalogs.pagination.totalPages;
+    
+    try {
+      // Optimistically remove all catalogs
+      if (catalogs) {
+        setCatalogs(prev => ({
+          ...prev!,
+          items: prev!.items.filter(q => !ids.includes(q.id)),
+          pagination: {
+            ...prev!.pagination,
+            totalItems: prev!.pagination.totalItems - ids.length,
+            totalPages: Math.ceil((prev!.pagination.totalItems - ids.length) / prev!.pagination.pageSize)
+          }
+        }));
+      }
+
+      // Perform all delete operations
+      await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(CATALOG_ENDPOINTS?.DELETE?.(id) || `/api/catalog/${id}`, {
+            method: 'DELETE',
+            headers: getSecureHeaders(token),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: t('catalog.messages.deleteFailed') }));
+            throw new Error(errorData.message || t('catalog.messages.deleteFailed'));
+          }
+        })
+      );
+      
+      // Handle pagination after bulk deletion
+      const remainingItems = catalogs!.items.length - ids.length;
+      const currentPage = catalogs!.pagination.page;
+      const pageSize = catalogs!.pagination.pageSize;
+      const totalItems = catalogs!.pagination.totalItems - ids.length;
+      const totalPages = Math.ceil(totalItems / pageSize);
+
+      // If we're on the first page and it becomes empty, stay on page 1
+      if (remainingItems === 0 && currentPage === 1) {
+        // Page is empty but we're on page 1, just refresh to get updated data
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', '1');
+        queryParams.append('size', pageSize.toString());
+        
+        try {
+          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
+            headers: getSecureHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setCatalogs(refreshedData);
+          }
+        } catch (error) {
+          console.warn('Failed to refresh page data after bulk deletion:', error);
+        }
+      } else if (remainingItems === 0 && currentPage > 1) {
+        // If we deleted all items on a page that's not the first page, go to previous page
+        const newPage = currentPage - 1;
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', newPage.toString());
+        queryParams.append('size', pageSize.toString());
+        
+        try {
+          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
+            headers: getSecureHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setCatalogs(refreshedData);
+          }
+        } catch (error) {
+          console.warn('Failed to navigate to previous page after bulk deletion:', error);
+        }
+      } else if (willPageBeIncomplete) {
+        // If the page will be incomplete, refresh the current page data
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', currentPage.toString());
+        queryParams.append('size', pageSize.toString());
+        
+        try {
+          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
+            headers: getSecureHeaders(token),
+          });
+          
+          if (response.ok) {
+            const refreshedData = await response.json();
+            setCatalogs(refreshedData);
+          }
+        } catch (error) {
+          console.warn('Failed to refresh page data after bulk deletion:', error);
+        }
+      }
+      
+      toast.success(t('catalog.bulk.deleted', { count: ids.length }), { id: toastId });
+    } catch (err) {
+      // Revert all optimistic updates
+      setCatalogs(originalData);
+      
+      const errorMessage = err instanceof Error ? err.message : t('catalog.messages.bulkDeleteError');
+      toast.error(errorMessage, { id: toastId });
+    }
+  }, [token, t, catalogs]);
+
   const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
-    setError('');
+    const toastId = toast.loading(t('common.file.importingCSV'));
     
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(CATALOG_ENDPOINTS.IMPORT_CSV, {
+      const response = await fetch(CATALOG_ENDPOINTS.IMPORT_CSV, {
         method: 'POST',
-        headers: getAuthHeaders(token),
+        headers: getSecureHeaders(token),
         body: formData,
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        
-        if (errorData.errors && Array.isArray(errorData.errors)) {
-          setErrorModal({
-            isOpen: true,
-            title: t('catalog.import.error.title'),
-            message: t('catalog.import.error.message'),
-            details: errorData.errors
-          });
-        } else {
-          throw new Error(errorData.message || t('catalog.import.error.general'));
-        }
+      if (response.status === 401) {
+        toast.error(t('common.unauthorized'), { id: toastId });
         return;
       }
 
-      const result = await res.json();
-      
-      if (result.success) {
-        toast.success(t('catalog.import.success', { 
-          imported: result.imported || 0,
-          total: result.total || 0
-        }));
-        
-        // Refresh the catalog list to show imported items
-        await fetchCatalogs(undefined, undefined, { page: 1, pageSize: 10 });
-      } else {
-        throw new Error(result.message || t('catalog.import.error.general'));
+      if (response.status === 500) {
+        toast.error(t('errors.unexpectedError'), { id: toastId });
+        return;
       }
-    } catch (error: any) {
-      console.error('Import CSV error:', error);
-      toast.error(error.message || t('catalog.import.error.general'));
+
+      const data = await response.json();
+
+      
+      if (response.ok) {
+        // Success response (200 OK)
+        const count = data.data?.count || 0;
+        toast.success(data.message || t('quote.messages.imported', { count }), { id: toastId });
+        
+        const currentPage = catalogs?.pagination?.page || 1;
+        const currentPageSize = catalogs?.pagination?.pageSize || 10;
+        await fetchCatalogs(undefined, undefined, { page: currentPage, pageSize: currentPageSize });
+      } else {
+        // Validation error response (400/409) - Show in modal
+        const errorMessage = data.message || t('catalog.import.error.general');
+        const details = data.details && Array.isArray(data.details) ? data.details : [];
+        
+        // Dismiss the loading toast before showing the modal
+        toast.dismiss(toastId);
+        
+        setErrorModal({
+          isOpen: true,
+          title: t('catalog.import.error.title'),
+          message: errorMessage,
+          details: details
+        });
+      }
+    } catch (err: any) {
+      console.error('Import CSV error:', err);
+      const errorMessage = err instanceof Error ? err.message : t('catalog.import.error.general');
+      toast.dismiss(toastId);
+
+      setErrorModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: errorMessage,
+        details: []
+      });
     } finally {
       setImportLoading(false);
     }
@@ -415,6 +570,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           data={catalogs}
           loading={loading}
           onDelete={handleDeleteCatalog}
+          onBulkDelete={handleBulkDelete}
           onCreateCatalog={handleCreateCatalog}
           onUpdateCatalog={handleUpdateCatalog}
           onRefreshCatalogs={fetchCatalogs}

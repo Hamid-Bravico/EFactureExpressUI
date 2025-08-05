@@ -31,6 +31,7 @@ interface CatalogListProps {
   data: CatalogListResponse | null;
   loading: boolean;
   onDelete: (id: number) => void;
+  onBulkDelete: (ids: number[]) => Promise<void>;
   onSubmit: (id: number) => void;
   onCreateCatalog: (catalog: NewCatalog) => Promise<void>;
   onUpdateCatalog: (catalog: NewCatalog) => Promise<void>;
@@ -48,6 +49,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
   data,
   loading,
   onDelete,
+  onBulkDelete,
   onCreateCatalog,
   onUpdateCatalog,
   token,
@@ -195,6 +197,48 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
     }
   }, [onDelete, t]);
 
+  const handleBulkDelete = useCallback(async () => {
+    if (!data?.items) return;
+    // Allow bulk delete for catalogs that can be deleted based on permissions
+    const deleteIds = Array.from(selectedCatalogs).filter(id => {
+      const catalog = data.items.find(c => c.id === id);
+      return catalog && canSelectCatalogForBulkOperation();
+    });
+    if (deleteIds.length === 0) return;
+    setShowConfirmDialog({
+      type: 'delete',
+      count: deleteIds.length
+    });
+  }, [selectedCatalogs, data?.items]);
+
+  const confirmBulkAction = useCallback(async () => {
+    if (!showConfirmDialog || !data?.items) return;
+
+    setShowConfirmDialog(null);
+
+    try {
+      if (showConfirmDialog.type === 'delete') {
+        // Delete catalogs that can be deleted based on permissions
+        const deleteIds = Array.from(selectedCatalogs).filter(id => {
+          const catalog = data.items.find(c => c.id === id);
+          return catalog && canSelectCatalogForBulkOperation();
+        });
+        
+        if (onBulkDelete && deleteIds.length > 0) {
+          await onBulkDelete(deleteIds);
+        }
+      }
+      setSelectedCatalogs(new Set());
+    } catch (error) {
+      toast.error(
+        t('errors.bulkActionFailed', { 
+          action: t('common.delete'),
+          error: error instanceof Error ? error.message : t('errors.unknown')
+        })
+      );
+    }
+  }, [showConfirmDialog, selectedCatalogs, data?.items, onBulkDelete, t]);
+
   // Handle page size change
   const handlePageSizeChange = useCallback((newPageSize: number) => {
     setPageSize(newPageSize);
@@ -312,40 +356,54 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
             </div>
             <h2 className="text-xl font-semibold text-gray-900">{t('catalog.filters.title')}</h2>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {showFilters ? t('catalog.filters.hide') : t('catalog.filters.show')}
-              <svg 
-                className={`w-4 h-4 ml-1.5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+                      <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={applyFiltersAndSort}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 hover:border-blue-700 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              {t('catalog.filters.apply')}
-            </button>
-            <button
-              onClick={resetFilters}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              {t('catalog.filters.reset')}
-            </button>
-          </div>
+                {showFilters ? t('catalog.filters.hide') : t('catalog.filters.show')}
+                <svg 
+                  className={`w-4 h-4 ml-1.5 transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={applyFiltersAndSort}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 hover:border-blue-700 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {t('catalog.filters.apply')}
+              </button>
+              <button
+                onClick={resetFilters}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {t('catalog.filters.reset')}
+              </button>
+              {selectedCatalogs.size > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={disabled}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
+                    disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {t('catalog.bulk.delete')}
+                </button>
+              )}
+            </div>
         </div>
 
         {showFilters && (
@@ -534,20 +592,20 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
                            {catalog.codeArticle || '-'}
                          </div>
                        </td>
-                       <td className="px-4 py-2 whitespace-nowrap">
+                       <td className="px-4 py-2">
                          <div className="text-sm text-gray-700 flex items-center">
-                           <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <svg className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                            </svg>
-                           {catalog.name}
+                           <span className="truncate max-w-32" title={catalog.name}>{catalog.name}</span>
                          </div>
                        </td>
-                       <td className="px-4 py-2 whitespace-nowrap">
+                       <td className="px-4 py-2">
                          <div className="text-sm text-gray-700 flex items-center">
-                           <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <svg className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                            </svg>
-                           {catalog.description || '-'}
+                           <span className="truncate max-w-32" title={catalog.description || '-'}>{catalog.description || '-'}</span>
                          </div>
                        </td>
                        <td className="px-4 py-2 whitespace-nowrap text-right">
@@ -786,14 +844,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
                 {t('common.cancel')}
               </button>
               <button
-                onClick={() => {
-                  if (showConfirmDialog?.type === 'delete') {
-                    onDelete(selectedCatalogs.size);
-                  } else {
-                    //onSubmit(selectedCatalogs.size);
-                  }
-                  setShowConfirmDialog(null);
-                }}
+                onClick={confirmBulkAction}
                 className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 ${
                   showConfirmDialog.type === 'submit'
                     ? 'bg-green-600 hover:bg-green-700'

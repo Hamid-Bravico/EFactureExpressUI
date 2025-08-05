@@ -1070,13 +1070,13 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-sm text-gray-700">
-                  {t('common.showing')} <span className="font-medium">{((data.pagination.page - 1) * data.pagination.pageSize) + 1}</span> {t('common.to')} <span className="font-medium">{Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalItems)}</span> {t('common.of')} <span className="font-medium">{data.pagination.totalItems}</span> {t('common.results')}
+                  {t('common.pagination.showing')} <span className="font-medium">{((data.pagination.page - 1) * data.pagination.pageSize) + 1}</span> {t('common.pagination.to')} <span className="font-medium">{Math.min(data.pagination.page * data.pagination.pageSize, data.pagination.totalItems)}</span> {t('common.pagination.of')} <span className="font-medium">{data.pagination.totalItems}</span> {t('common.pagination.results')}
                 </p>
               </div>
               
               {/* Page Size Selector */}
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-700">{t('common.show')}:</label>
+                <label className="text-sm text-gray-700">{t('common.pagination.show')}:</label>
                 <select
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
@@ -1087,7 +1087,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
-                <span className="text-sm text-gray-700">{t('common.perPage')}</span>
+                <span className="text-sm text-gray-700">{t('common.pagination.perPage')}</span>
               </div>
             </div>
             
