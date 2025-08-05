@@ -219,6 +219,15 @@
       "status": "Statut",
       "taxRate": "Taux de TVA (%)",
       "selectCustomer": "Sélectionner un client",
+      "addFromCatalog": "Ajouter depuis le catalogue",
+      "catalogModal": {
+        "title": "Ajouter depuis le catalogue",
+        "search": "Rechercher...",
+        "loading": "Chargement...",
+        "noItems": "Aucun article trouvé dans le catalogue.",
+        "cancel": "Annuler",
+        "add": "Ajouter"
+      },
       "errors": {
         "invoiceNumberRequired": "Le numéro de facture est requis",
         "dateRequired": "La date est requise",
@@ -424,6 +433,15 @@
       "privateNotes": "Notes privées",
       "termsAndConditionsPlaceholder": "Saisissez les conditions de paiement, les délais du projet ou autres conditions de l'offre...",
       "privateNotesPlaceholder": "Ajoutez des rappels privés ou commentaires (non visibles sur le PDF client)...",
+      "addFromCatalog": "Ajouter depuis le catalogue",
+      "catalogModal": {
+        "title": "Ajouter depuis le catalogue",
+        "search": "Rechercher...",
+        "loading": "Chargement...",
+        "noItems": "Aucun article trouvé dans le catalogue.",
+        "cancel": "Annuler",
+        "add": "Ajouter"
+      },
       "errors": {
         "dateRequired": "La date est requise",
         "validUntilRequired": "La date d'expiration est requise",

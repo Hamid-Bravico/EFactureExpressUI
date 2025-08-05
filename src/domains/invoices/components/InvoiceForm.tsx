@@ -416,7 +416,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
-                  Ajouter depuis le catalogue
+                  {t('invoice.form.addFromCatalog')}
                 </button>
               </div>
             </div>
@@ -568,16 +568,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h2 className="text-lg font-bold mb-4">Ajouter depuis le catalogue</h2>
+            <h2 className="text-lg font-bold mb-4">{t('invoice.form.catalogModal.title')}</h2>
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder={t('invoice.form.catalogModal.search')}
               value={catalogSearch}
               onChange={e => setCatalogSearch(e.target.value)}
               className="mb-4 px-3 py-2 border rounded w-full"
             />
             {catalogLoading ? (
-              <div className="flex-1 flex items-center justify-center">Chargement...</div>
+              <div className="flex-1 flex items-center justify-center">{t('invoice.form.catalogModal.loading')}</div>
             ) : (
               <div className="flex-1 overflow-y-auto mb-4 border rounded p-2">
                 {(() => {
@@ -586,7 +586,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                     (item.Description || '').toLowerCase().includes(catalogSearch.toLowerCase())
                   );
                   if (filtered.length === 0) {
-                    return <div className="text-center text-gray-500 py-8">Aucun article trouvé dans le catalogue.</div>;
+                    return <div className="text-center text-gray-500 py-8">{t('invoice.form.catalogModal.noItems')}</div>;
                   }
                   return filtered.map(item => (
                     <label key={item.id} className="flex items-center gap-3 py-2 border-b last:border-b-0 cursor-pointer">
@@ -620,13 +620,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                 className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
                 onClick={closeCatalogModal}
                 type="button"
-              >Annuler</button>
+              >{t('invoice.form.catalogModal.cancel')}</button>
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 onClick={addCatalogLines}
                 type="button"
                 disabled={!Object.values(catalogSelected).some(Boolean)}
-              >Ajouter</button>
+              >{t('invoice.form.catalogModal.add')}</button>
             </div>
           </div>
         </div>

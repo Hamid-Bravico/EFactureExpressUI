@@ -219,6 +219,15 @@
       "status": "Status",
       "taxRate": "Tax Rate (%)",
       "selectCustomer": "Select Customer",
+      "addFromCatalog": "Add from Catalog",
+      "catalogModal": {
+        "title": "Add from Catalog",
+        "search": "Search...",
+        "loading": "Loading...",
+        "noItems": "No items found in catalog.",
+        "cancel": "Cancel",
+        "add": "Add"
+      },
       "errors": {
         "invoiceNumberRequired": "Invoice number is required",
         "dateRequired": "Date is required",
@@ -424,6 +433,15 @@
       "privateNotes": "Private Notes",
       "termsAndConditionsPlaceholder": "Enter payment terms, project timelines, or other conditions of the offer...",
       "privateNotesPlaceholder": "Add private reminders or comments (not visible on client PDF)...",
+      "addFromCatalog": "Add from Catalog",
+      "catalogModal": {
+        "title": "Add from Catalog",
+        "search": "Search...",
+        "loading": "Loading...",
+        "noItems": "No items found in catalog.",
+        "cancel": "Cancel",
+        "add": "Add"
+      },
       "errors": {
         "dateRequired": "Date is required",
         "validUntilRequired": "Expiry date is required",
