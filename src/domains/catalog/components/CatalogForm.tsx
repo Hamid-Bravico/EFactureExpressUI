@@ -33,7 +33,7 @@ const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, d
   const [name, setName] = useState(catalog?.Name || "");
   const [description, setDescription] = useState(catalog?.Description || "");
   const [unitPrice, setUnitPrice] = useState(catalog?.UnitPrice || 0);
-  const [defaultTaxRate, setTaxRate] = useState(catalog?.DefaultTaxRate || 0);
+  const [defaultTaxRate, setTaxRate] = useState(catalog?.DefaultTaxRate || 20);
   const [type, setType] = useState(catalog?.Type ?? CATALOG_TYPE.PRODUCT);
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -47,7 +47,7 @@ const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, d
       setName(catalog.Name || "");
       setDescription(catalog.Description || "");
       setUnitPrice(catalog.UnitPrice || 0);
-      setTaxRate(catalog.DefaultTaxRate || 0);
+      setTaxRate(catalog.DefaultTaxRate || 20);
     }
   }, [catalog]);
 
@@ -269,15 +269,11 @@ const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, d
               </div>
               <div className="flex-1">
                 <label className="block text-sm text-gray-600 mb-1">{t('catalog.form.defaultTaxRate')}</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
+                <select
                   value={defaultTaxRate}
                   onChange={(e) => {
                     const value = parseFloat(e.target.value) || 0;
-                    setTaxRate(Math.max(0, Math.min(100, value)));
+                    setTaxRate(value);
                     if (errors.defaultTaxRate) {
                       setErrors(prev => ({ ...prev, defaultTaxRate: undefined }));
                     }
@@ -287,7 +283,13 @@ const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, d
                     errors.defaultTaxRate || getCatalogErrorMessage('defaultTaxRate') ? 'border-red-500' : 'border-gray-300'
                   }`}
                   disabled={disabled || isSubmitting}
-                />
+                >
+                  <option value={20}>20%</option>
+                  <option value={14}>14%</option>
+                  <option value={10}>10%</option>
+                  <option value={7}>7%</option>
+                  <option value={0}>0%</option>
+                </select>
                 {(errors.defaultTaxRate || getCatalogErrorMessage('defaultTaxRate')) && (
                   <div className="text-red-500 text-xs mt-1">
                     {errors.defaultTaxRate || getCatalogErrorMessage('defaultTaxRate')}
