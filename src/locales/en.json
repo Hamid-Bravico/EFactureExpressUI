@@ -279,7 +279,8 @@
       "customer": "Customer",
       "amount": "Amount",
       "actions": "Actions",
-      "status": "Status"
+      "status": "Status",
+      "statusUpdateSuccess": "Invoice status updated successfully"
     },
     "actions": {
       "edit": "Edit Invoice",
@@ -291,7 +292,9 @@
       "downloadJson": "Download JSON",
       "refreshStatus": "Refresh Status",
       "viewRejectionReason": "View Rejection Reason",
-      "copyDgiSubmissionId": "Copy DGI Submission ID"
+      "copyDgiSubmissionId": "Copy DGI Submission ID",
+      "signing": "Signing...",
+      "downloading": "Downloading..."
     },
     "details": {
       "title": "Invoice Details",
@@ -352,6 +355,12 @@
         "updateFailed": "Cannot update invoice: Missing invoice ID",
         "fetchDetailsFailed": "Failed to fetch invoice details",
         "bulkActionFailed": "Failed to {{action}} invoices: {{error}}"
+    },
+    "errors": {
+        "helperAppRequired": "Web Crypto API not supported. Please install the EFacture Express Signing Helper.",
+        "noCertificate": "No digital certificate found. A valid certificate must be installed on your computer to sign invoices. Please visit our Help Section for instructions.",
+        "signatureCreationFailed": "Could not create the signature. The selected certificate may be expired or invalid. Please select another certificate or contact support.",
+        "signatureVerificationFailed": "The server could not verify your signature. Please refresh the page to ensure you are signing the latest version of the invoice and try again. If the problem persists, please contact support."
     },
     "import": {
         "title": "Import Invoices",

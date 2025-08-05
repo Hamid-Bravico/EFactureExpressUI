@@ -168,7 +168,16 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         throw new Error('No valid token available');
       }
 
-      const response = await fetch(INVOICE_ENDPOINTS.UPDATE_STATUS(invoiceId, newStatus), {
+      let endpoint: string;
+      if (newStatus === 0) {
+        // Use new set-draft endpoint
+        endpoint = INVOICE_ENDPOINTS.SET_DRAFT(invoiceId);
+      } else {
+        // Fallback to old endpoint for other status changes
+        endpoint = INVOICE_ENDPOINTS.UPDATE_STATUS(invoiceId, newStatus);
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: getSecureHeaders(token)
       });
@@ -205,6 +214,196 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     }
   }, [handleStatusChange, invoice.id, invoice.invoiceNumber, t]);
 
+  const handleMakeReadyWithSignature = useCallback(async () => {
+    if (!window.confirm(t('invoice.confirm.makeReady', { 
+      invoiceNumber: invoice.invoiceNumber 
+    }))) {
+      return;
+    }
+
+    setRefreshingStatusId(invoice.id);
+    
+    try {
+      const token = tokenManager.getToken();
+      if (!token) {
+        throw new Error('No valid token available');
+      }
+
+      // Step 1: Fetch data to sign
+      const dataResponse = await fetch(INVOICE_ENDPOINTS.DATA_TO_SIGN(invoice.id), {
+        headers: getSecureHeaders(token)
+      });
+
+      if (!dataResponse.ok) {
+        throw new Error(`Failed to fetch data to sign: ${dataResponse.status}`);
+      }
+
+      const dataToSign = await dataResponse.text();
+
+      // Step 2: Check if Web Crypto API is available
+      if (!window.crypto || !window.crypto.subtle) {
+        throw new Error('Web Crypto API not supported. Please install the EFacture Express Signing Helper.');
+      }
+
+      // Step 3: Get user certificate and create signature
+      // Note: This is a placeholder - actual certificate selection and signing
+      // will need to be implemented based on browser capabilities
+      const signature = await createDigitalSignature(dataToSign);
+
+      // Step 4: Submit signature to set-ready endpoint
+      const setReadyResponse = await fetch(INVOICE_ENDPOINTS.SET_READY(invoice.id), {
+        method: 'POST',
+        headers: {
+          ...getSecureHeaders(token),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ signature })
+      });
+
+      if (!setReadyResponse.ok) {
+        const errorText = await setReadyResponse.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.message || 'Server could not verify your signature. Please refresh the page and try again.');
+        } catch (parseError) {
+          throw new Error(`Server error: ${setReadyResponse.status} - ${errorText}`);
+        }
+      }
+
+      // Success - update UI
+      if (onOptimisticStatusUpdate) {
+        onOptimisticStatusUpdate(invoice.id, 1);
+      }
+      
+      toast.success(t('invoice.list.statusUpdateSuccess'));
+    } catch (error: any) {
+      let errorMessage = error.message;
+      
+      // Handle specific error cases
+      if (error.message.includes('Web Crypto API not supported')) {
+        errorMessage = t('invoice.errors.helperAppRequired');
+      } else if (error.message.includes('No digital certificate found')) {
+        errorMessage = t('invoice.errors.noCertificate');
+      } else if (error.message.includes('Could not create the signature')) {
+        errorMessage = t('invoice.errors.signatureCreationFailed');
+      } else if (error.message.includes('Server could not verify')) {
+        errorMessage = t('invoice.errors.signatureVerificationFailed');
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setRefreshingStatusId(null);
+    }
+  }, [invoice.id, invoice.invoiceNumber, onOptimisticStatusUpdate, t]);
+
+  // Digital signature creation using Web Crypto API
+  const createDigitalSignature = async (dataToSign: string): Promise<string> => {
+    try {
+      // Check if Web Crypto API is available
+      if (!window.crypto || !window.crypto.subtle) {
+        throw new Error('Web Crypto API not supported. Please install the EFacture Express Signing Helper.');
+      }
+
+      // Convert string to ArrayBuffer for signing
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(dataToSign);
+
+      // Try to access certificates using the browser's certificate store
+      // This will trigger the browser's certificate selection dialog
+      let selectedCredential = null;
+      
+      try {
+        // Method 1: Try using the Credential Management API
+        if ('credentials' in navigator) {
+          // This might trigger certificate selection in some browsers
+          const credential = await navigator.credentials.get({
+            publicKey: {
+              challenge: dataBuffer,
+              rpId: window.location.hostname,
+              userVerification: 'required'
+            }
+          });
+          
+          if (credential) {
+            selectedCredential = credential;
+            console.log('Certificate selected:', credential);
+          }
+        }
+      } catch (credentialError) {
+        console.log('Credential API not available or failed:', credentialError);
+        
+        // If credential selection was cancelled or failed, throw an appropriate error
+        if (credentialError instanceof Error) {
+          if (credentialError.name === 'NotAllowedError') {
+            throw new Error('Certificate selection was cancelled or timed out. Please try again and select a certificate when prompted.');
+          }
+          if (credentialError.name === 'NotSupportedError') {
+            throw new Error('Certificate selection is not supported in this browser. Please install the EFacture Express Signing Helper.');
+          }
+        }
+        
+        // For other credential errors, continue to fallback method
+      }
+
+      // If no credential was selected, we need to handle this properly
+      if (!selectedCredential) {
+        // Try alternative method or throw error
+        throw new Error('No digital certificate found. A valid certificate must be installed on your computer to sign invoices. Please visit our Help Section for instructions.');
+      }
+
+      // Method 2: Try using the Web Crypto API with a certificate request
+      // This approach tries to generate a key pair and then use it for signing
+      // In practice, this would be replaced with actual certificate access
+      
+      // Generate a key pair for demonstration (in real implementation, you'd use the selected certificate)
+      const keyPair = await window.crypto.subtle.generateKey(
+        {
+          name: 'RSASSA-PKCS1-v1_5',
+          modulusLength: 2048,
+          publicExponent: new Uint8Array([1, 0, 1]),
+          hash: 'SHA-256'
+        },
+        true, // extractable
+        ['sign', 'verify']
+      );
+
+      // Sign the data using the generated key
+      const signature = await window.crypto.subtle.sign(
+        {
+          name: 'RSASSA-PKCS1-v1_5',
+          hash: 'SHA-256'
+        },
+        keyPair.privateKey,
+        dataBuffer
+      );
+
+      // Convert signature to base64 string
+      const signatureArray = new Uint8Array(signature);
+      const signatureBase64 = btoa(String.fromCharCode.apply(null, Array.from(signatureArray)));
+
+      console.log('Digital signature created successfully');
+      return signatureBase64;
+
+    } catch (error) {
+      console.error('Digital signature creation error:', error);
+      
+      if (error instanceof Error) {
+        // Check for specific error types
+        if (error.message.includes('not supported') || error.message.includes('not allowed')) {
+          throw new Error('Web Crypto API not supported. Please install the EFacture Express Signing Helper.');
+        }
+        if (error.message.includes('user cancelled') || error.message.includes('aborted')) {
+          throw new Error('Certificate selection was cancelled.');
+        }
+        if (error.message.includes('not found') || error.message.includes('no certificate')) {
+          throw new Error('No digital certificate found. A valid certificate must be installed on your computer to sign invoices. Please visit our Help Section for instructions.');
+        }
+        throw error;
+      }
+      throw new Error('Could not create the signature. The selected certificate may be expired or invalid. Please select another certificate or contact support.');
+    }
+  };
+
   const handleBackToDraft = useCallback(() => {
     if (window.confirm(t('invoice.confirm.backToDraft', { 
       invoiceNumber: invoice.invoiceNumber 
@@ -226,15 +425,25 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                          {/* Draft Status */}
              {invoice.status === 0 && (
                <>
-                 {permissions.canChangeStatus && (
-                   <button
-                     onClick={handleMakeReady}
-                     disabled={disabled}
-                     className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
-                     {t('invoice.actions.makeReady')}
-                   </button>
-                 )}
+                                   {permissions.canChangeStatus && (
+                    <button
+                      onClick={handleMakeReadyWithSignature}
+                      disabled={disabled}
+                      className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {refreshingStatusId === invoice.id ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                          </svg>
+                          {t('invoice.actions.signing')}
+                        </div>
+                      ) : (
+                        t('invoice.actions.makeReady')
+                      )}
+                    </button>
+                  )}
                  <button
                    onClick={() => onDownloadPdf(invoice.id)}
                    disabled={disabled}

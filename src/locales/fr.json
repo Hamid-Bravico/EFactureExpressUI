@@ -279,7 +279,8 @@
       "customer": "Client",
       "amount": "Montant",
       "actions": "Actions",
-      "status": "Statut"
+      "status": "Statut",
+      "statusUpdateSuccess": "Statut de la facture mis à jour avec succès"
     },
     "actions": {
       "edit": "Modifier la facture",
@@ -291,7 +292,9 @@
       "downloadJson": "Télécharger JSON",
       "refreshStatus": "Actualiser le statut",
       "viewRejectionReason": "Voir la raison du rejet",
-      "copyDgiSubmissionId": "Copier l'ID de soumission DGI"
+      "copyDgiSubmissionId": "Copier l'ID de soumission DGI",
+      "signing": "Signature en cours...",
+      "downloading": "Téléchargement..."
     },
     "details": {
       "title": "Détails de la facture",
@@ -352,6 +355,12 @@
         "updateFailed": "Impossible de mettre à jour la facture : ID manquant",
         "fetchDetailsFailed": "Échec de la récupération des détails de la facture",
         "bulkActionFailed": "Échec de {{action}} des factures : {{error}}"
+    },
+    "errors": {
+        "helperAppRequired": "L'API Web Crypto n'est pas prise en charge. Veuillez installer l'Assistant de signature EFacture Express.",
+        "noCertificate": "Aucun certificat numérique trouvé. Un certificat valide doit être installé sur votre ordinateur pour signer les factures. Veuillez consulter notre section Aide pour les instructions.",
+        "signatureCreationFailed": "Impossible de créer la signature. Le certificat sélectionné peut être expiré ou invalide. Veuillez sélectionner un autre certificat ou contacter le support.",
+        "signatureVerificationFailed": "Le serveur n'a pas pu vérifier votre signature. Veuillez actualiser la page pour vous assurer que vous signez la dernière version de la facture et réessayer. Si le problème persiste, veuillez contacter le support."
     },
     "import": {
         "title": "Importer des factures",
