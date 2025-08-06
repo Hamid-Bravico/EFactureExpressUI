@@ -360,7 +360,10 @@
         "helperAppRequired": "Web Crypto API not supported. Please install the EFacture Express Signing Helper.",
         "noCertificate": "No digital certificate found. A valid certificate must be installed on your computer to sign invoices. Please visit our Help Section for instructions.",
         "signatureCreationFailed": "Could not create the signature. The selected certificate may be expired or invalid. Please select another certificate or contact support.",
-        "signatureVerificationFailed": "The server could not verify your signature. Please refresh the page to ensure you are signing the latest version of the invoice and try again. If the problem persists, please contact support."
+        "signatureVerificationFailed": "The server could not verify your signature. Please refresh the page to ensure you are signing the latest version of the invoice and try again. If the problem persists, please contact support.",
+        "helperAppNotRunning": "Digital signing helper app is not running",
+        "helperAppRunning": "Digital signing helper app is running",
+        "checkingHelperApp": "Checking digital signing helper app..."
     },
     "import": {
         "title": "Import Invoices",
