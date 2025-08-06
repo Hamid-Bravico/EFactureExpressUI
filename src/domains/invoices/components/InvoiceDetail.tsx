@@ -296,112 +296,49 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     }
   }, [invoice.id, invoice.invoiceNumber, onOptimisticStatusUpdate, t]);
 
-  // Digital signature creation using Web Crypto API
+  // Digital signature creation using Windows helper app via WebSocket
   const createDigitalSignature = async (dataToSign: string): Promise<string> => {
-    try {
-      // Check if Web Crypto API is available
-      if (!window.crypto || !window.crypto.subtle) {
-        throw new Error('Web Crypto API not supported. Please install the EFacture Express Signing Helper.');
-      }
-
-      // Convert string to ArrayBuffer for signing
-      const encoder = new TextEncoder();
-      const dataBuffer = encoder.encode(dataToSign);
-
-      // Try to access certificates using the browser's certificate store
-      // This will trigger the browser's certificate selection dialog
-      let selectedCredential = null;
-      
+    return new Promise((resolve, reject) => {
       try {
-        // Method 1: Try using the Credential Management API
-        if ('credentials' in navigator) {
-          // This might trigger certificate selection in some browsers
-          const credential = await navigator.credentials.get({
-            publicKey: {
-              challenge: dataBuffer,
-              rpId: window.location.hostname,
-              userVerification: 'required'
-            }
-          });
-          
-          if (credential) {
-            selectedCredential = credential;
-            console.log('Certificate selected:', credential);
-          }
-        }
-      } catch (credentialError) {
-        console.log('Credential API not available or failed:', credentialError);
+        const ws = new WebSocket('ws://127.0.0.1:8181');
         
-        // If credential selection was cancelled or failed, throw an appropriate error
-        if (credentialError instanceof Error) {
-          if (credentialError.name === 'NotAllowedError') {
-            throw new Error('Certificate selection was cancelled or timed out. Please try again and select a certificate when prompted.');
-          }
-          if (credentialError.name === 'NotSupportedError') {
-            throw new Error('Certificate selection is not supported in this browser. Please install the EFacture Express Signing Helper.');
-          }
-        }
+        ws.onopen = () => {
+          console.log('Connected to signing helper app');
+          ws.send(dataToSign);
+        };
         
-        // For other credential errors, continue to fallback method
+        ws.onmessage = (event) => {
+          const signature = event.data;
+          console.log('Digital signature received from helper app',signature);
+          ws.close();
+          resolve(signature);
+        };
+        
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          ws.close();
+          reject(new Error('Failed to connect to signing helper app. Please ensure the EFacture Express Signing Helper is running.'));
+        };
+        
+        ws.onclose = (event) => {
+          if (!event.wasClean) {
+            reject(new Error('Connection to signing helper app was closed unexpectedly. Please ensure the helper app is running and try again.'));
+          }
+        };
+        
+        // Timeout after 30 seconds
+        setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close();
+            reject(new Error('Signing operation timed out. Please try again.'));
+          }
+        }, 30000);
+        
+      } catch (error) {
+        console.error('Digital signature creation error:', error);
+        reject(new Error('Could not create the signature. Please ensure the EFacture Express Signing Helper is running.'));
       }
-
-      // If no credential was selected, we need to handle this properly
-      if (!selectedCredential) {
-        // Try alternative method or throw error
-        throw new Error('No digital certificate found. A valid certificate must be installed on your computer to sign invoices. Please visit our Help Section for instructions.');
-      }
-
-      // Method 2: Try using the Web Crypto API with a certificate request
-      // This approach tries to generate a key pair and then use it for signing
-      // In practice, this would be replaced with actual certificate access
-      
-      // Generate a key pair for demonstration (in real implementation, you'd use the selected certificate)
-      const keyPair = await window.crypto.subtle.generateKey(
-        {
-          name: 'RSASSA-PKCS1-v1_5',
-          modulusLength: 2048,
-          publicExponent: new Uint8Array([1, 0, 1]),
-          hash: 'SHA-256'
-        },
-        true, // extractable
-        ['sign', 'verify']
-      );
-
-      // Sign the data using the generated key
-      const signature = await window.crypto.subtle.sign(
-        {
-          name: 'RSASSA-PKCS1-v1_5',
-          hash: 'SHA-256'
-        },
-        keyPair.privateKey,
-        dataBuffer
-      );
-
-      // Convert signature to base64 string
-      const signatureArray = new Uint8Array(signature);
-      const signatureBase64 = btoa(String.fromCharCode.apply(null, Array.from(signatureArray)));
-
-      console.log('Digital signature created successfully');
-      return signatureBase64;
-
-    } catch (error) {
-      console.error('Digital signature creation error:', error);
-      
-      if (error instanceof Error) {
-        // Check for specific error types
-        if (error.message.includes('not supported') || error.message.includes('not allowed')) {
-          throw new Error('Web Crypto API not supported. Please install the EFacture Express Signing Helper.');
-        }
-        if (error.message.includes('user cancelled') || error.message.includes('aborted')) {
-          throw new Error('Certificate selection was cancelled.');
-        }
-        if (error.message.includes('not found') || error.message.includes('no certificate')) {
-          throw new Error('No digital certificate found. A valid certificate must be installed on your computer to sign invoices. Please visit our Help Section for instructions.');
-        }
-        throw error;
-      }
-      throw new Error('Could not create the signature. The selected certificate may be expired or invalid. Please select another certificate or contact support.');
-    }
+    });
   };
 
   const handleBackToDraft = useCallback(() => {
