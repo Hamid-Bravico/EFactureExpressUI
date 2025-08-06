@@ -363,7 +363,11 @@
         "signatureVerificationFailed": "The server could not verify your signature. Please refresh the page to ensure you are signing the latest version of the invoice and try again. If the problem persists, please contact support.",
         "helperAppNotRunning": "Digital signing helper app is not running",
         "helperAppRunning": "Digital signing helper app is running",
-        "checkingHelperApp": "Checking digital signing helper app..."
+        "checkingHelperApp": "Checking digital signing helper app...",
+        "connectionFailed": "Failed to connect to signing helper app. Please ensure the digital signing helper app is running.",
+        "connectionClosed": "Connection to signing helper app was closed unexpectedly. Please ensure the helper app is running and try again.",
+        "signingTimeout": "Signing operation timed out. Please try again.",
+        "signatureCreationError": "Could not create the signature. Please ensure the digital signing helper app is running."
     },
     "import": {
         "title": "Import Invoices",

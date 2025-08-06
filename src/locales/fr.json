@@ -363,7 +363,11 @@
         "signatureVerificationFailed": "Le serveur n'a pas pu vérifier votre signature. Veuillez actualiser la page pour vous assurer que vous signez la dernière version de la facture et réessayer. Si le problème persiste, veuillez contacter le support.",
         "helperAppNotRunning": "L'application d'aide à la signature numérique n'est pas en cours d'exécution",
         "helperAppRunning": "L'application d'aide à la signature numérique est en cours d'exécution",
-        "checkingHelperApp": "Vérification de l'application d'aide à la signature numérique..."
+        "checkingHelperApp": "Vérification de l'application d'aide à la signature numérique...",
+        "connectionFailed": "Échec de la connexion à l'application d'aide à la signature. Veuillez vous assurer que l'application d'aide à la signature numérique est en cours d'exécution.",
+        "connectionClosed": "La connexion à l'application d'aide à la signature a été fermée de manière inattendue. Veuillez vous assurer que l'application d'aide est en cours d'exécution et réessayer.",
+        "signingTimeout": "L'opération de signature a expiré. Veuillez réessayer.",
+        "signatureCreationError": "Impossible de créer la signature. Veuillez vous assurer que l'application d'aide à la signature numérique est en cours d'exécution."
     },
     "import": {
         "title": "Importer des factures",

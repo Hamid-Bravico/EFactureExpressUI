@@ -318,12 +318,12 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           ws.close();
-          reject(new Error('Failed to connect to signing helper app. Please ensure the EFacture Express Signing Helper is running.'));
+          reject(new Error(t('invoice.errors.connectionFailed')));
         };
         
         ws.onclose = (event) => {
           if (!event.wasClean) {
-            reject(new Error('Connection to signing helper app was closed unexpectedly. Please ensure the helper app is running and try again.'));
+            reject(new Error(t('invoice.errors.connectionClosed')));
           }
         };
         
@@ -331,13 +331,13 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();
-            reject(new Error('Signing operation timed out. Please try again.'));
+            reject(new Error(t('invoice.errors.signingTimeout')));
           }
         }, 30000);
         
       } catch (error) {
         console.error('Digital signature creation error:', error);
-        reject(new Error('Could not create the signature. Please ensure the EFacture Express Signing Helper is running.'));
+        reject(new Error(t('invoice.errors.signatureCreationError')));
       }
     });
   };
