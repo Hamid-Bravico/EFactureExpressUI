@@ -4,7 +4,8 @@ import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
-import { getSecureHeaders } from '../../../config/api';
+import { secureApiClient } from '../../../config/api';
+import { API_BASE_URL } from '../../../config/constants';
 import { INVOICE_ENDPOINTS } from '../api/invoice.endpoints';
 import { 
   getInvoiceActionPermissions, 
@@ -68,9 +69,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     try {
       const token = tokenManager.getToken();
       if (!token) throw new Error('No token');
-      const res = await fetch(INVOICE_ENDPOINTS.JSON(invoiceId), {
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.get(INVOICE_ENDPOINTS.JSON(invoiceId));
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       if (data.url) {
@@ -95,9 +94,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         throw new Error('No token');
       }
       
-      const res = await fetch(INVOICE_ENDPOINTS.DGI_STATUS(invoiceId), {
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.get(INVOICE_ENDPOINTS.DGI_STATUS(invoiceId));
       
       if (!res.ok) {
         throw new Error(`Failed to fetch DGI status: ${res.status}`);
@@ -178,10 +175,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         endpoint = INVOICE_ENDPOINTS.UPDATE_STATUS(invoiceId, newStatus);
       }
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: getSecureHeaders(token)
-      });
+      const response = await secureApiClient.post(endpoint);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -231,9 +225,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       }
 
       // Step 1: Fetch data to sign
-      const dataResponse = await fetch(INVOICE_ENDPOINTS.DATA_TO_SIGN(invoice.id), {
-        headers: getSecureHeaders(token)
-      });
+      const dataResponse = await secureApiClient.get(INVOICE_ENDPOINTS.DATA_TO_SIGN(invoice.id));
 
       if (!dataResponse.ok) {
         throw new Error(`Failed to fetch data to sign: ${dataResponse.status}`);
@@ -252,14 +244,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       const signature = await createDigitalSignature(dataToSign);
 
       // Step 4: Submit signature to set-ready endpoint
-      const setReadyResponse = await fetch(INVOICE_ENDPOINTS.SET_READY(invoice.id), {
-        method: 'POST',
-        headers: {
-          ...getSecureHeaders(token),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ signature })
-      });
+      const setReadyResponse = await secureApiClient.post(INVOICE_ENDPOINTS.SET_READY(invoice.id), { signature });
 
       if (!setReadyResponse.ok) {
         const errorText = await setReadyResponse.text();

@@ -12,7 +12,8 @@ import LoginPage from "./domains/auth/components/LoginPage";
 import RegisterPage from "./domains/auth/components/RegisterPage";
 import { ApiResponse, LoginData } from "./domains/auth/types/auth.types";
 import Users from "./domains/users/components/Users";
-import { API_BASE_URL, getSecureJsonHeaders, getSecureHeaders, getJsonHeaders } from "./config/api";
+import { getSecureJsonHeaders, getSecureHeaders, getJsonHeaders, secureApiClient } from "./config/api";
+import { API_BASE_URL } from "./config/constants";
 import { AUTH_ENDPOINTS } from "./domains/auth/api/auth.endpoints";
 import { INVOICE_ENDPOINTS } from "./domains/invoices/api/invoice.endpoints";
 import { APP_CONFIG } from "./config/app";
@@ -33,15 +34,8 @@ function App() {
   // ─── AUTH STATE ───────────────────────────────────────────────────────────
   const [token, setToken] = useState<string | null>(() => {
     const storedToken = tokenManager.getToken();
-    if (storedToken) {
-      const decoded = decodeJWT(storedToken);
-      if (!decoded || (decoded.exp && decoded.exp * 1000 < Date.now())) {
-        tokenManager.clearAuthData();
-        return null;
-      }
-      return storedToken;
-    }
-    return null;
+    // Do not clear expired token here; allow the refresh flow to handle it
+    return storedToken || null;
   });
 
   const [company, setCompany] = useState<Company | null>(() => {
@@ -244,14 +238,7 @@ function App() {
       }
       
       const url = `${API_BASE_URL}/dashboard/stats${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await fetch(url, {
-        headers: getSecureHeaders(token),
-      });
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        return;
-      }
+      const response = await secureApiClient.get(url);
       
       const responseData: ApiResponse<any> = await response.json().catch(() => ({ succeeded: false, message: 'Failed to parse response' }));
       if (!response.ok || !responseData?.succeeded) {
@@ -260,17 +247,17 @@ function App() {
       }
       setDashboardStats(responseData.data || null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setDashboardLoading(false);
     }
-  }, [token, t]);
+  }, [token]);
 
   // ─── HANDLE DASHBOARD FILTERS ─────────────────────────────────────────────
   const handleDashboardFiltersChange = useCallback((filters: DashboardFilters) => {
     setDashboardFilters(filters);
     fetchDashboardStats(filters);
-  }, [fetchDashboardStats]);
+  }, []);
 
   // ─── FETCH LIST ────────────────────────────────────────────────────────────
   const fetchInvoices = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
@@ -301,15 +288,7 @@ function App() {
       }
       
       const url = `${INVOICE_ENDPOINTS.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await fetch(url, {
-        headers: getSecureHeaders(token),
-      });
-      
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        return;
-      }
+      const response = await secureApiClient.get(url);
       
       const responseData: ApiResponse<any> = await response.json().catch(() => ({ succeeded: false, message: 'Failed to parse response' }));
       if (!response.ok || !responseData?.succeeded) {
@@ -322,24 +301,29 @@ function App() {
       // Keep the old invoices state for backward compatibility
       setInvoices((data && data.invoices) ? data.invoices : []);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  }, [token, t]);
+  }, [token]);
 
+  // Track if initial data has been loaded to prevent infinite loops
+  const initialLoadRef = useRef(false);
+  
   useEffect(() => {
-    if (token) {
+    if (token && !initialLoadRef.current) {
+      initialLoadRef.current = true;
       fetchInvoices();
       fetchDashboardStats();
     }
-  }, [token, fetchInvoices, fetchDashboardStats]);
+  }, [token]);
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
   const handleLogin = useCallback(async (email: string, password: string) => {
     const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
       method: "POST",
       headers: getJsonHeaders(), // Using regular headers for login (no CSRF required)
+      credentials: 'include',
       body: JSON.stringify({ email: email.trim(), password: password.trim() }),
     });
 
@@ -372,8 +356,8 @@ function App() {
       throw new Error(t('errors.invalidUserId'));
     }
 
-    // Store token and refresh token if available
-    tokenManager.setToken(data.token, data.refreshToken);
+    // Store access token; refresh token is handled by HttpOnly cookie
+    tokenManager.setToken(data.token);
     tokenManager.setUserData(decoded.role, decoded.userId, data.company);
     if (data.company) {
       setCompany(data.company);
@@ -387,6 +371,7 @@ function App() {
       await fetch(AUTH_ENDPOINTS.LOGOUT, {
         method: 'POST',
         headers: getSecureHeaders(token),
+        credentials: 'include',
       });
     } catch (error) {
       console.error('Logout request failed:', error);
@@ -429,19 +414,7 @@ function App() {
       
       optimisticallyAddInvoice(tempInvoice);
 
-      const response = await fetch(INVOICE_ENDPOINTS.CREATE, {
-        method: "POST",
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(newInvoice),
-      });
-
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        // Revert optimistic update
-        optimisticallyRemoveInvoice(tempInvoice.id);
-        return;
-      }
+      const response = await secureApiClient.post(INVOICE_ENDPOINTS.CREATE, newInvoice);
       if (!response.ok) {
         let errorData;
         try {
@@ -518,19 +491,7 @@ function App() {
       
       optimisticallyUpdateInvoice(updatedInvoice);
 
-      const response = await fetch(INVOICE_ENDPOINTS.UPDATE(invoice.id), {
-        method: "PUT",
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(invoice),
-      });
-
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        // Revert optimistic update
-        optimisticallyUpdateInvoice(originalInvoice);
-        return;
-      }
+      const response = await secureApiClient.put(INVOICE_ENDPOINTS.UPDATE(invoice.id), invoice);
 
       if (!response.ok) {
         let errorData;
@@ -610,20 +571,7 @@ function App() {
         });
       }
 
-      const response = await fetch(INVOICE_ENDPOINTS.DELETE(id), {
-        method: "DELETE",
-        headers: getSecureHeaders(token),
-      });
-
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        // Revert optimistic updates
-        optimisticallyAddInvoice(originalInvoice);
-        setInvoiceListData(originalData);
-        toast.error(t('errors.sessionExpired'), { id: toastId });
-        return;
-      }
+      const response = await secureApiClient.delete(INVOICE_ENDPOINTS.DELETE(id));
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
@@ -641,9 +589,7 @@ function App() {
         queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
         
         try {
-          const response = await fetch(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedData = await response.json();
@@ -664,16 +610,7 @@ function App() {
   const handleDownloadPdf = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.downloadingPDF'));
     try {
-      const response = await fetch(INVOICE_ENDPOINTS.PDF(id), {
-        headers: getSecureHeaders(token),
-      });
-
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        toast.error(t('errors.sessionExpired'), { id: toastId });
-        return;
-      }
+      const response = await secureApiClient.get(INVOICE_ENDPOINTS.PDF(id));
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: t('errors.failedToDownloadPDF') }));
@@ -702,19 +639,7 @@ function App() {
       // Optimistically update status to "Awaiting Clearance"
       optimisticallyUpdateInvoiceStatus(id, 2);
 
-      const response = await fetch(INVOICE_ENDPOINTS.SUBMIT(id), {
-        method: "POST",
-        headers: getSecureHeaders(token),
-      });
-
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        // Revert optimistic update
-        optimisticallyUpdateInvoice(originalInvoice);
-        toast.error(t('errors.sessionExpired'), { id: toastId });
-        return;
-      }
+      const response = await secureApiClient.post(INVOICE_ENDPOINTS.SUBMIT(id));
 
       if (!response.ok) {
         let errorData;
@@ -758,17 +683,7 @@ function App() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(INVOICE_ENDPOINTS.IMPORT, {
-        method: "POST",
-        headers: getSecureHeaders(token),
-        body: formData,
-      });
-
-      if (response.status === 401) {
-        tokenManager.clearAuthData();
-        setToken(null);
-        return;
-      }
+      const response = await secureApiClient.request(INVOICE_ENDPOINTS.IMPORT, { method: 'POST', body: formData }, true, true);
 
       if (response.status === 500) {
         toast.error(t('errors.unexpectedError'), { id: toastId });
@@ -851,16 +766,7 @@ function App() {
       // Perform all delete operations
       await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch(INVOICE_ENDPOINTS.DELETE(id), {
-            method: "DELETE",
-            headers: getSecureHeaders(token),
-          });
-
-          if (response.status === 401) {
-            tokenManager.clearAuthData();
-            setToken(null);
-            throw new Error('Session expired');
-          }
+          const response = await secureApiClient.delete(INVOICE_ENDPOINTS.DELETE(id));
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
@@ -877,9 +783,7 @@ function App() {
         queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
         
         try {
-          const response = await fetch(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedData = await response.json();
@@ -914,16 +818,7 @@ function App() {
       // Perform all submit operations
       const results = await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch(INVOICE_ENDPOINTS.SUBMIT(id), {
-            method: "POST",
-            headers: getSecureHeaders(token),
-          });
-
-          if (response.status === 401) {
-            tokenManager.clearAuthData();
-            setToken(null);
-            throw new Error('Session expired');
-          }
+          const response = await secureApiClient.post(INVOICE_ENDPOINTS.SUBMIT(id));
 
           if (!response.ok) {
             let errorData;

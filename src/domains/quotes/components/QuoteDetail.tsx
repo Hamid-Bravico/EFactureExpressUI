@@ -4,7 +4,8 @@ import { ApiResponse } from '../../auth/types/auth.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import QuoteStatusBadge from './QuoteStatusBadge';
-import { getSecureJsonHeaders, API_BASE_URL } from '../../../config/api';
+import { secureApiClient } from '../../../config/api';
+import { API_BASE_URL } from '../../../config/constants';
 
 interface QuoteDetailProps {
   quote: Quote;
@@ -66,10 +67,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         throw new Error(`Invalid status: ${newStatus}`);
       }
 
-      const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}/status/${statusCode}`, {
-        method: 'POST',
-        headers: getSecureJsonHeaders(token)
-      });
+      const response = await secureApiClient.post(`${API_BASE_URL}/quotes/${quote.id}/status/${statusCode}`);
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {
@@ -134,10 +132,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         throw new Error('No valid token available');
       }
 
-      const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}/pdf-url`, {
-        method: 'GET',
-        headers: getSecureJsonHeaders(token)
-      });
+      const response = await secureApiClient.get(`${API_BASE_URL}/quotes/${quote.id}/pdf-url`);
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {

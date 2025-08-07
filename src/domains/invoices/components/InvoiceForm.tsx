@@ -4,7 +4,7 @@ import { Customer } from '../../../types/common';
 import { ApiResponse } from '../../auth/types/auth.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { getSecureHeaders } from '../../../config/api';
+import { secureApiClient } from '../../../config/api';
 import { tokenManager } from '../../../utils/tokenManager';
 import { Catalog } from '../../catalog/types/catalog.types';
 
@@ -51,9 +51,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const [catalogSelected, setCatalogSelected] = useState<{ [id: number]: boolean }>({});
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL || '/api'}/customers`, {
-      headers: getSecureHeaders(tokenManager.getToken()),
-    })
+    secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/customers`)
     .then(async res => {
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -144,9 +142,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const openCatalogModal = () => {
     setCatalogModalOpen(true);
     setCatalogLoading(true);
-    fetch(`${process.env.REACT_APP_API_URL || '/api'}/catalog`, {
-      headers: getSecureHeaders(tokenManager.getToken()),
-    })
+    secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/catalog`)
       .then(async res => {
         const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
         if (!res.ok || !responseData?.succeeded) {

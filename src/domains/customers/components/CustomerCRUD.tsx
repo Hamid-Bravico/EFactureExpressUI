@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { secureApiClient } from '../../../config/api';
 import { CUSTOMER_ENDPOINTS } from '../api/customer.endpoints';
 import { Customer } from '../../../types/common';
 import { ApiResponse } from '../../auth/types/auth.types';
@@ -34,9 +34,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(CUSTOMER_ENDPOINTS.LIST, {
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.get(CUSTOMER_ENDPOINTS.LIST);
       if (!res.ok) throw new Error(t('errors.failedToFetchCustomers'));
       
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
@@ -89,11 +87,10 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
       const url = editingCustomer
         ? CUSTOMER_ENDPOINTS.UPDATE(editingCustomer.id)
         : CUSTOMER_ENDPOINTS.CREATE;
-      const res = await fetch(url, {
-        method,
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(form),
-      });
+      const res = await (method === 'PUT'
+        ? secureApiClient.put(url, form)
+        : secureApiClient.post(url, form)
+      );
 
       if (!res.ok) {
         const contentType = res.headers.get('content-type');
@@ -148,10 +145,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     if (!window.confirm(t('customers.confirm.delete'))) return;
     const toastId = toast.loading(t('common.deleting'));
     try {
-      const res = await fetch(CUSTOMER_ENDPOINTS.DELETE(id), { 
-        method: 'DELETE',
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.delete(CUSTOMER_ENDPOINTS.DELETE(id));
       if (!res.ok) throw new Error(t('customers.messages.deleteFailed'));
       toast.success(t('customers.messages.deleted'), { id: toastId });
       setCustomers(prevCustomers => prevCustomers.filter(c => c.id !== id));

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { secureApiClient } from '../../../config/api';
 import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { NewQuote } from '../types/quote.types';
 import { ApiResponse } from '../../auth/types/auth.types';
@@ -60,9 +60,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       }
 
       const url = `${QUOTE_ENDPOINTS?.LIST || '/api/quotes'}?${params.toString()}`;
-      const res = await fetch(url, {
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.get(url);
       
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -143,11 +141,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await fetch(QUOTE_ENDPOINTS?.CREATE || '/api/quotes', {
-        method: 'POST',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(quote),
-      });
+      const res = await secureApiClient.post(QUOTE_ENDPOINTS?.CREATE || '/api/quotes', quote);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -252,11 +246,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await fetch(QUOTE_ENDPOINTS?.UPDATE?.(quote.id!) || `/api/quotes/${quote.id}`, {
-        method: 'PUT',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(quote),
-      });
+      const res = await secureApiClient.put(QUOTE_ENDPOINTS?.UPDATE?.(quote.id!) || `/api/quotes/${quote.id}`, quote);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -324,10 +314,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       }
 
       const url = QUOTE_ENDPOINTS?.DELETE?.(id) || `/api/quotes/${id}`;
-      const res = await fetch(url, {
-        method: 'DELETE',
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.delete(url);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -344,9 +331,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         queryParams.append('pageSize', quotes!.pagination.pageSize.toString());
         
         try {
-          const response = await fetch(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (response.ok && responseData?.succeeded) {
@@ -393,10 +378,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       // Perform all delete operations
       await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch(QUOTE_ENDPOINTS?.DELETE?.(id) || `/api/quotes/${id}`, {
-            method: 'DELETE',
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.delete(QUOTE_ENDPOINTS?.DELETE?.(id) || `/api/quotes/${id}`);
 
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (!response.ok || !responseData?.succeeded) {
@@ -413,9 +395,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         queryParams.append('pageSize', quotes!.pagination.pageSize.toString());
         
         try {
-          const response = await fetch(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (response.ok && responseData?.succeeded) {
@@ -456,10 +436,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       // Perform all submit operations
       const results = await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`, {
-            method: 'POST',
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.post(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`);
 
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (!response.ok || !responseData?.succeeded) {
@@ -534,11 +511,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await fetch(QUOTE_ENDPOINTS?.UPDATE_STATUS?.(id) || `/api/quotes/${id}/status`, {
-        method: 'PUT',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify({ status }),
-      });
+      const res = await secureApiClient.put(QUOTE_ENDPOINTS?.UPDATE_STATUS?.(id) || `/api/quotes/${id}/status`, { status });
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -580,10 +553,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await fetch(QUOTE_ENDPOINTS?.CONVERT_TO_INVOICE?.(id) || `/api/quotes/${id}/convert`, {
-        method: 'POST',
-        headers: getSecureJsonHeaders(token),
-      });
+      const res = await secureApiClient.post(QUOTE_ENDPOINTS?.CONVERT_TO_INVOICE?.(id) || `/api/quotes/${id}/convert`);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -644,9 +614,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
   const handleDownloadPdf = useCallback(async (id: number) => {
     try {
-      const res = await fetch(QUOTE_ENDPOINTS?.DOWNLOAD_PDF?.(id) || `/api/quotes/${id}/pdf-url`, {
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.get(QUOTE_ENDPOINTS?.DOWNLOAD_PDF?.(id) || `/api/quotes/${id}/pdf-url`);
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -690,10 +658,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await fetch(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`, {
-        method: 'POST',
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.post(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -722,11 +687,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(QUOTE_ENDPOINTS.IMPORT_CSV, {
-        method: "POST",
-        headers: getSecureHeaders(token),
-        body: formData,
-      });
+      const response = await secureApiClient.request(QUOTE_ENDPOINTS.IMPORT_CSV, { method: 'POST', body: formData }, true, true);
 
       if (response.status === 401) {
         toast.error(t('common.unauthorized'), { id: toastId });

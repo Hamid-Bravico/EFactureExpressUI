@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../../../config/api';
+import { API_BASE_URL } from '../../../config/constants';
 
 export const INVOICE_ENDPOINTS = {
   LIST: `${API_BASE_URL}/invoices`,

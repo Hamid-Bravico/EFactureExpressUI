@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { secureApiClient } from '../../../config/api';
 import { USER_ENDPOINTS } from '../api/user.endpoints';
 import { User, NewUser, UpdateUser } from '../types/user.types';
 import { ApiResponse } from '../../auth/types/auth.types';
@@ -38,9 +38,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(USER_ENDPOINTS.LIST, {
-        headers: getSecureHeaders(token),
-      });
+      const response = await secureApiClient.get(USER_ENDPOINTS.LIST);
 
       if (response.status === 401) {
         tokenManager.clearAuthData();
@@ -83,11 +81,7 @@ const Users = React.memo(({ token }: UsersProps) => {
         password: newUser.password.trim()
       };
       
-      const response = await fetch(USER_ENDPOINTS.LIST, {
-        method: 'POST',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(trimmedUser),
-      });
+      const response = await secureApiClient.post(USER_ENDPOINTS.LIST, trimmedUser);
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {
@@ -123,14 +117,10 @@ const Users = React.memo(({ token }: UsersProps) => {
       if (currentUser.roles.includes('Admin')) {
         if (userId === tokenManager.getUserId() && updates.password) {
           // Allow Admin to reset their own password only
-          const response = await fetch(`${USER_ENDPOINTS.LIST}/${userId}`, {
-            method: 'PUT',
-            headers: getSecureJsonHeaders(token),
-            body: JSON.stringify({ 
-              password: updates.password.trim(),
-              email: null,
-              role: null
-            }),
+          const response = await secureApiClient.put(`${USER_ENDPOINTS.LIST}/${userId}`, { 
+            password: updates.password.trim(),
+            email: null,
+            role: null
           });
 
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
@@ -184,11 +174,7 @@ const Users = React.memo(({ token }: UsersProps) => {
         payload.role = null;
       }
 
-      const response = await fetch(`${USER_ENDPOINTS.LIST}/${userId}`, {
-        method: 'PUT',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(payload),
-      });
+      const response = await secureApiClient.put(`${USER_ENDPOINTS.LIST}/${userId}`, payload);
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {
@@ -208,10 +194,7 @@ const Users = React.memo(({ token }: UsersProps) => {
     if (!window.confirm(t('users.confirm.delete'))) return;
 
     try {
-      const response = await fetch(`${USER_ENDPOINTS.LIST}/${userId}`, {
-        method: 'DELETE',
-        headers: getSecureHeaders(token),
-      });
+      const response = await secureApiClient.delete(`${USER_ENDPOINTS.LIST}/${userId}`);
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {

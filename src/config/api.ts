@@ -1,7 +1,6 @@
 import { tokenManager } from '../utils/tokenManager';
 import { getCsrfHeader, validateCsrfResponse } from '../utils/csrf';
-
-export const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+import { API_BASE_URL } from './constants';
 
 export const getAcceptLanguageHeader = (): string => {
   const currentLanguage = localStorage.getItem('i18nextLng') || 'fr';
@@ -81,8 +80,13 @@ export class SecureApiClient {
     if (requireAuth) {
       // Get valid token (refresh if needed)
       token = await tokenManager.getValidToken();
+      // If no token is available yet, try a refresh once before failing
       if (!token) {
-        throw new Error('No valid token available');
+        const refreshed = await tokenManager.forceRefreshToken();
+        token = refreshed;
+        if (!token) {
+          throw new Error('No valid token available');
+        }
       }
     }
 
@@ -101,13 +105,18 @@ export class SecureApiClient {
       });
     }
     
-    if (options.body && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
+    if (!headers.has('Content-Type')) {
+      const hasStringBody = typeof (options as any).body === 'string';
+      if (hasStringBody) {
+        headers.set('Content-Type', 'application/json');
+      }
     }
 
     const requestOptions: RequestInit = {
       ...options,
-      headers
+      headers,
+      // Always include credentials for cross-origin cookie refresh and CSRF cookies
+      credentials: 'include'
     };
 
     try {
@@ -120,16 +129,14 @@ export class SecureApiClient {
       
       // Handle 401 Unauthorized - try to refresh token and retry once
       if (response.status === 401 && requireAuth) {
+        // Attempt refresh using HttpOnly cookie
         const refreshedToken = await tokenManager.forceRefreshToken();
         if (refreshedToken) {
-          // Retry the request with the new token
           headers.set('Authorization', `Bearer ${refreshedToken}`);
           return await fetch(url, requestOptions);
-        } else {
-          // Refresh failed, clear auth and throw error
-          tokenManager.clearAuthData();
-          throw new Error('Authentication failed');
         }
+        tokenManager.clearAuthData();
+        throw new Error('Authentication failed');
       }
       
       return response;

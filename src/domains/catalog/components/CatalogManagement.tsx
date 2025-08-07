@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
+import { secureApiClient } from '../../../config/api';
 import { CATALOG_ENDPOINTS } from '../api/catalog.endpoints';
 import { NewCatalog } from '../types/catalog.types';
 import { ApiResponse } from '../../auth/types/auth.types';
@@ -61,9 +61,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       }
 
       const url = `${CATALOG_ENDPOINTS?.LIST || '/api/catalog'}?${params.toString()}`;
-      const res = await fetch(url, {
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.get(url);
       
       if (!res.ok) {
         throw new Error(t('catalog.messages.fetchFailed'));
@@ -116,11 +114,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         }));
       }
 
-      const res = await fetch(CATALOG_ENDPOINTS?.CREATE || '/api/catalog', {
-        method: 'POST',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(catalog),
-      });
+      const res = await secureApiClient.post(CATALOG_ENDPOINTS?.CREATE || '/api/catalog', catalog);
       
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -191,11 +185,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         }));
       }
 
-      const res = await fetch(CATALOG_ENDPOINTS?.UPDATE?.(catalog.id!) || `/api/catalog/${catalog.id}`, {
-        method: 'PUT',
-        headers: getSecureJsonHeaders(token),
-        body: JSON.stringify(catalog),
-      });
+      const res = await secureApiClient.put(CATALOG_ENDPOINTS?.UPDATE?.(catalog.id!) || `/api/catalog/${catalog.id}`, catalog);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -263,10 +253,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       }
 
       const url = CATALOG_ENDPOINTS?.DELETE?.(id) || `/api/catalog/${id}`;
-      const res = await fetch(url, {
-        method: 'DELETE',
-        headers: getSecureHeaders(token),
-      });
+      const res = await secureApiClient.delete(url);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -290,9 +277,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         queryParams.append('size', pageSize.toString());
         
         try {
-          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedResponseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
@@ -311,9 +296,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         queryParams.append('size', pageSize.toString());
         
         try {
-          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedResponseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
@@ -331,9 +314,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         queryParams.append('size', pageSize.toString());
         
         try {
-          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedResponseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
@@ -382,10 +363,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       // Perform all delete operations
       await Promise.all(
         ids.map(async (id) => {
-          const response = await fetch(CATALOG_ENDPOINTS?.DELETE?.(id) || `/api/catalog/${id}`, {
-            method: 'DELETE',
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.delete(CATALOG_ENDPOINTS?.DELETE?.(id) || `/api/catalog/${id}`);
 
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (!response.ok || !responseData?.succeeded) {
@@ -409,9 +387,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         queryParams.append('size', pageSize.toString());
         
         try {
-          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedData = await response.json();
@@ -428,9 +404,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         queryParams.append('size', pageSize.toString());
         
         try {
-          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedData = await response.json();
@@ -446,9 +420,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         queryParams.append('size', pageSize.toString());
         
         try {
-          const response = await fetch(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`, {
-            headers: getSecureHeaders(token),
-          });
+          const response = await secureApiClient.get(`${CATALOG_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           if (response.ok) {
             const refreshedData = await response.json();
@@ -477,11 +449,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(CATALOG_ENDPOINTS.IMPORT_CSV, {
-        method: 'POST',
-        headers: getSecureHeaders(token),
-        body: formData,
-      });
+      const response = await secureApiClient.request(CATALOG_ENDPOINTS.IMPORT_CSV, { method: 'POST', body: formData }, true, true);
 
       if (response.status === 401) {
         toast.error(t('common.unauthorized'), { id: toastId });
