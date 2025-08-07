@@ -128,7 +128,11 @@
     "failedToImportCSV": "Échec de l'importation du fichier CSV",
     "failedToFetchInvoice": "Échec de la récupération des détails de la facture",
     "updateCompanyFailed": "Échec de la mise à jour des informations de l'entreprise",
-    "identifiantFiscalTooLong": "L'identifiant fiscal ne peut pas dépasser 8 caractères."
+    "identifiantFiscalTooLong": "L'identifiant fiscal ne peut pas dépasser 8 caractères.",
+    "failedToFetchCustomers": "Échec de la récupération des clients",
+    "sectionError": "Une erreur s'est produite dans cette section.",
+    "failedToFetchUsers": "Échec de la récupération des utilisateurs",
+    "failedToFetchQuotes": "Échec de la récupération des devis"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -803,7 +807,10 @@
         "created": "Utilisateur créé avec succès.",
         "updated": "Utilisateur mis à jour avec succès.",
         "deleted": "Utilisateur supprimé avec succès.",
-        "passwordUpdated": "Mot de passe mis à jour avec succès."
+        "passwordUpdated": "Mot de passe mis à jour avec succès.",
+        "createFailed": "Échec de la création de l'utilisateur",
+        "updateFailed": "Échec de la mise à jour de l'utilisateur",
+        "deleteFailed": "Échec de la suppression de l'utilisateur"
     },
     "errors": {
       "cannotUpdateAdmin": "Les administrateurs ne peuvent pas être modifiés",

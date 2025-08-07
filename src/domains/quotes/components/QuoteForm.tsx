@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NewQuote, NewLine, Quote } from '../types/quote.types';
 import { Customer } from '../../../types/common';
+import { ApiResponse } from '../../auth/types/auth.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { getSecureHeaders } from '../../../config/api';
@@ -60,7 +61,13 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     fetch(`${process.env.REACT_APP_API_URL || '/api'}/customers`, {
       headers: getSecureHeaders(tokenManager.getToken()),
     })
-    .then(res => res.json())
+    .then(async res => {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetchCustomers'));
+      }
+      return responseData.data || [];
+    })
     .then(setCustomers)
     .catch(() => setCustomers([]));
   }, []);
@@ -157,7 +164,13 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     fetch(`${process.env.REACT_APP_API_URL || '/api'}/catalog`, {
       headers: getSecureHeaders(tokenManager.getToken()),
     })
-      .then(res => res.json())
+      .then(async res => {
+        const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+        if (!res.ok || !responseData?.succeeded) {
+          throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('catalog.messages.fetchFailed'));
+        }
+        return responseData.data;
+      })
       .then((data: any) => {
         let items: any[] = [];
         if (Array.isArray(data)) {
@@ -167,7 +180,6 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
         } else if (Array.isArray(data?.items)) {
           items = data.items;
         }
-        // Map camelCase to PascalCase for all items
         setCatalogItems(
           items.map(item => ({
             id: item.id,

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Quote } from '../types/quote.types';
+import { ApiResponse } from '../../auth/types/auth.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import QuoteStatusBadge from './QuoteStatusBadge';
@@ -70,14 +71,9 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         headers: getSecureJsonHeaders(token)
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.message || t('quote.list.statusUpdateError'));
-        } catch (parseError) {
-          throw new Error(`Server error: ${response.status} - ${errorText}`);
-        }
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.statusUpdateError'));
       }
 
       // Call optimistic update to update UI state
@@ -143,12 +139,12 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         headers: getSecureJsonHeaders(token)
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || t('quote.actions.downloadError'));
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.actions.downloadError'));
       }
 
-      const data = await response.json();
+      const data = responseData.data;
       
       // Open the PDF URL in a new tab
       window.open(data.url, '_blank');

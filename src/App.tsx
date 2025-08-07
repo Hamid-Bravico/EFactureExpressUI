@@ -10,6 +10,7 @@ import InvoiceForm from "./domains/invoices/components/InvoiceForm";
 import QuoteManagement from "./domains/quotes/components/QuoteManagement";
 import LoginPage from "./domains/auth/components/LoginPage";
 import RegisterPage from "./domains/auth/components/RegisterPage";
+import { ApiResponse, LoginData } from "./domains/auth/types/auth.types";
 import Users from "./domains/users/components/Users";
 import { API_BASE_URL, getSecureJsonHeaders, getSecureHeaders, getJsonHeaders } from "./config/api";
 import { AUTH_ENDPOINTS } from "./domains/auth/api/auth.endpoints";
@@ -246,16 +247,18 @@ function App() {
       const response = await fetch(url, {
         headers: getSecureHeaders(token),
       });
-      
       if (response.status === 401) {
         tokenManager.clearAuthData();
         setToken(null);
         return;
       }
       
-      if (!response.ok) throw new Error("Failed to fetch dashboard stats");
-      const data = await response.json();
-      setDashboardStats(data);
+      const responseData: ApiResponse<any> = await response.json().catch(() => ({ succeeded: false, message: 'Failed to parse response' }));
+      if (!response.ok || !responseData?.succeeded) {
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || 'Failed to fetch dashboard stats';
+        throw new Error(errorMessage);
+      }
+      setDashboardStats(responseData.data || null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
     } finally {
@@ -308,12 +311,16 @@ function App() {
         return;
       }
       
-      if (!response.ok) throw new Error("Failed to fetch invoices");
-      const data = await response.json();
+      const responseData: ApiResponse<any> = await response.json().catch(() => ({ succeeded: false, message: 'Failed to parse response' }));
+      if (!response.ok || !responseData?.succeeded) {
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || 'Failed to fetch invoices';
+        throw new Error(errorMessage);
+      }
+
+      const data = responseData.data || null;
       setInvoiceListData(data);
-      
       // Keep the old invoices state for backward compatibility
-      setInvoices(data.invoices || []);
+      setInvoices((data && data.invoices) ? data.invoices : []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
     } finally {
@@ -336,11 +343,18 @@ function App() {
       body: JSON.stringify({ email: email.trim(), password: password.trim() }),
     });
 
-    if (!response.ok) {
-      throw new Error(t('errors.invalidCredentials'));
+    const responseData = await response.json();
+    
+    if (!responseData.succeeded) {
+      const errorMessage = responseData.errors?.join(', ') || responseData.message || t('errors.invalidCredentials');
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    if (!responseData.data) {
+      throw new Error(t('errors.invalidResponse'));
+    }
+
+    const data = responseData.data;
     
     if (!data.token) {
       throw new Error(t('errors.invalidResponse'));
@@ -1277,8 +1291,8 @@ function App() {
     <ErrorBoundary
       fallback={
         <ErrorPage
-          title="Application Error"
-          message="Something went wrong in the application. Please try refreshing the page."
+          title={t('errors.applicationError')}
+          message={t('errors.somethingWentWrong')}
           onRetry={() => window.location.reload()}
         />
       }
@@ -1318,13 +1332,24 @@ function App() {
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <Dashboard
-                        stats={dashboardStats}
-                        loading={dashboardLoading}
-                        filters={dashboardFilters}
-                        onRefresh={() => fetchDashboardStats(dashboardFilters)}
-                        onFiltersChange={handleDashboardFiltersChange}
-                      />
+                      <ErrorBoundary
+                        fallback={
+                                                  <ErrorPage
+                          inline
+                          title={t('errors.applicationError')}
+                          message={t('errors.sectionError')}
+                          onRetry={() => fetchDashboardStats(dashboardFilters)}
+                        />
+                        }
+                      >
+                        <Dashboard
+                          stats={dashboardStats}
+                          loading={dashboardLoading}
+                          filters={dashboardFilters}
+                          onRefresh={() => fetchDashboardStats(dashboardFilters)}
+                          onFiltersChange={handleDashboardFiltersChange}
+                        />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   }
                 />
@@ -1332,57 +1357,67 @@ function App() {
                   path="/invoices"
                   element={
                     <ProtectedRoute>
-                      <div>
-                        <div className="mb-6 flex items-center justify-between">
-                          <ImportCSV onImport={handleImportCSV} loading={importLoading} />
-                          <button
-                            onClick={() => setShowInvoiceForm(true)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors ${
-                              importLoading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
-                            }`}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            {t('invoice.create')}
-                          </button>
-                        </div>
+                      <ErrorBoundary
+                        fallback={
+                          <ErrorPage
+                            inline
+                            title={t('errors.applicationError')}
+                            message={t('errors.sectionError')}
+                          />
+                        }
+                      >
+                        <div>
+                          <div className="mb-6 flex items-center justify-between">
+                            <ImportCSV onImport={handleImportCSV} loading={importLoading} />
+                            <button
+                              onClick={() => setShowInvoiceForm(true)}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors ${
+                                importLoading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                              }`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              {t('invoice.create')}
+                            </button>
+                          </div>
 
-                        <div className="bg-white rounded-lg border border-gray-200">
-                          <InvoiceList
-                            data={invoiceListData}
-                            loading={loading}
-                            onDelete={handleDeleteInvoice}
-                            onDownloadPdf={handleDownloadPdf}
-                            onSubmit={handleSubmitInvoice}
-                            onCreateInvoice={handleCreateInvoice}
-                            onUpdateInvoice={handleUpdateInvoice}
-                            onRefreshInvoices={fetchInvoices}
-                            disabled={importLoading}
-                            importLoading={importLoading}
-                            onImportCSV={handleImportCSV}
-                            onBulkDelete={handleBulkDelete}
-                            onBulkSubmit={handleBulkSubmit}
-                            onUpdateInvoiceStatus={optimisticallyUpdateInvoiceStatus}
+                          <div className="bg-white rounded-lg border border-gray-200">
+                            <InvoiceList
+                              data={invoiceListData}
+                              loading={loading}
+                              onDelete={handleDeleteInvoice}
+                              onDownloadPdf={handleDownloadPdf}
+                              onSubmit={handleSubmitInvoice}
+                              onCreateInvoice={handleCreateInvoice}
+                              onUpdateInvoice={handleUpdateInvoice}
+                              onRefreshInvoices={fetchInvoices}
+                              disabled={importLoading}
+                              importLoading={importLoading}
+                              onImportCSV={handleImportCSV}
+                              onBulkDelete={handleBulkDelete}
+                              onBulkSubmit={handleBulkSubmit}
+                              onUpdateInvoiceStatus={optimisticallyUpdateInvoiceStatus}
+                            />
+                          </div>
+
+                          {showInvoiceForm && (
+                            <InvoiceForm
+                              onSubmit={handleCreateInvoice}
+                              onClose={() => setShowInvoiceForm(false)}
+                              disabled={importLoading}
+                            />
+                          )}
+
+                          <ErrorModal
+                            isOpen={errorModal.isOpen}
+                            onClose={() => setErrorModal(prev => ({ ...prev, isOpen: false }))}
+                            title={errorModal.title}
+                            message={errorModal.message}
+                            details={errorModal.details}
                           />
                         </div>
-
-                        {showInvoiceForm && (
-                          <InvoiceForm
-                            onSubmit={handleCreateInvoice}
-                            onClose={() => setShowInvoiceForm(false)}
-                            disabled={importLoading}
-                          />
-                        )}
-
-                        <ErrorModal
-                          isOpen={errorModal.isOpen}
-                          onClose={() => setErrorModal(prev => ({ ...prev, isOpen: false }))}
-                          title={errorModal.title}
-                          message={errorModal.message}
-                          details={errorModal.details}
-                        />
-                      </div>
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   }
                 />
@@ -1390,7 +1425,17 @@ function App() {
                   path="/quotes"
                   element={
                     <ProtectedRoute>
-                      <QuoteManagement token={token} />
+                      <ErrorBoundary
+                        fallback={
+                          <ErrorPage
+                            inline
+                            title={t('errors.applicationError')}
+                            message={t('errors.sectionError')}
+                          />
+                        }
+                      >
+                        <QuoteManagement token={token} />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   }
                 />
@@ -1398,7 +1443,17 @@ function App() {
                   path="/users"
                   element={
                     <ProtectedRoute allowedRoles={['Admin', 'Manager']}>
-                      <Users token={token} />
+                      <ErrorBoundary
+                        fallback={
+                          <ErrorPage
+                            inline
+                            title={t('errors.applicationError')}
+                            message={t('errors.sectionError')}
+                          />
+                        }
+                      >
+                        <Users token={token} />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   }
                 />
@@ -1425,7 +1480,17 @@ function App() {
                   path="/customers"
                   element={
                     <ProtectedRoute>
-                      <CustomerCRUD token={token} />
+                      <ErrorBoundary
+                        fallback={
+                          <ErrorPage
+                            inline
+                            title={t('errors.applicationError')}
+                            message={t('errors.sectionError')}
+                          />
+                        }
+                      >
+                        <CustomerCRUD token={token} />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   }
                 />
@@ -1433,7 +1498,17 @@ function App() {
                   path="/catalog"
                   element={
                     <ProtectedRoute>
-                      <CatalogManagement token={token} />
+                      <ErrorBoundary
+                        fallback={
+                          <ErrorPage
+                            inline
+                            title={t('errors.applicationError')}
+                            message={t('errors.sectionError')}
+                          />
+                        }
+                      >
+                        <CatalogManagement token={token} />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   }
                 />

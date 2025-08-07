@@ -140,6 +140,11 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     []
   );
 
+  // Fetch invoices when component mounts
+  useEffect(() => {
+    onRefreshInvoices();
+  }, [onRefreshInvoices]);
+
   // Memoized computed values for better performance
   const selectableInvoices = useMemo(() => {
     if (!data?.invoices) return [];

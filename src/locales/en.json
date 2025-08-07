@@ -128,7 +128,11 @@
     "failedToImportCSV": "Failed to import CSV file",
     "failedToFetchInvoice": "Failed to fetch invoice details",
     "updateCompanyFailed": "Failed to update company information",
-    "identifiantFiscalTooLong": "Identifiant Fiscal cannot exceed 8 characters."
+    "identifiantFiscalTooLong": "Identifiant Fiscal cannot exceed 8 characters.",
+    "failedToFetchCustomers": "Failed to fetch customers",
+    "sectionError": "Something went wrong in this section.",
+    "failedToFetchUsers": "Failed to fetch users",
+    "failedToFetchQuotes": "Failed to fetch quotes"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -803,7 +807,10 @@
         "created": "User created successfully.",
         "updated": "User updated successfully.",
         "deleted": "User deleted successfully.",
-        "passwordUpdated": "Password updated successfully."
+        "passwordUpdated": "Password updated successfully.",
+        "createFailed": "Failed to create user",
+        "updateFailed": "Failed to update user",
+        "deleteFailed": "Failed to delete user"
     },
     "errors": {
         "cannotUpdateAdmin": "Admin users cannot be modified",

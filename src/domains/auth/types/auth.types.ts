@@ -24,6 +24,26 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface LoginData {
+  token: string;
+  company: {
+    id: string;
+    name: string;
+    ice: string;
+    address: string | null;
+    identifiantFiscal: string;
+    isActive: boolean;
+    isVerified: boolean;
+  };
+}
+
+export interface ApiResponse<T> {
+  succeeded: boolean;
+  message: string;
+  data?: T;
+  errors?: string[];
+}
+
 export interface AuthResponse {
   token: string;
   user: {

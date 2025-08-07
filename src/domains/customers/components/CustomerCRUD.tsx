@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { CUSTOMER_ENDPOINTS } from '../api/customer.endpoints';
 import { Customer } from '../../../types/common';
+import { ApiResponse } from '../../auth/types/auth.types';
 import { decodeJWT } from '../../../utils/jwt';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
@@ -36,14 +37,20 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
       const res = await fetch(CUSTOMER_ENDPOINTS.LIST, {
         headers: getSecureHeaders(token),
       });
-      if (!res.ok) throw new Error('Failed to fetch customers');
-      setCustomers(await res.json());
+      if (!res.ok) throw new Error(t('errors.failedToFetchCustomers'));
+      
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetchCustomers'));
+      }
+      
+      setCustomers(responseData.data || []);
     } catch (e: any) {
-      setError(e.message || 'Error');
+      setError(e.message || t('errors.anErrorOccurred'));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 

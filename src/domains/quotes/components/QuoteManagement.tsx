@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { NewQuote } from '../types/quote.types';
+import { ApiResponse } from '../../auth/types/auth.types';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import QuoteList, { QuoteListResponse } from './QuoteList';
@@ -63,15 +64,15 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         headers: getSecureHeaders(token),
       });
       
-      if (!res.ok) {
-        throw new Error('Failed to fetch quotes');
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetchQuotes'));
       }
       
-      const data = await res.json();
-      setQuotes(data);
+      setQuotes(responseData.data || null);
     } catch (e: any) {
-      setError(e.message || 'Error fetching quotes');
-      toast.error(e.message || t('quote.list.fetchError'));
+      setError(e.message || t('errors.anErrorOccurred'));
+      toast.error(e.message || t('errors.failedToFetchQuotes'));
     } finally {
       setLoading(false);
     }
@@ -148,7 +149,8 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         body: JSON.stringify(quote),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (quotes) {
           setQuotes(prev => ({
@@ -162,13 +164,13 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           }));
         }
 
-        const errorData = await res.json();
-        const error = new Error(errorData.message || t('quote.form.errors.submissionFailed'));
-        (error as any).errors = errorData.errors;
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('quote.form.errors.submissionFailed');
+        const error = new Error(errorMessage);
+        (error as any).errors = responseData?.errors;
         throw error;
       }
 
-      const data = await res.json();
+      const data = responseData.data;
       toast.success(t('quote.form.createSuccess'));
       
       // Replace temporary quote with real data
@@ -256,7 +258,8 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         body: JSON.stringify(quote),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (quotes) {
           setQuotes(prev => ({
@@ -267,29 +270,20 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           }));
         }
 
-        const errorData = await res.json();
-        const error = new Error(errorData.message || t('quote.form.errors.submissionFailed'));
-        (error as any).errors = errorData.errors;
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('quote.form.errors.submissionFailed');
+        const error = new Error(errorMessage);
+        (error as any).errors = responseData?.errors;
         throw error;
       }
 
-      // Check if response has content before trying to parse
-      const responseText = await res.text();
-      if (responseText.trim()) {
-        try {
-          const serverUpdatedQuote = JSON.parse(responseText);
-          // Update with server response to ensure consistency
-          if (quotes) {
-            setQuotes(prev => ({
-              ...prev!,
-              quotes: prev!.quotes.map(q => 
-                q.id === quote.id! ? { ...serverUpdatedQuote, customerName: customerName || q.customerName } : q
-              )
-            }));
-          }
-        } catch (parseError) {
-          // If response is not valid JSON, keep the optimistic update
-        }
+      // Update with server response to ensure consistency
+      if (responseData.data && quotes) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => 
+            q.id === quote.id! ? { ...responseData.data, customerName: customerName || q.customerName } : q
+          )
+        }));
       }
 
       toast.success(t('quote.form.updateSuccess'));
@@ -335,11 +329,11 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         headers: getSecureHeaders(token),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         setQuotes(originalData);
-        //const errorText = await res.text();
-        throw new Error(t('quote.list.deleteError'));
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.deleteError'));
       }
 
       // If the page will be incomplete, refresh the current page data
@@ -354,9 +348,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             headers: getSecureHeaders(token),
           });
           
-          if (response.ok) {
-            const refreshedData = await response.json();
-            setQuotes(refreshedData);
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (response.ok && responseData?.succeeded) {
+            setQuotes(responseData.data || null);
           }
         } catch (error) {
           // Failed to refresh page data
@@ -404,9 +398,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             headers: getSecureHeaders(token),
           });
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: t('quote.list.deleteError') }));
-            throw new Error(errorData.message || t('quote.list.deleteError'));
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (!response.ok || !responseData?.succeeded) {
+            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.deleteError'));
           }
         })
       );
@@ -423,9 +417,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             headers: getSecureHeaders(token),
           });
           
-          if (response.ok) {
-            const refreshedData = await response.json();
-            setQuotes(refreshedData);
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (response.ok && responseData?.succeeded) {
+            setQuotes(responseData.data || null);
           }
         } catch (error) {
           // Failed to refresh page data
@@ -467,30 +461,12 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             headers: getSecureHeaders(token),
           });
 
-          if (!response.ok) {
-            let errorData;
-            try {
-              errorData = await response.json();
-            } catch {
-              errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
-            }
-            throw new Error(errorData.message || t('quote.list.submitError'));
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (!response.ok || !responseData?.succeeded) {
+            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.submitError'));
           }
 
-          // Check if response has content before trying to parse
-          const responseText = await response.text();
-          if (responseText.trim()) {
-            try {
-              const result = JSON.parse(responseText);
-              return result;
-            } catch (parseError) {
-              // If response is not valid JSON, return empty object
-              return {};
-            }
-          } else {
-            // If response is empty, return empty object
-            return {};
-          }
+          return responseData.data || {};
         })
       );
       
@@ -564,7 +540,8 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         body: JSON.stringify({ status }),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (quotes) {
           setQuotes(prev => ({
@@ -574,7 +551,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             )
           }));
         }
-        throw new Error(t('quote.list.statusUpdateError'));
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.statusUpdateError'));
       }
 
       toast.success(t('quote.list.statusUpdateSuccess'));
@@ -608,7 +585,8 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         headers: getSecureJsonHeaders(token),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (quotes) {
           setQuotes(prev => ({
@@ -618,11 +596,11 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             )
           }));
         }
-        throw new Error(t('quote.list.convertToInvoiceError'));
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.convertToInvoiceError'));
       }
 
-      const responseData = await res.json();
-      const invoiceNumber = responseData.invoiceNumber || 'N/A';
+      const data = responseData.data;
+      const invoiceNumber = data?.invoiceNumber || 'N/A';
       
       // Create a dismissible success toast with close button
       const toastId = toast.custom(
@@ -717,7 +695,8 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         headers: getSecureHeaders(token),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (quotes) {
           setQuotes(prev => ({
@@ -727,7 +706,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             )
           }));
         }
-        throw new Error(t('quote.list.submitError'));
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.submitError'));
       }
 
       toast.success(t('quote.list.submitSuccess'));

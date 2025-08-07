@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { USER_ENDPOINTS } from '../api/user.endpoints';
 import { User, NewUser, UpdateUser } from '../types/user.types';
+import { ApiResponse } from '../../auth/types/auth.types';
 import { decodeJWT } from '../../../utils/jwt';
 import { tokenManager } from '../../../utils/tokenManager';
 
@@ -47,15 +48,18 @@ const Users = React.memo(({ token }: UsersProps) => {
         return;
       }
 
-      if (!response.ok) throw new Error('Failed to fetch users');
-      const data = await response.json();
-      setUsers(data);
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetchUsers'));
+      }
+      
+      setUsers(responseData.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     if (token) {
@@ -85,23 +89,10 @@ const Users = React.memo(({ token }: UsersProps) => {
         body: JSON.stringify(trimmedUser),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (Array.isArray(errorData)) {
-          const errorMessages = errorData.map(error => error.description).join('\n');
-          throw new Error(errorMessages);
-        } else if (errorData.errors) {
-          const errorMessages = Object.entries(errorData.errors)
-            .map(([field, messages]) => {
-              if (Array.isArray(messages)) {
-                return messages.map(msg => `${field}: ${msg}`).join('\n');
-              }
-              return `${field}: ${messages}`;
-            })
-            .join('\n');
-          throw new Error(errorMessages);
-        }
-        throw new Error(errorData.message || 'Failed to create user');
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('users.messages.createFailed');
+        throw new Error(errorMessage);
       }
 
       await fetchUsers();
@@ -142,9 +133,9 @@ const Users = React.memo(({ token }: UsersProps) => {
             }),
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to update password');
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (!response.ok || !responseData?.succeeded) {
+            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('users.messages.updateFailed'));
           }
 
           await fetchUsers();
@@ -199,9 +190,9 @@ const Users = React.memo(({ token }: UsersProps) => {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user');
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('users.messages.updateFailed'));
       }
 
       await fetchUsers();
@@ -222,7 +213,10 @@ const Users = React.memo(({ token }: UsersProps) => {
         headers: getSecureHeaders(token),
       });
 
-      if (!response.ok) throw new Error('Failed to delete user');
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('users.messages.deleteFailed'));
+      }
       
       await fetchUsers();
       toast.success(t('users.messages.deleted'));

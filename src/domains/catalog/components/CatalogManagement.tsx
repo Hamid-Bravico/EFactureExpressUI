@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getSecureJsonHeaders, getSecureHeaders } from '../../../config/api';
 import { CATALOG_ENDPOINTS } from '../api/catalog.endpoints';
 import { NewCatalog } from '../types/catalog.types';
+import { ApiResponse } from '../../auth/types/auth.types';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import CatalogList, { CatalogListResponse } from './CatalogList';
@@ -65,18 +66,22 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       });
       
       if (!res.ok) {
-        throw new Error('Failed to fetch catalogs');
+        throw new Error(t('catalog.messages.fetchFailed'));
       }
       
-      const data = await res.json();
-      setCatalogs(data);
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!responseData?.succeeded) {
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('catalog.messages.fetchFailed'));
+      }
+      
+      setCatalogs(responseData.data);
     } catch (e: any) {
-      setError(e.message || 'Error fetching catalogs');
+      setError(e.message || t('errors.anErrorOccurred'));
       toast.error(e.message || t('catalog.messages.fetchFailed'));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     if (!initialLoadRef.current) {
@@ -116,7 +121,9 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         headers: getSecureJsonHeaders(token),
         body: JSON.stringify(catalog),
       });
-      if (!res.ok) {
+      
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (catalogs) {
           setCatalogs(prev => ({
@@ -130,13 +137,13 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           }));
         }
 
-        const errorData = await res.json();
-        const error = new Error(errorData.message || t('catalog.form.errors.submissionFailed'));
-        (error as any).errors = errorData.errors;
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('catalog.form.errors.submissionFailed');
+        const error = new Error(errorMessage);
+        (error as any).errors = responseData?.errors;
         throw error;
       }
 
-      const data = await res.json();
+      const data = responseData.data;
       toast.success(t('catalog.messages.created'));
       
       // Replace temporary catalog with real data
@@ -190,7 +197,8 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         body: JSON.stringify(catalog),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (catalogs) {
           setCatalogs(prev => ({
@@ -201,29 +209,20 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           }));
         }
 
-        const errorData = await res.json();
-        const error = new Error(errorData.message || t('catalog.form.errors.submissionFailed'));
-        (error as any).errors = errorData.errors;
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('catalog.form.errors.submissionFailed');
+        const error = new Error(errorMessage);
+        (error as any).errors = responseData?.errors;
         throw error;
       }
 
-      // Check if response has content before trying to parse
-      const responseText = await res.text();
-      if (responseText.trim()) {
-        try {
-          const serverUpdatedCatalog = JSON.parse(responseText);
-          // Update with server response to ensure consistency
-          if (catalogs) {
-            setCatalogs(prev => ({
-              ...prev!,
-              items: prev!.items.map(q => 
-                q.id === catalog.id! ? { ...serverUpdatedCatalog } : q
-              )
-            }));
-          }
-        } catch (parseError) {
-          // If response is not valid JSON, keep the optimistic update
-        }
+      // Update with server response to ensure consistency
+      if (catalogs && responseData.data) {
+        setCatalogs(prev => ({
+          ...prev!,
+          items: prev!.items.map(q => 
+            q.id === catalog.id! ? responseData.data : q
+          )
+        }));
       }
 
       toast.success(t('catalog.messages.updated'));
@@ -269,11 +268,11 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         headers: getSecureHeaders(token),
       });
 
-      if (!res.ok) {
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         setCatalogs(originalData);
-        //const errorText = await res.text();
-        throw new Error(t('catalog.messages.deleteFailed'));
+        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('catalog.messages.deleteFailed'));
       }
 
       // Handle pagination after deletion
@@ -296,8 +295,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           });
           
           if (response.ok) {
-            const refreshedData = await response.json();
-            setCatalogs(refreshedData);
+            const refreshedResponseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+            if (refreshedResponseData?.succeeded) {
+              setCatalogs(refreshedResponseData.data);
+            }
           }
         } catch (error) {
           console.warn('Failed to refresh page data after deletion:', error);
@@ -315,8 +316,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           });
           
           if (response.ok) {
-            const refreshedData = await response.json();
-            setCatalogs(refreshedData);
+            const refreshedResponseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+            if (refreshedResponseData?.succeeded) {
+              setCatalogs(refreshedResponseData.data);
+            }
           }
         } catch (error) {
           console.warn('Failed to navigate to previous page after deletion:', error);
@@ -333,8 +336,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           });
           
           if (response.ok) {
-            const refreshedData = await response.json();
-            setCatalogs(refreshedData);
+            const refreshedResponseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+            if (refreshedResponseData?.succeeded) {
+              setCatalogs(refreshedResponseData.data);
+            }
           }
         } catch (error) {
           console.warn('Failed to refresh page data after deletion:', error);
@@ -382,9 +387,9 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             headers: getSecureHeaders(token),
           });
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: t('catalog.messages.deleteFailed') }));
-            throw new Error(errorData.message || t('catalog.messages.deleteFailed'));
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (!response.ok || !responseData?.succeeded) {
+            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('catalog.messages.deleteFailed'));
           }
         })
       );
