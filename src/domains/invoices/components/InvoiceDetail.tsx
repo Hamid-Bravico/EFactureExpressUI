@@ -37,7 +37,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   const [refreshingStatusId, setRefreshingStatusId] = useState<number | null>(null);
   const [fetchingJsonId, setFetchingJsonId] = useState<number | null>(null);
   const [rejectionModal, setRejectionModal] = useState<{ invoiceId: number; reason: string } | null>(null);
-  const [helperAppStatus, setHelperAppStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [helperAppStatus, setHelperAppStatus] = useState<'checking' | 'connected' | 'disconnected' | 'not-applicable'>('checking');
 
   const userRole = tokenManager.getUserRole() as UserRole || 'Clerk';
 
@@ -69,20 +69,99 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     try {
       const token = tokenManager.getToken();
       if (!token) throw new Error('No token');
+      
       const res = await secureApiClient.get(INVOICE_ENDPOINTS.JSON(invoiceId));
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
+      
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
+        // Build title/body error like other operations
+        let errorTitle = 'Failed to fetch JSON. Make sure Compliance Mode is enabled.';
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
+      }
+
+      const data = responseData.data;
       if (data.url) {
         window.open(data.url, '_blank');
+        toast.success(responseData.message || 'JSON downloaded successfully', {
+          style: {
+            background: '#f0fdf4',
+            color: '#166534',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }
+        });
       } else {
-        throw new Error('No URL');
+        throw new Error('No URL provided in response');
       }
-    } catch(err) {
-      toast.error('Failed to fetch JSON. Make sure Compliance Mode is enabled.');
+    } catch (err: any) {
+      // Handle error with title and body structure
+      let errorTitle = 'Failed to fetch JSON. Make sure Compliance Mode is enabled.';
+      let errorBody = '';
+      
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else if (err.title) {
+        errorTitle = err.title;
+      } else if (err.message) {
+        if (typeof err.message === 'object') {
+          if (err.message.value) {
+            errorTitle = err.message.value;
+          } else if (err.message.message) {
+            errorTitle = err.message.message;
+          } else {
+            errorTitle = JSON.stringify(err.message);
+          }
+        } else if (typeof err.message === 'string') {
+          errorTitle = err.message;
+        }
+      }
+      
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     } finally {
       setFetchingJsonId(null);
     }
-  }, []);
+  }, [t]);
 
   const handleRefreshDgiStatus = useCallback(async (invoiceId: number) => {
     setRefreshingStatusId(invoiceId);
@@ -96,29 +175,78 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       
       const res = await secureApiClient.get(INVOICE_ENDPOINTS.DGI_STATUS(invoiceId));
       
-      if (!res.ok) {
-        throw new Error(`Failed to fetch DGI status: ${res.status}`);
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
+        // Handle error with structured message
+        let errorTitle = t('invoice.dgiStatus.errorChecking');
+        let errorBody = '';
+        
+        if (responseData?.errors && Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+          errorBody = responseData.errors.join('\n• ');
+        } else if (responseData?.message) {
+          errorBody = responseData.message;
+        } else {
+          errorBody = t('errors.anErrorOccurred');
+        }
+        
+        const error = new Error(errorBody);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        throw error;
       }
       
-      const data: DgiStatusResponse = await res.json();
+      const data: DgiStatusResponse = responseData.data;
       
       switch (data.status) {
         case 'PendingValidation':
-          toast.success(t('invoice.dgiStatus.stillPending'), { id: toastId });
+          toast.success(t('invoice.dgiStatus.stillPending'), { 
+            id: toastId,
+            style: {
+              background: '#f0fdf4',
+              color: '#166534',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }
+          });
           break;
           
         case 'Validated':
-          toast.success(t('invoice.status.validated'), { id: toastId });
+          toast.success(t('invoice.status.validated'), { 
+            id: toastId,
+            style: {
+              background: '#f0fdf4',
+              color: '#166534',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }
+          });
           if (onOptimisticStatusUpdate) {
             onOptimisticStatusUpdate(invoiceId, 3);
           }
           break;
           
         case 'Rejected':
-          toast.error(t('invoice.status.rejected'), { id: toastId });
           const rejectionReason = data.errors.length > 0 
             ? data.errors.map(error => error.errorMessage).join('; ') 
             : 'No specific reason provided';
+          toast.error(t('invoice.status.rejected'), { 
+            id: toastId,
+            style: {
+              background: '#fef2f2',
+              color: '#dc2626',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }
+          });
           setRejectionModal({ invoiceId, reason: rejectionReason });
           if (onOptimisticStatusUpdate) {
             onOptimisticStatusUpdate(invoiceId, 4, undefined, rejectionReason);
@@ -126,11 +254,45 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           break;
           
         default:
-          toast.error(`Unknown DGI status received: ${data.status}`, { id: toastId });
+          toast.error(`Unknown DGI status received: ${data.status}`, { 
+            id: toastId,
+            style: {
+              background: '#fef2f2',
+              color: '#dc2626',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }
+          });
           break;
       }
-    } catch (error) {
-      toast.error(t('invoice.dgiStatus.errorChecking'), { id: toastId });
+    } catch (error: any) {
+      // Handle error with title and body structure
+      let errorTitle = t('invoice.dgiStatus.errorChecking');
+      let errorBody = '';
+      
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else {
+        errorBody = error.message || t('errors.anErrorOccurred');
+      }
+      
+      toast.error(errorBody, { 
+        id: toastId,
+        style: {
+          background: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     } finally {
       setRefreshingStatusId(null);
     }
@@ -177,14 +339,31 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
 
       const response = await secureApiClient.post(endpoint);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.message || t('invoice.list.statusUpdateError'));
-        } catch (parseError) {
-          throw new Error(`Server error: ${response.status} - ${errorText}`);
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        // Build title/body error like other operations
+        let errorTitle = t('invoice.list.statusUpdateError');
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
         }
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
       }
 
       // Call optimistic update to update UI state
@@ -192,9 +371,60 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         onOptimisticStatusUpdate(invoiceId, newStatus);
       }
       
-      toast.success(t('invoice.list.statusUpdateSuccess'));
+      toast.success(responseData.message || t('invoice.list.statusUpdateSuccess'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } catch (error: any) {
-      toast.error(error.message || t('invoice.list.statusUpdateError'));
+      // Handle error with title and body structure
+      let errorTitle = t('invoice.list.statusUpdateError');
+      let errorBody = '';
+      
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (error.message) {
+        if (typeof error.message === 'object') {
+          if (error.message.value) {
+            errorTitle = error.message.value;
+          } else if (error.message.message) {
+            errorTitle = error.message.message;
+          } else {
+            errorTitle = JSON.stringify(error.message);
+          }
+        } else if (typeof error.message === 'string') {
+          errorTitle = error.message;
+        }
+      }
+      
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     } finally {
       setRefreshingStatusId(null);
     }
@@ -224,14 +454,52 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         throw new Error('No valid token available');
       }
 
-      // Step 1: Fetch data to sign
+      // Step 1: Fetch data to sign (supports both wrapped JSON and raw text)
       const dataResponse = await secureApiClient.get(INVOICE_ENDPOINTS.DATA_TO_SIGN(invoice.id));
 
-      if (!dataResponse.ok) {
-        throw new Error(`Failed to fetch data to sign: ${dataResponse.status}`);
-      }
+      const rawText = await dataResponse.text();
+      let dataToSign = '';
+      try {
+        const parsed = JSON.parse(rawText);
+        const responseData = parsed as any;
 
-      const dataToSign = await dataResponse.text();
+        if (!dataResponse.ok || !responseData?.succeeded) {
+          let errorTitle = t('invoice.errors.failedToFetchDataToSign') || 'Failed to fetch data to sign';
+          let errorBody = '';
+
+          if (responseData?.errors) {
+            if (Array.isArray(responseData.errors)) {
+              errorBody = responseData.errors.join('\n');
+            } else if (typeof responseData.errors === 'object') {
+              errorBody = Object.values(responseData.errors).flat().join('\n');
+            }
+          }
+
+          if (responseData?.message) {
+            errorTitle = responseData.message;
+          } else if (responseData?.title) {
+            errorTitle = responseData.title;
+          }
+
+          const error = new Error(errorBody || errorTitle);
+          (error as any).title = errorTitle;
+          (error as any).body = errorBody;
+          (error as any).errors = responseData?.errors;
+          throw error;
+        }
+
+        const payload = responseData.data;
+        dataToSign = typeof payload === 'string' ? payload : (payload?.dataToSign || payload?.payload || '');
+        if (!dataToSign) {
+          throw new Error('No data to sign provided by server');
+        }
+      } catch (e) {
+        // If response is not JSON (likely text/plain), use raw text when successful
+        if (!dataResponse.ok) {
+          throw new Error(`Failed to fetch data to sign: ${dataResponse.status}`);
+        }
+        dataToSign = rawText;
+      }
 
       // Step 2: Check if Web Crypto API is available
       if (!window.crypto || !window.crypto.subtle) {
@@ -246,14 +514,31 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       // Step 4: Submit signature to set-ready endpoint
       const setReadyResponse = await secureApiClient.post(INVOICE_ENDPOINTS.SET_READY(invoice.id), { signature });
 
-      if (!setReadyResponse.ok) {
-        const errorText = await setReadyResponse.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.message || 'Server could not verify your signature. Please refresh the page and try again.');
-        } catch (parseError) {
-          throw new Error(`Server error: ${setReadyResponse.status} - ${errorText}`);
+      const responseData = await setReadyResponse.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!setReadyResponse.ok || !responseData?.succeeded) {
+        // Build title/body error like other operations
+        let errorTitle = 'Server could not verify your signature. Please refresh the page and try again.';
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
         }
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
       }
 
       // Success - update UI
@@ -261,22 +546,69 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         onOptimisticStatusUpdate(invoice.id, 1);
       }
       
-      toast.success(t('invoice.list.statusUpdateSuccess'));
+      toast.success(responseData.message || t('invoice.list.statusUpdateSuccess'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } catch (error: any) {
-      let errorMessage = error.message;
+      // Handle error with title and body structure
+      let errorTitle = t('invoice.list.statusUpdateError');
+      let errorBody = '';
       
-      // Handle specific error cases
-      if (error.message.includes('Web Crypto API not supported')) {
-        errorMessage = t('invoice.errors.helperAppRequired');
-      } else if (error.message.includes('No digital certificate found')) {
-        errorMessage = t('invoice.errors.noCertificate');
-      } else if (error.message.includes('Could not create the signature')) {
-        errorMessage = t('invoice.errors.signatureCreationFailed');
-      } else if (error.message.includes('Server could not verify')) {
-        errorMessage = t('invoice.errors.signatureVerificationFailed');
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (error.message) {
+        // Handle specific error cases
+        if (error.message.includes('Web Crypto API not supported')) {
+          errorTitle = t('invoice.errors.helperAppRequired');
+        } else if (error.message.includes('No digital certificate found')) {
+          errorTitle = t('invoice.errors.noCertificate');
+        } else if (error.message.includes('Could not create the signature')) {
+          errorTitle = t('invoice.errors.signatureCreationFailed');
+        } else if (error.message.includes('Server could not verify')) {
+          errorTitle = t('invoice.errors.signatureVerificationFailed');
+        } else if (typeof error.message === 'object') {
+          if (error.message.value) {
+            errorTitle = error.message.value;
+          } else if (error.message.message) {
+            errorTitle = error.message.message;
+          } else {
+            errorTitle = JSON.stringify(error.message);
+          }
+        } else if (typeof error.message === 'string') {
+          errorTitle = error.message;
+        }
       }
       
-      toast.error(errorMessage);
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     } finally {
       setRefreshingStatusId(null);
     }
@@ -364,7 +696,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     });
   }, []);
 
-  // Check helper app connection on component mount
+  // Check helper app connection on component mount only for draft invoices
   useEffect(() => {
     const checkConnection = async () => {
       setHelperAppStatus('checking');
@@ -372,8 +704,14 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       setHelperAppStatus(isConnected ? 'connected' : 'disconnected');
     };
     
-    checkConnection();
-  }, [testHelperAppConnection]);
+    // Only check connection for draft invoices
+    if (invoice.status === 0) {
+      checkConnection();
+    } else {
+      // For non-draft invoices, set status to not applicable
+      setHelperAppStatus('not-applicable');
+    }
+  }, [testHelperAppConnection, invoice.status]);
 
   const handleBackToDraft = useCallback(() => {
     if (window.confirm(t('invoice.confirm.backToDraft', { 
@@ -416,30 +754,34 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                         )}
                       </button>
                       
-                      {/* Helper App Status Indicator */}
-                                             {helperAppStatus === 'checking' && (
-                         <div className="flex items-center text-yellow-600" title={t('invoice.errors.checkingHelperApp')}>
-                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                          </svg>
-                        </div>
-                      )}
-                      
-                                             {helperAppStatus === 'disconnected' && (
-                         <div className="flex items-center text-red-600" title={t('invoice.errors.helperAppNotRunning')}>
-                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                      
-                                             {helperAppStatus === 'connected' && (
-                         <div className="flex items-center text-green-600" title={t('invoice.errors.helperAppRunning')}>
-                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        </div>
+                      {/* Helper App Status Indicator - Only for draft invoices */}
+                      {helperAppStatus !== 'not-applicable' && (
+                        <>
+                          {helperAppStatus === 'checking' && (
+                            <div className="flex items-center text-yellow-600" title={t('invoice.errors.checkingHelperApp')}>
+                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                              </svg>
+                            </div>
+                          )}
+                          
+                          {helperAppStatus === 'disconnected' && (
+                            <div className="flex items-center text-red-600" title={t('invoice.errors.helperAppNotRunning')}>
+                              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                          
+                          {helperAppStatus === 'connected' && (
+                            <div className="flex items-center text-green-600" title={t('invoice.errors.helperAppRunning')}>
+                              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}

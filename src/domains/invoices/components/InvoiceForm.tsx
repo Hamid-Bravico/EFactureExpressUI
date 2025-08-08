@@ -90,8 +90,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       const lineError: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } = {};
       if (!line.description || !line.description.trim()) lineError.description = t('invoice.form.errors.descriptionRequired');
       if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('invoice.form.errors.quantityPositive');
-      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice < 0) lineError.unitPrice = t('invoice.form.errors.unitPricePositive');
-      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('invoice.form.errors.taxRateRange');
+      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice <= 0) lineError.unitPrice = t('invoice.form.errors.unitPricePositive');
+      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('invoice.form.errors.vatRateRange');
       if (Object.keys(lineError).length > 0) lineErrors[index] = lineError; else hasValidLine = true;
     });
     if (!hasValidLine) newErrors.lines = { 0: { description: t('invoice.form.errors.oneLineRequired') } };
@@ -112,14 +112,18 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     if (errors.lines?.[index]) {
       setErrors(prev => {
         const prevLines = prev.lines || {};
-        const thisLineErrors = prevLines[index] || {};
-        const updatedLineErrors = { ...thisLineErrors, [field]: undefined };
-        const updatedLinesMap = { ...prevLines, [index]: updatedLineErrors };
-  
-        return {
-          ...prev,
-          lines: updatedLinesMap
-        };
+        const thisLineErrors = { ...(prevLines[index] || {}) } as any;
+        delete thisLineErrors[field as any];
+
+        // If no more errors on this line, remove the index key entirely
+        const nextLines = { ...prevLines } as any;
+        if (Object.keys(thisLineErrors).length === 0) {
+          delete nextLines[index];
+        } else {
+          nextLines[index] = thisLineErrors;
+        }
+
+        return { ...prev, lines: nextLines } as any;
       });
     }
   };
@@ -142,7 +146,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const openCatalogModal = () => {
     setCatalogModalOpen(true);
     setCatalogLoading(true);
-    secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/catalog`)
+    secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/catalog?size=1000&page=1`)
       .then(async res => {
         const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
         if (!res.ok || !responseData?.succeeded) {
@@ -268,7 +272,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     if (disabled || isSubmitting) return;
 
     if (!validateForm()) {
-      toast.error(t('invoice.form.errors.fixErrors'));
+      // Don't show generic toast - field-level errors are already displayed
       return;
     }
 
@@ -295,7 +299,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     } catch (error: any) {
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
-        toast.error(t('invoice.form.errors.submissionError'));
+        // Don't show toast here as it will be handled by the parent component
       } else if (error.message) {
         // Handle complex error message structure
         if (typeof error.message === 'object' && error.message.value) {
@@ -449,12 +453,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                       type="text"
                       value={ln.description}
                       onChange={e => { updateLine(idx, 'description', e.target.value); clearLineError(descKey); }}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.description || descError ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
+                        errors.lines?.[idx]?.description || descError
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       disabled={disabled || isSubmitting || isCatalog}
                       required
                     />
-                    {descError && (
-                      <div className="text-red-500 text-xs mt-1">{descError}</div>
+                    {(errors.lines?.[idx]?.description || descError) && (
+                      <div className="text-red-500 text-xs mt-1">{errors.lines?.[idx]?.description || descError}</div>
                     )}
                   </div>
                   <div className="col-span-2">
@@ -463,14 +471,18 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                       type="number"
                       value={ln.quantity}
                       onChange={e => { updateLine(idx, 'quantity', e.target.value); clearLineError(qtyKey); }}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.quantity || qtyError ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
+                        errors.lines?.[idx]?.quantity || qtyError
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       disabled={disabled || isSubmitting}
                       min="0.01"
                       step="0.01"
                       required
                     />
-                    {qtyError && (
-                      <div className="text-red-500 text-xs mt-1">{qtyError}</div>
+                    {(errors.lines?.[idx]?.quantity || qtyError) && (
+                      <div className="text-red-500 text-xs mt-1">{errors.lines?.[idx]?.quantity || qtyError}</div>
                     )}
                   </div>
                   <div className="col-span-2">
@@ -479,14 +491,18 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                       type="number"
                       value={ln.unitPrice}
                       onChange={e => { updateLine(idx, 'unitPrice', e.target.value); clearLineError(priceKey); }}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.unitPrice || priceError ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
+                        errors.lines?.[idx]?.unitPrice || priceError
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       disabled={disabled || isSubmitting}
                       step="0.01"
-                      min="0"
+                      min="0.01"
                       required
                     />
-                    {priceError && (
-                      <div className="text-red-500 text-xs mt-1">{priceError}</div>
+                    {(errors.lines?.[idx]?.unitPrice || priceError) && (
+                      <div className="text-red-500 text-xs mt-1">{errors.lines?.[idx]?.unitPrice || priceError}</div>
                     )}
                   </div>
                   <div className="col-span-3">
@@ -496,7 +512,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                         <select
                           value={ln.taxRate ?? 20}
                           onChange={e => { updateLine(idx, 'taxRate', e.target.value); clearLineError(taxKey); }}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.taxRate || taxError ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
+                            errors.lines?.[idx]?.taxRate || taxError
+                              ? 'border-red-500'
+                              : 'border-gray-300'
+                          }`}
                           disabled={disabled || isSubmitting}
                           required
                         >
@@ -506,8 +526,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                           <option value={7}>7%</option>
                           <option value={0}>0%</option>
                         </select>
-                        {taxError && (
-                          <div className="text-red-500 text-xs mt-1">{taxError}</div>
+                        {(errors.lines?.[idx]?.taxRate || taxError) && (
+                          <div className="text-red-500 text-xs mt-1">{errors.lines?.[idx]?.taxRate || taxError}</div>
                         )}
                       </div>
                       <button

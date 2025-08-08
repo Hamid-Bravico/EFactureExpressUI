@@ -19,26 +19,13 @@ export const canCreateInvoice = (userRole: UserRole): boolean => {
 
 // Core permission functions
 export const canModifyInvoice = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
-  switch (userRole) {
-    case 'Clerk':
-      // Clerks can only modify Draft invoices
-      return invoiceStatus === INVOICE_STATUS.DRAFT;
-    
-    case 'Manager':
-    case 'Admin':
-      // Managers and Admins can modify Draft, Ready, and Rejected invoices
-      return invoiceStatus === INVOICE_STATUS.DRAFT ||
-             invoiceStatus === INVOICE_STATUS.READY ||
-             invoiceStatus === INVOICE_STATUS.REJECTED;
-    
-    default:
-      return false;
-  }
+  // Edit allowed only for Draft invoices for all roles
+  return invoiceStatus === INVOICE_STATUS.DRAFT;
 };
 
 export const canDeleteInvoice = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
-  // Same rules as modify for deletion
-  return canModifyInvoice(userRole, invoiceStatus);
+  // Delete allowed only for Draft invoices for all roles
+  return invoiceStatus === INVOICE_STATUS.DRAFT;
 };
 
 export const canChangeInvoiceStatus = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {

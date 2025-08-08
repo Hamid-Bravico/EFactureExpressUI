@@ -64,6 +64,10 @@ function App() {
     details: []
   });
 
+  // Track last used invoice list query to preserve filters/sort on silent refreshes
+  const lastInvoiceFiltersRef = useRef<any | undefined>(undefined);
+  const lastInvoiceSortRef = useRef<any | undefined>(undefined);
+
   // ─── LANGUAGE STATE ───────────────────────────────────────────────────────
   const [language, setLanguage] = useState(() => {
     const savedLanguage = localStorage.getItem('language');
@@ -263,13 +267,17 @@ function App() {
   const fetchInvoices = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
     setLoading(true);
     try {
+      // Persist last used filters and sort for later silent refreshes
+      lastInvoiceFiltersRef.current = filters;
+      lastInvoiceSortRef.current = sort;
+
       const queryParams = new URLSearchParams();
       
       // Add filters
       if (filters) {
         if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
         if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
-        if (filters.customerName) queryParams.append('customerName', filters.customerName);
+        if (filters.customerName) queryParams.append('q', filters.customerName);
         if (filters.status !== 'all') queryParams.append('status', filters.status);
         if (filters.amountFrom) queryParams.append('amountFrom', filters.amountFrom);
         if (filters.amountTo) queryParams.append('amountTo', filters.amountTo);
@@ -289,17 +297,27 @@ function App() {
       
       const url = `${INVOICE_ENDPOINTS.LIST}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await secureApiClient.get(url);
-      
+
       const responseData: ApiResponse<any> = await response.json().catch(() => ({ succeeded: false, message: 'Failed to parse response' }));
       if (!response.ok || !responseData?.succeeded) {
         const errorMessage = responseData?.errors?.join(', ') || responseData?.message || 'Failed to fetch invoices';
         throw new Error(errorMessage);
       }
 
-      const data = responseData.data || null;
-      setInvoiceListData(data);
+      const apiData = responseData.data || {};
+      const transformed = {
+        invoices: Array.isArray(apiData.items) ? apiData.items : (apiData.invoices || []),
+        pagination: apiData.pagination || {
+          totalItems: 0,
+          page: 1,
+          pageSize: 20,
+          totalPages: 0
+        },
+        filters: apiData.filters || { statuses: [], customers: [] }
+      };
+      setInvoiceListData(transformed);
       // Keep the old invoices state for backward compatibility
-      setInvoices((data && data.invoices) ? data.invoices : []);
+      setInvoices(transformed.invoices);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -393,7 +411,7 @@ function App() {
 
   const handleCreateInvoice = useCallback(async (newInvoice: NewInvoice, customerName?: string) => {
     try {
-      // Optimistically add a temporary invoice
+      // Create temporary invoice for optimistic update
       const tempInvoice: Invoice = {
         id: Date.now(), // Temporary ID
         invoiceNumber: 'TEMP-' + Date.now(),
@@ -419,51 +437,111 @@ function App() {
           email: userEmail
         }
       };
-      
+
+      // Optimistically add the invoice
       optimisticallyAddInvoice(tempInvoice);
 
-      const response = await secureApiClient.post(INVOICE_ENDPOINTS.CREATE, newInvoice);
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
-        }
+      const res = await secureApiClient.post(INVOICE_ENDPOINTS.CREATE, newInvoice);
+      
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (parseError) {
+        responseData = { succeeded: false, message: t('errors.anErrorOccurred') };
+      }
+      
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         optimisticallyRemoveInvoice(tempInvoice.id);
-        throw errorData;
-      }
-      
-      // Check if response has content before trying to parse
-      const responseText = await response.text();
-      
-      if (responseText.trim()) {
-        try {
-          const responseData = JSON.parse(responseText);
-          // Handle nested response structure
-          const createdInvoice = responseData.invoice || responseData;
-          // Replace temporary invoice with real one
-          optimisticallyRemoveInvoice(tempInvoice.id);
-          optimisticallyAddInvoice(createdInvoice);
-          // Silently add to the list data to preserve sorting/filtering
-          silentlyAddInvoiceToList(createdInvoice);
-        } catch (parseError) {
-          // If response is not valid JSON, just remove the temporary invoice
-          optimisticallyRemoveInvoice(tempInvoice.id);
+
+        // Handle different error response formats
+        let errorTitle = t('invoice.form.errors.submissionFailed');
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
         }
-      } else {
-        // If response is empty, just remove the temporary invoice
-        optimisticallyRemoveInvoice(tempInvoice.id);
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        } else if (res.status === 400) {
+          errorTitle = 'Bad Request - Please check your input data';
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
+      }
+
+      const data = responseData.data;
+      toast.success(responseData.message || t('invoice.messages.created'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+      
+      // Replace temporary invoice with real data
+      optimisticallyRemoveInvoice(tempInvoice.id);
+      optimisticallyAddInvoice(data);
+      silentlyAddInvoiceToList(data);
+    } catch (error: any) {
+      // Handle error with title and body structure
+      let errorTitle = t('invoice.form.errors.submissionFailed');
+      let errorBody = '';
+      
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (error.message) {
+        if (typeof error.message === 'object') {
+          if (error.message.value) {
+            errorTitle = error.message.value;
+          } else if (error.message.message) {
+            errorTitle = error.message.message;
+          } else {
+            errorTitle = JSON.stringify(error.message);
+          }
+        } else if (typeof error.message === 'string') {
+          errorTitle = error.message;
+        }
       }
       
-      toast.success(t('invoice.messages.created'));
-    } catch (err: any) {
-      // Revert any optimistic updates that might have been applied
-      if (err.tempInvoiceId) {
-        optimisticallyRemoveInvoice(err.tempInvoiceId);
-      }
-      throw err;
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
+      throw error;
     }
   }, [token, userEmail, t, optimisticallyAddInvoice, optimisticallyRemoveInvoice, silentlyAddInvoiceToList]);
 
@@ -497,47 +575,83 @@ function App() {
         }))
       };
       
+      // Apply optimistic update
       optimisticallyUpdateInvoice(updatedInvoice);
 
-      const response = await secureApiClient.put(INVOICE_ENDPOINTS.UPDATE(invoice.id), invoice);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
-        }
+      const res = await secureApiClient.put(INVOICE_ENDPOINTS.UPDATE(invoice.id), invoice);
+      
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         optimisticallyUpdateInvoice(originalInvoice);
-        throw errorData;
-      }
-      
-      // Check if response has content before trying to parse
-      const responseText = await response.text();
-      if (responseText.trim()) {
-        try {
-          const responseData = JSON.parse(responseText);
-          // Handle nested response structure
-          const serverUpdatedInvoice = responseData.invoice || responseData;
-          // Update with server response to ensure consistency
-          optimisticallyUpdateInvoice(serverUpdatedInvoice);
-          // Silently update the list data to preserve sorting/filtering
-          silentlyUpdateInvoiceInList(serverUpdatedInvoice);
-        } catch (parseError) {
-          // If response is not valid JSON, keep the optimistic update
-          // Still update the list data with our optimistic update
-          silentlyUpdateInvoiceInList(updatedInvoice);
+
+        // Build title/body error like create/delete
+        let errorTitle = t('invoice.form.errors.submissionFailed');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
         }
-      } else {
-        // If response is empty, keep the optimistic update
-        // Still update the list data with our optimistic update
-        silentlyUpdateInvoiceInList(updatedInvoice);
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
       }
-      
-      toast.success(t('invoice.messages.updated'));
-    } catch (err: any) {
-      throw err;
+
+      // Update with server response to ensure consistency
+      if (responseData.data) {
+        optimisticallyUpdateInvoice(responseData.data);
+        silentlyUpdateInvoiceInList(responseData.data);
+      }
+
+      toast.success(responseData.message || t('invoice.messages.updated'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (error: any) {
+      // Align update error styling with create/delete
+      let errorTitle = t('invoice.form.errors.submissionFailed');
+      let errorBody = '';
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (typeof error.message === 'string') {
+        errorTitle = error.message;
+      }
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+        : errorTitle;
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
+      throw error;
     }
   }, [token, invoices, t, optimisticallyUpdateInvoice, silentlyUpdateInvoiceInList]);
 
@@ -579,39 +693,100 @@ function App() {
         });
       }
 
-      const response = await secureApiClient.delete(INVOICE_ENDPOINTS.DELETE(id));
+      const res = await secureApiClient.delete(INVOICE_ENDPOINTS.DELETE(id));
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic updates
         optimisticallyAddInvoice(originalInvoice);
         setInvoiceListData(originalData);
-        throw new Error(errorData.message || t('errors.failedToDeleteInvoice'));
+
+        // Build title/body error like create/update
+        let errorTitle = t('invoice.form.errors.submissionFailed');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
       }
       
       // If the page will be incomplete, refresh the current page data
       if (willPageBeIncomplete) {
-        // Silently refresh the current page to get the missing items
-        const queryParams = new URLSearchParams();
-        queryParams.append('page', invoiceListData!.pagination.page.toString());
-        queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
-        
-        try {
-          const response = await secureApiClient.get(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`);
-          
-          if (response.ok) {
-            const refreshedData = await response.json();
-            setInvoiceListData(refreshedData);
+        // Silently refresh the current page to get the missing items, preserving filters/sort
+        const currentPage = invoiceListData!.pagination.page;
+        const currentPageSize = invoiceListData!.pagination.pageSize;
+        await fetchInvoices(lastInvoiceFiltersRef.current, lastInvoiceSortRef.current, { page: currentPage, pageSize: currentPageSize });
+      }
+      
+      toast.success(responseData.message || t('invoice.messages.deleted'), {
+        id: toastId,
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (error: any) {
+      // Handle error with title and body structure
+      let errorTitle = t('invoice.form.errors.submissionFailed');
+      let errorBody = '';
+      
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (error.message) {
+        if (typeof error.message === 'object') {
+          if (error.message.value) {
+            errorTitle = error.message.value;
+          } else if (error.message.message) {
+            errorTitle = error.message.message;
+          } else {
+            errorTitle = JSON.stringify(error.message);
           }
-        } catch (error) {
-          // Failed to refresh page data
+        } else if (typeof error.message === 'string') {
+          errorTitle = error.message;
         }
       }
       
-      toast.success(t('invoice.messages.deleted'), { id: toastId });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
-      toast.error(errorMessage, { id: toastId });
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, {
+        id: toastId,
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     }
   }, [token, invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
 
@@ -620,16 +795,90 @@ function App() {
     try {
       const response = await secureApiClient.get(INVOICE_ENDPOINTS.PDF(id));
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: t('errors.failedToDownloadPDF') }));
-        throw new Error(errorData.message || t('errors.failedToDownloadPDF'));
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        // Build title/body error like other operations
+        let errorTitle = t('errors.failedToDownloadPDF');
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
       }
-      const data = await response.json();
+
+      const data = responseData.data;
       window.open(data.url, '_blank');
-      toast.success(t('invoice.messages.pdfReady'), { id: toastId });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
-      toast.error(errorMessage, { id: toastId });
+      toast.success(responseData.message || t('invoice.messages.pdfReady'), { 
+        id: toastId,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (err: any) {
+      // Handle error with title and body structure
+      let errorTitle = t('errors.failedToDownloadPDF');
+      let errorBody = '';
+      
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else if (err.title) {
+        errorTitle = err.title;
+      } else if (err.message) {
+        if (typeof err.message === 'object') {
+          if (err.message.value) {
+            errorTitle = err.message.value;
+          } else if (err.message.message) {
+            errorTitle = err.message.message;
+          } else {
+            errorTitle = JSON.stringify(err.message);
+          }
+        } else if (typeof err.message === 'string') {
+          errorTitle = err.message;
+        }
+      }
+      
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, { 
+        id: toastId,
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     }
   }, [token, t]);
 
@@ -649,49 +898,93 @@ function App() {
 
       const response = await secureApiClient.post(INVOICE_ENDPOINTS.SUBMIT(id));
 
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!response.ok || !responseData?.succeeded) {
+        // Handle error with structured message
+        let errorTitle = t('errors.failedToSubmitInvoice');
+        let errorBody = '';
+        
+        if (responseData?.errors && Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+          errorBody = '• ' + responseData.errors.join('\n• ');
+        } else if (responseData?.message) {
+          errorBody = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+          errorBody = responseData.message || t('errors.anErrorOccurred');
+        } else {
+          errorBody = t('errors.anErrorOccurred');
         }
+        
         // Revert optimistic update
         optimisticallyUpdateInvoice(originalInvoice);
-        throw new Error(errorData.message || t('errors.failedToSubmitInvoice'));
+        
+        const error = new Error(errorBody);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
       }
       
-      // Check if response has content before trying to parse
-      const responseText = await response.text();
-      if (responseText.trim()) {
-        try {
-          const result = JSON.parse(responseText);
-          // Update with server response to get the DGI submission ID
-          if (result && result.dgiSubmissionId) {
-            optimisticallyUpdateInvoiceStatus(id, 2, result.dgiSubmissionId);
-          }
-        } catch (parseError) {
-          // If response is not valid JSON, keep the optimistic update
+      // Update with server response to get the DGI submission ID
+      if (responseData.data && responseData.data.dgiSubmissionId) {
+        optimisticallyUpdateInvoiceStatus(id, 2, responseData.data.dgiSubmissionId);
+      }
+      
+      toast.success(responseData.message || t('invoice.messages.submitted'), { 
+        id: toastId,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
         }
+      });
+    } catch (err: any) {
+      // Handle error with title and body structure
+      let errorTitle = t('errors.failedToSubmitInvoice');
+      let errorBody = '';
+      
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
       } else {
-        // If response is empty, keep the optimistic update
+        errorBody = err.message || t('errors.anErrorOccurred');
       }
       
-      toast.success(t('invoice.messages.submitted'), { id: toastId });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
-      toast.error(errorMessage, { id: toastId });
+      toast.error(errorBody, { 
+        id: toastId,
+        style: {
+          background: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     }
   }, [token, invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
 
   const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
-            const toastId = toast.loading(t('common.file.importingCSV'));
+    const toastId = toast.loading(t('common.file.importingCSV'));
+    let successShown = false;
+    
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const response = await secureApiClient.request(INVOICE_ENDPOINTS.IMPORT, { method: 'POST', body: formData }, true, true);
+      const response = await secureApiClient.post(INVOICE_ENDPOINTS.IMPORT, formData, true, true);
+
+      if (response.status === 401) {
+        toast.error(t('common.unauthorized'), { id: toastId });
+        return;
+      }
 
       if (response.status === 500) {
         toast.error(t('errors.unexpectedError'), { id: toastId });
@@ -699,33 +992,52 @@ function App() {
       }
 
       const data = await response.json();
-
-      if (response.ok) {
+      
+      if (response.ok && data.succeeded) {
         // Success response (200 OK)
-        const count = data.data?.count || 0;
-        toast.success(data.message || t('invoice.messages.imported', { count }), { id: toastId });
-        await fetchInvoices();
+        const imported = data.data?.importedCount || data.data?.imported || data.data?.count || 0;
+        const total = data.data?.total || data.data?.count || imported;
+        const successMessage = data.message || t('invoice.import.success', { imported, total });
+        
+        // Dismiss loading toast and show success
+        toast.dismiss(toastId);
+        successShown = true;
+        toast.success(successMessage, {
+          duration: 4000,
+          style: {
+            background: '#f0fdf4',
+            color: '#166534',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }
+        });
+        
+        const currentPage = invoiceListData?.pagination?.page || 1;
+        const currentPageSize = invoiceListData?.pagination?.pageSize || 20;
+        await fetchInvoices(undefined, undefined, { page: currentPage, pageSize: currentPageSize });
       } else {
         // Validation error response (400/409) - Show in modal
-        const errorMessage = data.message || t('errors.failedToImportCSV');
-        const details = data.details && Array.isArray(data.details) ? data.details : [];
+        const errorMessage = data.message || t('invoice.import.error.general');
+        const details = data.errors && Array.isArray(data.errors) ? data.errors : 
+                      (data.details && Array.isArray(data.details) ? data.details : []);
         
         // Dismiss the loading toast before showing the modal
         toast.dismiss(toastId);
         
         setErrorModal({
           isOpen: true,
-          title: t('common.error'),
+          title: t('invoice.import.error.title'),
           message: errorMessage,
           details: details
         });
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('errors.failedToImportCSV');
-      
-      // Dismiss the loading toast before showing the modal
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : t('invoice.import.error.general');
       toast.dismiss(toastId);
-      
+
       setErrorModal({
         isOpen: true,
         title: t('common.error'),
@@ -734,8 +1046,12 @@ function App() {
       });
     } finally {
       setImportLoading(false);
+      // Only dismiss loading toast if success wasn't shown
+      if (!successShown) {
+        toast.dismiss(toastId);
+      }
     }
-  }, [token, t, fetchInvoices]);
+  }, [token, t, fetchInvoices, invoiceListData]);
 
   const handleBulkDelete = useCallback(async (ids: number[]) => {
     const toastId = toast.loading(t('invoice.bulk.deleting', { count: ids.length }));
@@ -776,40 +1092,80 @@ function App() {
         ids.map(async (id) => {
           const response = await secureApiClient.delete(INVOICE_ENDPOINTS.DELETE(id));
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: t('errors.failedToDeleteInvoice') }));
-            throw new Error(errorData.message || t('errors.failedToDeleteInvoice'));
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (!response.ok || !responseData?.succeeded) {
+            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToDeleteInvoice'));
           }
         })
       );
       
       // If the page will be incomplete, refresh the current page data
       if (willPageBeIncomplete) {
-        // Silently refresh the current page to get the missing items
-        const queryParams = new URLSearchParams();
-        queryParams.append('page', invoiceListData!.pagination.page.toString());
-        queryParams.append('pageSize', invoiceListData!.pagination.pageSize.toString());
-        
-        try {
-          const response = await secureApiClient.get(`${INVOICE_ENDPOINTS.LIST}?${queryParams.toString()}`);
-          
-          if (response.ok) {
-            const refreshedData = await response.json();
-            setInvoiceListData(refreshedData);
-          }
-        } catch (error) {
-          // Failed to refresh page data
-        }
+        // Silently refresh the current page to get the missing items, preserving filters/sort
+        const currentPage = invoiceListData!.pagination.page;
+        const currentPageSize = invoiceListData!.pagination.pageSize;
+        await fetchInvoices(lastInvoiceFiltersRef.current, lastInvoiceSortRef.current, { page: currentPage, pageSize: currentPageSize });
       }
       
-      toast.success(t('invoice.messages.bulkDeleted', { count: ids.length }), { id: toastId });
-    } catch (err) {
+      toast.success(t('invoice.messages.bulkDeleted', { count: ids.length }), { 
+        id: toastId,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (err: any) {
       // Revert all optimistic updates
       originalInvoices.forEach(invoice => optimisticallyAddInvoice(invoice));
       setInvoiceListData(originalData);
       
-      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
-      toast.error(errorMessage, { id: toastId });
+      // Handle error with title and body structure
+      let errorTitle = t('errors.failedToDeleteInvoice');
+      let errorBody = '';
+      
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else if (err.title) {
+        errorTitle = err.title;
+      } else if (err.message) {
+        if (typeof err.message === 'object') {
+          if (err.message.value) {
+            errorTitle = err.message.value;
+          } else if (err.message.message) {
+            errorTitle = err.message.message;
+          } else {
+            errorTitle = JSON.stringify(err.message);
+          }
+        } else if (typeof err.message === 'string') {
+          errorTitle = err.message;
+        }
+      }
+      
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, { 
+        id: toastId,
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     }
   }, [token, invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
 
@@ -828,30 +1184,12 @@ function App() {
         ids.map(async (id) => {
           const response = await secureApiClient.post(INVOICE_ENDPOINTS.SUBMIT(id));
 
-          if (!response.ok) {
-            let errorData;
-            try {
-              errorData = await response.json();
-            } catch {
-              errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
-            }
-            throw new Error(errorData.message || t('errors.failedToSubmitInvoice'));
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (!response.ok || !responseData?.succeeded) {
+            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToSubmitInvoice'));
           }
 
-          // Check if response has content before trying to parse
-          const responseText = await response.text();
-          if (responseText.trim()) {
-            try {
-              const result = JSON.parse(responseText);
-              return result;
-            } catch (parseError) {
-              // If response is not valid JSON, return empty object
-              return {};
-            }
-          } else {
-            // If response is empty, return empty object
-            return {};
-          }
+          return responseData.data || {};
         })
       );
       
@@ -862,13 +1200,64 @@ function App() {
         }
       });
       
-      toast.success(t('invoice.messages.bulkSubmitted', { count: ids.length }), { id: toastId });
-    } catch (err) {
+      toast.success(t('invoice.messages.bulkSubmitted', { count: ids.length }), { 
+        id: toastId,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (err: any) {
       // Revert all optimistic updates
       originalInvoices.forEach(invoice => optimisticallyUpdateInvoice(invoice));
       
-      const errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
-      toast.error(errorMessage, { id: toastId });
+      // Handle error with title and body structure
+      let errorTitle = t('errors.failedToSubmitInvoice');
+      let errorBody = '';
+      
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else if (err.title) {
+        errorTitle = err.title;
+      } else if (err.message) {
+        if (typeof err.message === 'object') {
+          if (err.message.value) {
+            errorTitle = err.message.value;
+          } else if (err.message.message) {
+            errorTitle = err.message.message;
+          } else {
+            errorTitle = JSON.stringify(err.message);
+          }
+        } else if (typeof err.message === 'string') {
+          errorTitle = err.message;
+        }
+      }
+      
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, { 
+        id: toastId,
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     }
   }, [token, invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
 

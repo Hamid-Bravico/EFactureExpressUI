@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
 import InvoiceDetail from './InvoiceDetail';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
+import ErrorModal from '../../../components/ErrorModal';
 import { 
   getInvoiceActionPermissions, 
   canSelectForBulkOperation,
@@ -121,6 +122,13 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   } | null>(null);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>();
+  const [rejectionReasonModal, setRejectionReasonModal] = useState<{
+    isOpen: boolean;
+    reason: string;
+  }>({
+    isOpen: false,
+    reason: ''
+  });
 
 
 
@@ -424,6 +432,13 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     }
   }, [onSubmit, t]);
 
+  const handleShowRejectionReason = useCallback((reason: string) => {
+    setRejectionReasonModal({
+      isOpen: true,
+      reason
+    });
+  }, []);
+
   // Helper functions for Edit/Delete buttons (similar to QuoteList pattern)
   const canEditInvoice = useCallback((invoice: any) => {
     return invoice.status === 0; // Only draft invoices can be edited
@@ -575,16 +590,16 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700 flex items-center">
                 <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                {t('invoice.filters.customerName')}
+                {t('invoice.filters.searchTerm')}
               </label>
               <input
                 type="text"
                 name="customerName"
                 value={filters.customerName}
                 onChange={handleFilterChange}
-                placeholder={t('invoice.filters.searchCustomer')}
+                placeholder={t('invoice.filters.searchPlaceholder')}
                 className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
               />
             </div>
@@ -879,6 +894,8 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                           <InvoiceStatusBadge 
                             status={invoice.status}
                             dgiSubmissionId={invoice.dgiSubmissionId}
+                            dgiRejectionReason={invoice.dgiRejectionReason}
+                            onShowRejectionReason={() => handleShowRejectionReason(invoice.dgiRejectionReason || '')}
                           />
                         </div>
                       </td>
@@ -1165,6 +1182,15 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
           </div>
         </div>
       )}
+
+      {/* Rejection Reason Modal */}
+      <ErrorModal
+        isOpen={rejectionReasonModal.isOpen}
+        onClose={() => setRejectionReasonModal({ isOpen: false, reason: '' })}
+        title={t('invoice.details.rejectionReason')}
+        message={rejectionReasonModal.reason}
+        details={[]}
+      />
     </div>
   );
 });

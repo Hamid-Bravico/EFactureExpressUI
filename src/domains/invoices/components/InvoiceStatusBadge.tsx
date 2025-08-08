@@ -7,13 +7,15 @@ interface InvoiceStatusBadgeProps {
   className?: string;
   onShowRejectionReason?: () => void;
   dgiSubmissionId?: string;
+  dgiRejectionReason?: string;
 }
 
 const InvoiceStatusBadge: React.FC<InvoiceStatusBadgeProps> = ({ 
   status, 
   className = '', 
   onShowRejectionReason, 
-  dgiSubmissionId 
+  dgiSubmissionId,
+  dgiRejectionReason
 }) => {
   const { t } = useTranslation();
   const [isCopying, setIsCopying] = useState(false);
@@ -112,11 +114,11 @@ const InvoiceStatusBadge: React.FC<InvoiceStatusBadgeProps> = ({
           </svg>
         </button>
       )}
-      {status === 4 && onShowRejectionReason && (
+      {status === 4 && dgiRejectionReason && (
         <button
           onClick={onShowRejectionReason}
           className="ml-1 text-red-600 hover:text-red-700 transition-colors duration-200"
-          title={t('invoice.actions.viewRejectionReason')}
+          title={dgiRejectionReason}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
