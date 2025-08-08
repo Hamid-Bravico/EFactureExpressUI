@@ -320,49 +320,57 @@ function App() {
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
   const handleLogin = useCallback(async (email: string, password: string) => {
-    const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
-      method: "POST",
-      headers: getJsonHeaders(), // Using regular headers for login (no CSRF required)
-      credentials: 'include',
-      body: JSON.stringify({ email: email.trim(), password: password.trim() }),
-    });
+    try {
+      const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
+        method: "POST",
+        headers: getJsonHeaders(), // Using regular headers for login (no CSRF required)
+        credentials: 'include',
+        body: JSON.stringify({ email: email.trim(), password: password.trim() }),
+      });
 
-    const responseData = await response.json();
-    
-    if (!responseData.succeeded) {
-      const errorMessage = responseData.errors?.join(', ') || responseData.message || t('errors.invalidCredentials');
-      throw new Error(errorMessage);
-    }
+      const responseData = await response.json();
+      
+      if (!responseData.succeeded) {
+        const errorMessage = responseData.errors?.join(', ') || responseData.message || t('errors.invalidCredentials');
+        throw new Error(errorMessage);
+      }
 
-    if (!responseData.data) {
-      throw new Error(t('errors.invalidResponse'));
-    }
+      if (!responseData.data) {
+        throw new Error(t('errors.invalidResponse'));
+      }
 
-    const data = responseData.data;
-    
-    if (!data.token) {
-      throw new Error(t('errors.invalidResponse'));
-    }
+      const data = responseData.data;
+      
+      if (!data.token) {
+        throw new Error(t('errors.invalidResponse'));
+      }
 
-    // Extract user info from JWT token
-    const decoded = decodeJWT(data.token);
-    if (!decoded) {
-      throw new Error(t('errors.invalidResponse'));
-    }
-    if (!decoded.role) {
-      throw new Error(t('errors.invalidRole'));
-    }
-    if (!decoded.userId) {
-      throw new Error(t('errors.invalidUserId'));
-    }
+      // Extract user info from JWT token
+      const decoded = decodeJWT(data.token);
+      if (!decoded) {
+        throw new Error(t('errors.invalidResponse'));
+      }
+      if (!decoded.role) {
+        throw new Error(t('errors.invalidRole'));
+      }
+      if (!decoded.userId) {
+        throw new Error(t('errors.invalidUserId'));
+      }
 
-    // Store access token; refresh token is handled by HttpOnly cookie
-    tokenManager.setToken(data.token);
-    tokenManager.setUserData(decoded.role, decoded.userId, data.company);
-    if (data.company) {
-      setCompany(data.company);
+      // Store access token; refresh token is handled by HttpOnly cookie
+      tokenManager.setToken(data.token);
+      tokenManager.setUserData(decoded.role, decoded.userId, data.company);
+      if (data.company) {
+        setCompany(data.company);
+      }
+      setToken(data.token);
+    } catch (error) {
+      // Handle network errors (like when backend is not running)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error(t('errors.failedToFetch'));
+      }
+      throw error;
     }
-    setToken(data.token);    
   }, [t]);
 
   const handleLogout = useCallback(async () => {

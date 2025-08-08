@@ -133,7 +133,8 @@
     "failedToFetchCustomers": "Échec de la récupération des clients",
     "sectionError": "Une erreur s'est produite dans cette section.",
     "failedToFetchUsers": "Échec de la récupération des utilisateurs",
-    "failedToFetchQuotes": "Échec de la récupération des devis"
+    "failedToFetchQuotes": "Échec de la récupération des devis",
+    "failedToFetch": "Échec de la récupération. Veuillez vérifier votre connexion et réessayer."
   },
   "dashboard": {
     "title": "Tableau de bord",

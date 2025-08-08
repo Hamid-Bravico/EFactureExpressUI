@@ -133,7 +133,8 @@
     "failedToFetchCustomers": "Failed to fetch customers",
     "sectionError": "Something went wrong in this section.",
     "failedToFetchUsers": "Failed to fetch users",
-    "failedToFetchQuotes": "Failed to fetch quotes"
+    "failedToFetchQuotes": "Failed to fetch quotes",
+    "failedToFetch": "Failed to fetch. Please check your connection and try again."
   },
   "dashboard": {
     "title": "Dashboard",
