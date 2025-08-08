@@ -98,52 +98,105 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
       const response = await secureApiClient.put(COMPANY_ENDPOINTS.UPDATE, updateData, true, true);
 
       if (!response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await response.json();
-          
-          if (errorData.errors) {
-            // Handle validation errors
-            const errorMessages = Object.values(errorData.errors).flat() as string[];
-            errorMessages.forEach(message => {
-              toast.error(message);
-            });
-            return;
-          } else if (errorData.title) {
-            toast.error(errorData.title);
-            return;
-          }
+        let responseData;
+        try {
+          responseData = await response.json();
+        } catch (parseError) {
+          responseData = { message: `HTTP error! status: ${response.status}` };
         }
         
-        // Fallback for non-JSON errors
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorTitle = t('errors.updateCompanyFailed');
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        } else if (response.status === 400) {
+          errorTitle = 'Bad Request - Please check your input data';
+        }
+        
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
       }
 
       // Check if response has content before parsing
       const responseText = await response.text();
-      let updatedCompany = null;
+      let responseData = null;
       
       if (responseText.trim()) {
         try {
-          updatedCompany = JSON.parse(responseText);
+          responseData = JSON.parse(responseText);
         } catch (parseError) {
-          console.warn('Failed to parse response as JSON:', responseText);
+          // Response might not be JSON, which is fine for success cases
         }
       }
       
       if (onUpdate) {
-        // If we have response data, use it; otherwise use the values we sent
-        const updateData = updatedCompany || {
-          [field]: editValues[field as keyof typeof editValues].trim()
-        };
+        // Create the update data with the correct field mapping
+        const updateData: Partial<Company> = {};
+        
+        if (field === 'name') {
+          updateData.name = editValues.name.trim();
+        } else if (field === 'identifiantFiscal') {
+          updateData.identifiantFiscal = editValues.identifiantFiscal.trim() || undefined;
+        } else if (field === 'address') {
+          updateData.address = editValues.address.trim() || undefined;
+        }
+        
+        // If we have response data, merge it with our update data
+        if (responseData) {
+          Object.assign(updateData, responseData);
+        }
+        
         onUpdate(updateData);
       }
       
-      toast.success(t('common.updateSuccess'));
+      const successMessage = responseData?.message || t('common.updateSuccess');
+      toast.success(successMessage, {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
       setEditingField(null);
-    } catch (error) {
-      console.error('Error updating company:', error);
-      toast.error(t('errors.updateCompanyFailed'));
+    } catch (error: any) {
+      const errorTitle = error.title || t('errors.updateCompanyFailed');
+      const errorBody = error.body || '';
+      
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((line: string) => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -284,11 +337,26 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
     },
     {
       label: t('auth.memberSince'),
-      value: new Date(company.createdAt).toLocaleDateString(i18n.language, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
+      value: (() => {
+        if (!company.createdAt) {
+          return <span className="text-gray-500 italic">{t('common.unknownDate')}</span>;
+        }
+        
+        try {
+          const date = new Date(company.createdAt);
+          if (isNaN(date.getTime())) {
+            return <span className="text-gray-500 italic">{t('common.unknownDate')}</span>;
+          }
+          
+          return date.toLocaleDateString(i18n.language, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+        } catch (error) {
+          return <span className="text-gray-500 italic">{t('common.unknownDate')}</span>;
+        }
+      })(),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
