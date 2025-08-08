@@ -673,6 +673,7 @@
         "nameRequired": "Le nom est requis",
         "codeArticleRequired": "Le code article est requis",
         "descriptionTooShort": "La description doit contenir au moins 3 caractères",
+        "unitPriceRequired": "Le prix unitaire doit être supérieur à zéro",
         "fixErrors": "Veuillez corriger les erreurs ci-dessous",
         "saveFailed": "Échec de l'enregistrement de l'article",
         "submissionFailed": "Échec de la soumission du formulaire"

@@ -20,7 +20,12 @@ const CatalogImportCSV: React.FC<CatalogImportCSVProps> = ({ onImport, loading =
       return;
     }
 
-    if (file.type !== 'text/csv') {
+    // Check file extension and MIME type for better CSV detection
+    const isCSV = file.type === 'text/csv' || 
+                  file.name.toLowerCase().endsWith('.csv') ||
+                  file.type === 'application/csv';
+    
+    if (!isCSV) {
       setError(t('errors.invalidFileType'));
       // Reset the file input
       if (fileInputRef.current) {

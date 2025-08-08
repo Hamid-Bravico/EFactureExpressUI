@@ -107,9 +107,14 @@ export class SecureApiClient {
     
     if (!headers.has('Content-Type')) {
       const hasStringBody = typeof (options as any).body === 'string';
+      const isFormData = options.body instanceof FormData;
+      
       if (hasStringBody) {
         headers.set('Content-Type', 'application/json');
+      } else if (options.body && !isFormData) {
+        headers.set('Content-Type', 'application/json');
       }
+      // Don't set Content-Type for FormData - let browser handle it automatically
     }
 
     const requestOptions: RequestInit = {
@@ -154,7 +159,7 @@ export class SecureApiClient {
   async post(url: string, data?: any, requireAuth: boolean = true, requireCsrf: boolean = true): Promise<Response> {
     return this.request(url, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined
+      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined)
     }, requireAuth, requireCsrf);
   }
 

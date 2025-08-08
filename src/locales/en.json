@@ -673,6 +673,7 @@
         "nameRequired": "Name is required",
         "codeArticleRequired": "Article code is required",
         "descriptionTooShort": "Description must be at least 3 characters",
+        "unitPriceRequired": "Unit price must be greater than zero",
         "fixErrors": "Please fix the errors below",
         "saveFailed": "Failed to save item",
         "submissionFailed": "Failed to submit form"

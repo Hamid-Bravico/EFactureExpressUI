@@ -17,7 +17,10 @@ export interface CatalogListResponse {
     description: string;
     unitPrice: number;
     defaultTaxRate: number;
-    type: number;
+      type: number | string;
+      createdBy?: string;
+      createdById?: string;
+      createdAt?: string;
   }>;
   pagination: {
     totalItems: number;
@@ -297,7 +300,16 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
       }
       setShowCatalogForm(false);
     } catch (error: any) {
-      toast.error(error.message || t('catalog.form.errors.submissionFailed'));
+      // Handle complex error message structure
+      let errorMessage = t('catalog.form.errors.submissionFailed');
+      if (error.message) {
+        if (typeof error.message === 'object' && error.message.value) {
+          errorMessage = error.message.value;
+        } else if (typeof error.message === 'string') {
+          errorMessage = error.message;
+        }
+      }
+      toast.error(errorMessage);
       throw error;
     }
   }, [editingCatalog, onUpdateCatalog, onCreateCatalog, t]);
@@ -572,6 +584,14 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
                    <React.Fragment key={catalog.id}>
                      <tr 
                        className="hover:bg-blue-50/40 cursor-pointer transition-all duration-300 group"
+                       title={
+                         catalog.createdAt || catalog.createdBy
+                           ? `${t('quote.tooltip.createdBy', { 
+                                date: catalog.createdAt ? new Date(catalog.createdAt).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US') : t('common.unknown'),
+                                name: catalog.createdBy || t('common.unknown')
+                              })}`
+                           : undefined as unknown as string
+                       }
                        onClick={() => setSelectedCatalog(selectedCatalog === catalog.id ? null : catalog.id)}
                      >
                        <td className="px-4 py-2 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
@@ -629,7 +649,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
                            <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                            </svg>
-                           {catalog.type === 0 ? t('catalog.form.typeProduct') : t('catalog.form.typeService')}
+                            {Number(catalog.type) === 0 ? t('catalog.form.typeProduct') : t('catalog.form.typeService')}
                          </div>
                        </td>
                                               <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">

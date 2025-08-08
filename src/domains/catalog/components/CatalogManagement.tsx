@@ -116,7 +116,13 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
 
       const res = await secureApiClient.post(CATALOG_ENDPOINTS?.CREATE || '/api/catalog', catalog);
       
-      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (parseError) {
+        responseData = { succeeded: false, message: t('errors.anErrorOccurred') };
+      }
+      
       if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         if (catalogs) {
@@ -131,14 +137,46 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           }));
         }
 
-        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('catalog.form.errors.submissionFailed');
-        const error = new Error(errorMessage);
+        // Handle different error response formats
+        let errorTitle = t('catalog.form.errors.submissionFailed');
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        } else if (res.status === 400) {
+          errorTitle = 'Bad Request - Please check your input data';
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
         (error as any).errors = responseData?.errors;
         throw error;
       }
 
       const data = responseData.data;
-      toast.success(t('catalog.messages.created'));
+      toast.success(responseData.message || t('catalog.messages.created'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
       
       // Replace temporary catalog with real data
       if (catalogs) {
@@ -148,7 +186,47 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         }));
       }
     } catch (error: any) {
-      toast.error(error.message || t('catalog.form.errors.submissionFailed'));
+      // Handle error with title and body structure
+      let errorTitle = t('catalog.form.errors.submissionFailed');
+      let errorBody = '';
+      
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (error.message) {
+        if (typeof error.message === 'object') {
+          if (error.message.value) {
+            errorTitle = error.message.value;
+          } else if (error.message.message) {
+            errorTitle = error.message.message;
+          } else {
+            errorTitle = JSON.stringify(error.message);
+          }
+        } else if (typeof error.message === 'string') {
+          errorTitle = error.message;
+        }
+      }
+      
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
       throw error;
     }
   }, [token, t, catalogs]);
@@ -199,8 +277,24 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
           }));
         }
 
-        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('catalog.form.errors.submissionFailed');
-        const error = new Error(errorMessage);
+        // Build title/body error like create/delete
+        let errorTitle = t('catalog.form.errors.submissionFailed');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
         (error as any).errors = responseData?.errors;
         throw error;
       }
@@ -215,9 +309,44 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         }));
       }
 
-      toast.success(t('catalog.messages.updated'));
+      toast.success(responseData.message || t('catalog.messages.updated'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } catch (error: any) {
-      toast.error(error.message || t('catalog.form.errors.submissionFailed'));
+      // Align update error styling with create/delete
+      let errorTitle = t('catalog.form.errors.submissionFailed');
+      let errorBody = '';
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (typeof error.message === 'string') {
+        errorTitle = error.message;
+      }
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+        : errorTitle;
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
       throw error;
     }
   }, [token, t, catalogs]);
@@ -286,7 +415,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             }
           }
         } catch (error) {
-          console.warn('Failed to refresh page data after deletion:', error);
+          // Silent fail - user experience continues
         }
       } else if (remainingItems === 0 && currentPage > 1) {
         // If we deleted the last item on a page that's not the first page, go to previous page
@@ -305,7 +434,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             }
           }
         } catch (error) {
-          console.warn('Failed to navigate to previous page after deletion:', error);
+          // Silent fail - user experience continues
         }
       } else if (willPageBeIncomplete) {
         // If the page will be incomplete, refresh the current page data
@@ -323,14 +452,65 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             }
           }
         } catch (error) {
-          console.warn('Failed to refresh page data after deletion:', error);
+          // Silent fail - user experience continues
         }
       }
 
-      toast.success(t('catalog.messages.deleted', { count: 1 }), { id: toastId });
+      toast.success(responseData.message || t('catalog.messages.deleted', { count: 1 }), { 
+        id: toastId,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } catch (error: any) {
-      console.error('Delete catalog error:', error);
-      toast.error(error.message || t('catalog.messages.deleteFailed'), { id: toastId });
+      // Handle error with title and body structure
+      let errorTitle = t('catalog.messages.deleteFailed');
+      let errorBody = '';
+      
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (error.message) {
+        if (typeof error.message === 'object') {
+          if (error.message.value) {
+            errorTitle = error.message.value;
+          } else if (error.message.message) {
+            errorTitle = error.message.message;
+          } else {
+            errorTitle = JSON.stringify(error.message);
+          }
+        } else if (typeof error.message === 'string') {
+          errorTitle = error.message;
+        }
+      }
+      
+      // Create a more polished error message
+      const errorMessage = errorBody 
+        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
+        : errorTitle;
+      
+      toast.error(errorMessage, { 
+        id: toastId,
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     }
   }, [token, t, catalogs]);
 
@@ -394,7 +574,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             setCatalogs(refreshedData);
           }
         } catch (error) {
-          console.warn('Failed to refresh page data after bulk deletion:', error);
+          // Silent fail - user experience continues
         }
       } else if (remainingItems === 0 && currentPage > 1) {
         // If we deleted all items on a page that's not the first page, go to previous page
@@ -411,7 +591,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             setCatalogs(refreshedData);
           }
         } catch (error) {
-          console.warn('Failed to navigate to previous page after bulk deletion:', error);
+          // Silent fail - user experience continues
         }
       } else if (willPageBeIncomplete) {
         // If the page will be incomplete, refresh the current page data
@@ -427,7 +607,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
             setCatalogs(refreshedData);
           }
         } catch (error) {
-          console.warn('Failed to refresh page data after bulk deletion:', error);
+          // Silent fail - user experience continues
         }
       }
       
@@ -444,12 +624,13 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
   const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
     const toastId = toast.loading(t('common.file.importingCSV'));
+    let successShown = false;
     
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await secureApiClient.request(CATALOG_ENDPOINTS.IMPORT_CSV, { method: 'POST', body: formData }, true, true);
+      const response = await secureApiClient.post(CATALOG_ENDPOINTS.IMPORT_CSV, formData, true, true);
 
       if (response.status === 401) {
         toast.error(t('common.unauthorized'), { id: toastId });
@@ -462,12 +643,28 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       }
 
       const data = await response.json();
-
       
-      if (response.ok) {
+      if (response.ok && data.succeeded) {
         // Success response (200 OK)
-        const count = data.data?.count || 0;
-        toast.success(data.message || t('quote.messages.imported', { count }), { id: toastId });
+        const imported = data.data?.importedCount || data.data?.imported || data.data?.count || 0;
+        const total = data.data?.total || data.data?.count || imported;
+        const successMessage = data.message || t('catalog.import.success', { imported, total });
+        
+        // Dismiss loading toast and show success
+        toast.dismiss(toastId);
+        successShown = true;
+        toast.success(successMessage, {
+          duration: 4000,
+          style: {
+            background: '#f0fdf4',
+            color: '#166534',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }
+        });
         
         const currentPage = catalogs?.pagination?.page || 1;
         const currentPageSize = catalogs?.pagination?.pageSize || 10;
@@ -475,7 +672,8 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       } else {
         // Validation error response (400/409) - Show in modal
         const errorMessage = data.message || t('catalog.import.error.general');
-        const details = data.details && Array.isArray(data.details) ? data.details : [];
+        const details = data.errors && Array.isArray(data.errors) ? data.errors : 
+                      (data.details && Array.isArray(data.details) ? data.details : []);
         
         // Dismiss the loading toast before showing the modal
         toast.dismiss(toastId);
@@ -488,7 +686,6 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         });
       }
     } catch (err: any) {
-      console.error('Import CSV error:', err);
       const errorMessage = err instanceof Error ? err.message : t('catalog.import.error.general');
       toast.dismiss(toastId);
 
@@ -500,6 +697,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       });
     } finally {
       setImportLoading(false);
+      // Only dismiss loading toast if success wasn't shown
+      if (!successShown) {
+        toast.dismiss(toastId);
+      }
     }
   }, [token, t, fetchCatalogs]);
 

@@ -66,6 +66,10 @@ const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, d
       newErrors.description = t('catalog.form.errors.descriptionTooShort');
     }
     
+    if (unitPrice <= 0) {
+      newErrors.unitPrice = t('catalog.form.errors.unitPriceRequired');
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -134,7 +138,14 @@ const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, d
       } else if (error.title) {
         toast.error(error.title);
       } else if (error.message) {
-        toast.error(error.message);
+        // Handle complex error message structure
+        if (typeof error.message === 'object' && error.message.value) {
+          toast.error(error.message.value);
+        } else if (typeof error.message === 'string') {
+          toast.error(error.message);
+        } else {
+          toast.error(t('catalog.messages.saveFailed'));
+        }
       } else {
         toast.error(t('catalog.messages.saveFailed'));
       }
@@ -170,7 +181,15 @@ const CatalogForm: React.FC<CatalogFormProps> = ({ onSubmit, onClose, catalog, d
             </h2>
             {catalog && (
               <p className="text-sm text-gray-600 mt-1">
-                {t('catalog.form.CodeArticle')}: <span className="font-medium">{catalog.CodeArticle}</span>
+                {catalog.CodeArticle ? (
+                  <>
+                    {t('catalog.form.CodeArticle')}: <span className="font-medium">{catalog.CodeArticle}</span>
+                  </>
+                ) : (
+                  <>
+                    {t('catalog.form.name')}: <span className="font-medium">{catalog.Name}</span>
+                  </>
+                )}
               </p>
             )}
           </div>
