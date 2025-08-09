@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import QuoteStatusBadge from './QuoteStatusBadge';
 import { secureApiClient } from '../../../config/api';
-import { API_BASE_URL } from '../../../config/constants';
+import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 
 interface QuoteDetailProps {
   quote: Quote;
@@ -55,33 +55,84 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         throw new Error('No valid token available');
       }
 
-      // Map status strings to status codes
       const statusCodeMap: { [key: string]: number } = {
         'Sent': 1,
         'Accepted': 2,
         'Rejected': 3
       };
-
       const statusCode = statusCodeMap[newStatus];
       if (statusCode === undefined) {
         throw new Error(`Invalid status: ${newStatus}`);
       }
 
-      const response = await secureApiClient.post(`${API_BASE_URL}/quotes/${quote.id}/status/${statusCode}`);
+      // Use path param style: /{id}/status/{newStatus}
+      const res = await secureApiClient.post(`${QUOTE_ENDPOINTS.UPDATE_STATUS(quote.id)}/${statusCode}`);
 
-      const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
-      if (!response.ok || !responseData?.succeeded) {
-        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.statusUpdateError'));
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!res.ok || !responseData?.succeeded) {
+        let errorTitle = t('quote.list.statusUpdateError');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const formatted = errorBody
+          ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+          : errorTitle;
+        toast.error(formatted, {
+          duration: 5000,
+          style: {
+            background: '#fef2f2',
+            color: '#991b1b',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            whiteSpace: 'pre-line'
+          }
+        });
+        return;
       }
 
-      // Call optimistic update to update UI state
       if (onOptimisticStatusUpdate) {
         onOptimisticStatusUpdate(quote.id, newStatus);
       }
-      
-      toast.success(t('quote.list.statusUpdateSuccess'));
+
+      toast.success(responseData.message || t('quote.list.statusUpdateSuccess'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } catch (error: any) {
-      toast.error(error.message || t('quote.list.statusUpdateError'));
+      const errorMessage = typeof error?.message === 'string' ? error.message : t('quote.list.statusUpdateError');
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } finally {
       setRefreshingStatusId(null);
     }
@@ -132,7 +183,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         throw new Error('No valid token available');
       }
 
-      const response = await secureApiClient.get(`${API_BASE_URL}/quotes/${quote.id}/pdf-url`);
+      const response = await secureApiClient.get(QUOTE_ENDPOINTS.DOWNLOAD_PDF(quote.id));
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {
@@ -223,12 +274,12 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
              {quote.status === 'Accepted' && (
                <>
                  {onConvertToInvoice && (
-                   <button
+                    <button
                      onClick={handleConvertToInvoice}
                      disabled={disabled}
                      className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-600 text-white border border-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
-                     {t('quote.list.convertToInvoice')}
+                      {t('quote.actions.convertToInvoice')}
                    </button>
                  )}
                  {onDownloadPdf && (
@@ -358,7 +409,9 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
               <span className="font-medium">{t('quote.details.createdBy')}:</span> {quote.createdBy?.name || 'Unknown'}
             </div>
             <div>
-              <span className="font-medium">{t('quote.details.createdAt')}:</span> {new Date(quote.createdAt).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}
+              <span className="font-medium">{t('quote.details.createdAt')}:</span> {quote.createdAt && !isNaN(Date.parse(quote.createdAt)) && new Date(quote.createdAt).getFullYear() > 2000
+                ? new Date(quote.createdAt).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')
+                : t('common.unknownDate')}
             </div>
           </div>
         </div>

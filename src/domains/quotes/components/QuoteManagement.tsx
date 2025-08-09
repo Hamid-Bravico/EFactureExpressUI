@@ -34,11 +34,16 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   });
 
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const lastQuoteFiltersRef = React.useRef<any | undefined>(undefined);
+  const lastQuoteSortRef = React.useRef<any | undefined>(undefined);
 
   const fetchQuotes = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
     setLoading(true);
     setError('');
     try {
+      // Persist last used filters and sort for later silent refreshes
+      lastQuoteFiltersRef.current = filters;
+      lastQuoteSortRef.current = sort;
       const params = new URLSearchParams();
       
       if (filters) {
@@ -59,7 +64,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         params.append('pageSize', pagination.pageSize.toString());
       }
 
-      const url = `${QUOTE_ENDPOINTS?.LIST || '/api/quotes'}?${params.toString()}`;
+      const url = `${QUOTE_ENDPOINTS?.LIST || '/api/quotes'}${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await secureApiClient.get(url);
       
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
@@ -67,7 +72,19 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetchQuotes'));
       }
       
-      setQuotes(responseData.data || null);
+      const apiData = responseData.data || {};
+      const transformed = {
+        quotes: Array.isArray(apiData.items) ? apiData.items : (apiData.quotes || []),
+        pagination: apiData.pagination || {
+          totalItems: 0,
+          page: 1,
+          pageSize: 20,
+          totalPages: 0
+        },
+        filters: apiData.filters || { statuses: [], customers: [] }
+      } as QuoteListResponse;
+
+      setQuotes(transformed);
     } catch (e: any) {
       setError(e.message || t('errors.anErrorOccurred'));
       toast.error(e.message || t('errors.failedToFetchQuotes'));
@@ -158,14 +175,41 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           }));
         }
 
-        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('quote.form.errors.submissionFailed');
-        const error = new Error(errorMessage);
+        let errorTitle = t('quote.form.errors.submissionFailed');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
         (error as any).errors = responseData?.errors;
         throw error;
       }
 
       const data = responseData.data;
-      toast.success(t('quote.form.createSuccess'));
+      toast.success(responseData.message || t('quote.messages.created'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
       
       // Replace temporary quote with real data
       if (quotes) {
@@ -175,7 +219,32 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
     } catch (error: any) {
-      toast.error(error.message || t('quote.form.errors.submissionFailed'));
+      let errorTitle = t('quote.form.errors.submissionFailed');
+      let errorBody = '';
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (typeof error.message === 'string') {
+        errorTitle = error.message;
+      }
+      const formatted = errorBody
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+        : errorTitle;
+      toast.error(formatted, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
       throw error;
     }
   }, [token, t, quotes]);
@@ -260,8 +329,23 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           }));
         }
 
-        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('quote.form.errors.submissionFailed');
-        const error = new Error(errorMessage);
+        let errorTitle = t('quote.form.errors.submissionFailed');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
         (error as any).errors = responseData?.errors;
         throw error;
       }
@@ -276,15 +360,51 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      toast.success(t('quote.form.updateSuccess'));
+      toast.success(responseData.message || t('quote.messages.updated'), {
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } catch (error: any) {
-      toast.error(error.message || t('quote.form.errors.submissionFailed'));
+      let errorTitle = t('quote.form.errors.submissionFailed');
+      let errorBody = '';
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (error.title) {
+        errorTitle = error.title;
+      } else if (typeof error.message === 'string') {
+        errorTitle = error.message;
+      }
+      const formatted = errorBody
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+        : errorTitle;
+      toast.error(formatted, {
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
       throw error;
     }
   }, [token, t, quotes]);
 
   const handleDeleteQuote = useCallback(async (id: number) => {
-    const toastId = toast.loading(t('common.deletingQuote'));
+    const toastId = toast.loading(t('common.processing'));
     
     // Store original data for rollback
     const originalData = quotes;
@@ -320,7 +440,25 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       if (!res.ok || !responseData?.succeeded) {
         // Revert optimistic update
         setQuotes(originalData);
-        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.deleteError'));
+        let errorTitle = t('quote.list.deleteError');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const err = new Error(errorBody || errorTitle);
+        (err as any).title = errorTitle;
+        (err as any).body = errorBody;
+        (err as any).errors = responseData?.errors;
+        throw err;
       }
 
       // If the page will be incomplete, refresh the current page data
@@ -329,23 +467,115 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         const queryParams = new URLSearchParams();
         queryParams.append('page', quotes!.pagination.page.toString());
         queryParams.append('pageSize', quotes!.pagination.pageSize.toString());
+        // Re-apply last filters
+        if (lastQuoteFiltersRef.current) {
+          Object.entries(lastQuoteFiltersRef.current).forEach(([key, value]) => {
+            if (value && value !== '') queryParams.append(key, value as string);
+          });
+        }
+        // Re-apply last sort
+        if (lastQuoteSortRef.current) {
+          queryParams.append('sortField', lastQuoteSortRef.current.sortField);
+          queryParams.append('sortDirection', lastQuoteSortRef.current.sortDirection);
+        }
         
         try {
           const response = await secureApiClient.get(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (response.ok && responseData?.succeeded) {
-            setQuotes(responseData.data || null);
+            const apiData = responseData.data || {};
+            const transformed = {
+              quotes: Array.isArray(apiData.items) ? apiData.items : (apiData.quotes || []),
+              pagination: apiData.pagination || {
+                totalItems: 0,
+                page: 1,
+                pageSize: 20,
+                totalPages: 0
+              },
+              filters: apiData.filters || { statuses: [], customers: [] }
+            } as QuoteListResponse;
+            setQuotes(transformed);
           }
         } catch (error) {
           // Failed to refresh page data
         }
+      } else if (quotes && quotes.quotes.length === 0 && quotes.pagination.page > 1) {
+        // If this was the last item on the page and it's not handled above, load previous page
+        const prevPage = quotes.pagination.page - 1;
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', prevPage.toString());
+        queryParams.append('pageSize', quotes.pagination.pageSize.toString());
+        if (lastQuoteFiltersRef.current) {
+          Object.entries(lastQuoteFiltersRef.current).forEach(([key, value]) => {
+            if (value && value !== '') queryParams.append(key, value as string);
+          });
+        }
+        if (lastQuoteSortRef.current) {
+          queryParams.append('sortField', lastQuoteSortRef.current.sortField);
+          queryParams.append('sortDirection', lastQuoteSortRef.current.sortDirection);
+        }
+        try {
+          const response = await secureApiClient.get(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`);
+          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+          if (response.ok && responseData?.succeeded) {
+            const apiData = responseData.data || {};
+            const transformed = {
+              quotes: Array.isArray(apiData.items) ? apiData.items : (apiData.quotes || []),
+              pagination: apiData.pagination || {
+                totalItems: 0,
+                page: prevPage,
+                pageSize: quotes.pagination.pageSize,
+                totalPages: 0
+              },
+              filters: apiData.filters || { statuses: [], customers: [] }
+            } as QuoteListResponse;
+            setQuotes(transformed);
+          }
+        } catch (error) {
+          // ignore
+        }
       }
 
-      toast.success(t('quote.list.deleteSuccess', { count: 1 }), { id: toastId });
+      toast.success(responseData.message || t('quote.list.deleteSuccess', { count: 1 }), {
+        id: toastId,
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
     } catch (error: any) {
-      console.error('Delete quote error:', error);
-      toast.error(error.message || t('quote.list.deleteError'), { id: toastId });
+      let errorTitle = t('quote.list.deleteError');
+      let errorBody = '';
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (typeof error.message === 'string') {
+        errorTitle = error.message;
+      }
+      const formatted = errorBody
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+        : errorTitle;
+      toast.error(formatted, {
+        id: toastId,
+        duration: 5000,
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
     }
   }, [token, t, quotes]);
 
@@ -382,7 +612,25 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (!response.ok || !responseData?.succeeded) {
-            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.deleteError'));
+            let errorTitle = t('quote.list.deleteError');
+            let errorBody = '';
+            if (responseData?.errors) {
+              if (Array.isArray(responseData.errors)) {
+                errorBody = responseData.errors.join('\n');
+              } else if (typeof responseData.errors === 'object') {
+                errorBody = Object.values(responseData.errors).flat().join('\n');
+              }
+            }
+            if (responseData?.message) {
+              errorTitle = responseData.message;
+            } else if (responseData?.title) {
+              errorTitle = responseData.title;
+            }
+            const err = new Error(errorBody || errorTitle);
+            (err as any).title = errorTitle;
+            (err as any).body = errorBody;
+            (err as any).errors = responseData?.errors;
+            throw err;
           }
         })
       );
@@ -393,26 +641,106 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         const queryParams = new URLSearchParams();
         queryParams.append('page', quotes!.pagination.page.toString());
         queryParams.append('pageSize', quotes!.pagination.pageSize.toString());
+        if (lastQuoteFiltersRef.current) {
+          Object.entries(lastQuoteFiltersRef.current).forEach(([key, value]) => {
+            if (value && value !== '') queryParams.append(key, value as string);
+          });
+        }
+        if (lastQuoteSortRef.current) {
+          queryParams.append('sortField', lastQuoteSortRef.current.sortField);
+          queryParams.append('sortDirection', lastQuoteSortRef.current.sortDirection);
+        }
         
         try {
           const response = await secureApiClient.get(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`);
           
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (response.ok && responseData?.succeeded) {
-            setQuotes(responseData.data || null);
+            const apiData = responseData.data || {};
+            const transformed = {
+              quotes: Array.isArray(apiData.items) ? apiData.items : (apiData.quotes || []),
+              pagination: apiData.pagination || {
+                totalItems: 0,
+                page: 1,
+                pageSize: 20,
+                totalPages: 0
+              },
+              filters: apiData.filters || { statuses: [], customers: [] }
+            } as QuoteListResponse;
+            setQuotes(transformed);
           }
         } catch (error) {
           // Failed to refresh page data
         }
+      } else {
+        // If after removal this page becomes empty and it's not the first page, load the previous page
+        const remainingCount = quotes ? quotes.quotes.filter(q => !ids.includes(q.id)).length : 0;
+        if (quotes && remainingCount === 0 && quotes.pagination.page > 1) {
+          const prevPage = quotes.pagination.page - 1;
+        const queryParams = new URLSearchParams();
+          queryParams.append('page', prevPage.toString());
+          queryParams.append('pageSize', quotes.pagination.pageSize.toString());
+        if (lastQuoteFiltersRef.current) {
+          Object.entries(lastQuoteFiltersRef.current).forEach(([key, value]) => {
+            if (value && value !== '') queryParams.append(key, value as string);
+          });
+        }
+        if (lastQuoteSortRef.current) {
+          queryParams.append('sortField', lastQuoteSortRef.current.sortField);
+          queryParams.append('sortDirection', lastQuoteSortRef.current.sortDirection);
+        }
+          try {
+            const response = await secureApiClient.get(`${QUOTE_ENDPOINTS.LIST}?${queryParams.toString()}`);
+            const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+            if (response.ok && responseData?.succeeded) {
+              const apiData = responseData.data || {};
+              const transformed = {
+                quotes: Array.isArray(apiData.items) ? apiData.items : (apiData.quotes || []),
+                pagination: apiData.pagination || {
+                  totalItems: 0,
+                  page: prevPage,
+                  pageSize: quotes.pagination.pageSize,
+                  totalPages: 0
+                },
+                filters: apiData.filters || { statuses: [], customers: [] }
+              } as QuoteListResponse;
+              setQuotes(transformed);
+            }
+          } catch (error) {
+            // ignore
+          }
+        }
       }
       
-      toast.success(t('quote.list.bulkDeleteSuccess', { count: ids.length }), { id: toastId });
-    } catch (err) {
+      toast.success(t('quote.messages.deleted', { count: ids.length }), {
+        id: toastId,
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (err: any) {
       // Revert all optimistic updates
       setQuotes(originalData);
       
-      const errorMessage = err instanceof Error ? err.message : t('quote.list.bulkDeleteError');
-      toast.error(errorMessage, { id: toastId });
+      let errorTitle = t('quote.list.bulkDeleteError');
+      let errorBody = '';
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else if (typeof err.message === 'string') {
+        errorTitle = err.message;
+      }
+      const formatted = errorBody
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+        : errorTitle;
+      toast.error(formatted, { id: toastId, duration: 5000, style: { background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-line' } });
     }
   }, [token, t, quotes]);
 
@@ -433,37 +761,38 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      // Perform all submit operations
-      const results = await Promise.all(
+      // Perform all status updates (1 = Sent)
+      await Promise.all(
         ids.map(async (id) => {
-          const response = await secureApiClient.post(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`);
+          const response = await secureApiClient.post(`${QUOTE_ENDPOINTS.UPDATE_STATUS(id)}/1`);
 
           const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
           if (!response.ok || !responseData?.succeeded) {
-            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.submitError'));
+            let errorTitle = t('quote.list.submitError');
+            let errorBody = '';
+            if (responseData?.errors) {
+              if (Array.isArray(responseData.errors)) {
+                errorBody = responseData.errors.join('\n');
+              } else if (typeof responseData.errors === 'object') {
+                errorBody = Object.values(responseData.errors).flat().join('\n');
+              }
+            }
+            if (responseData?.message) {
+              errorTitle = responseData.message;
+            } else if (responseData?.title) {
+              errorTitle = responseData.title;
+            }
+            const err = new Error(errorBody || errorTitle);
+            (err as any).title = errorTitle;
+            (err as any).body = errorBody;
+            (err as any).errors = responseData?.errors;
+            throw err;
           }
-
-          return responseData.data || {};
         })
       );
       
-      // Update with server responses if needed
-      results.forEach((result, index) => {
-        if (result && typeof result === 'object' && Object.keys(result).length > 0) {
-          // If there's additional data from server, update accordingly
-          if (quotes) {
-            setQuotes(prev => ({
-              ...prev!,
-              quotes: prev!.quotes.map(q => 
-                q.id === ids[index] ? { ...q, status: 'Sent', ...result } : q
-              )
-            }));
-          }
-        }
-      });
-      
       toast.success(t('quote.list.bulkSubmitSuccess', { count: ids.length }), { id: toastId });
-    } catch (err) {
+    } catch (err: any) {
       // Revert all optimistic updates
       if (quotes && originalQuotes.length > 0) {
         setQuotes(prev => ({
@@ -475,8 +804,18 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
       
-      const errorMessage = err instanceof Error ? err.message : t('quote.list.bulkSubmitError');
-      toast.error(errorMessage, { id: toastId });
+      let errorTitle = t('quote.list.bulkSubmitError');
+      let errorBody = '';
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else if (typeof err.message === 'string') {
+        errorTitle = err.message;
+      }
+      const formatted = errorBody
+        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
+        : errorTitle;
+      toast.error(formatted, { id: toastId, duration: 5000, style: { background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-line' } });
     }
   }, [token, t, quotes]);
 
@@ -511,7 +850,10 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await secureApiClient.put(QUOTE_ENDPOINTS?.UPDATE_STATUS?.(id) || `/api/quotes/${id}/status`, { status });
+      // Map to numeric status and call POST /status/{code}
+      const statusCodeMap: { [key: string]: number } = { 'Sent': 1, 'Accepted': 2, 'Rejected': 3 };
+      const statusCode = statusCodeMap[status];
+      const res = await secureApiClient.post(`${QUOTE_ENDPOINTS.UPDATE_STATUS(id)}/${statusCode}`);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -524,12 +866,39 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             )
           }));
         }
-        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.statusUpdateError'));
+        let errorTitle = t('quote.list.statusUpdateError');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const err = new Error(errorBody || errorTitle);
+        (err as any).title = errorTitle;
+        (err as any).body = errorBody;
+        (err as any).errors = responseData?.errors;
+        throw err;
       }
 
-      toast.success(t('quote.list.statusUpdateSuccess'));
+      toast.success(responseData.message || t('quote.list.statusUpdateSuccess'));
     } catch (error: any) {
-      toast.error(error.message || t('quote.list.statusUpdateError'));
+      let errorTitle = t('quote.list.statusUpdateError');
+      let errorBody = '';
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (typeof error.message === 'string') {
+        errorTitle = error.message;
+      }
+      const formatted = errorBody ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}` : errorTitle;
+      toast.error(formatted);
       throw error;
     }
   }, [token, t, quotes]);
@@ -570,7 +939,8 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       }
 
       const data = responseData.data;
-      const invoiceNumber = data?.invoiceNumber || 'N/A';
+      const invoiceNumber = data?.newInvoiceNumber || data?.invoiceNumber || 'N/A';
+      const successText = responseData.message || t('quote.messages.convertToInvoiceSuccess', { invoiceNumber });
       
       // Create a dismissible success toast with close button
       const toastId = toast.custom(
@@ -584,9 +954,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
                   </svg>
                 </div>
                 <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium text-gray-900">
-                    {t('quote.list.convertToInvoiceSuccess', { invoiceNumber })}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">{successText}</p>
                 </div>
               </div>
             </div>
@@ -607,7 +975,14 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }
       );
     } catch (error: any) {
-      toast.error(error.message || t('quote.list.convertToInvoiceError'));
+      // Revert optimistic update on unexpected/network errors
+      if (quotes && originalQuote) {
+        setQuotes(prev => ({
+          ...prev!,
+          quotes: prev!.quotes.map(q => q.id === id ? originalQuote : q)
+        }));
+      }
+      toast.error(error.message || t('quote.messages.convertToInvoiceError'));
       throw error;
     }
   }, [token, t, quotes]);
@@ -658,7 +1033,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }));
       }
 
-      const res = await secureApiClient.post(QUOTE_ENDPOINTS?.SUBMIT?.(id) || `/api/quotes/${id}/submit`);
+      const res = await secureApiClient.post(`${QUOTE_ENDPOINTS.UPDATE_STATUS(id)}/1`);
 
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
@@ -671,23 +1046,51 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             )
           }));
         }
-        throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('quote.list.submitError'));
+        let errorTitle = t('quote.list.submitError');
+        let errorBody = '';
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+        const err = new Error(errorBody || errorTitle);
+        (err as any).title = errorTitle;
+        (err as any).body = errorBody;
+        (err as any).errors = responseData?.errors;
+        throw err;
       }
 
-      toast.success(t('quote.list.submitSuccess'));
+      toast.success(responseData.message || t('quote.list.submitSuccess'));
     } catch (error: any) {
-      toast.error(error.message || t('quote.list.submitError'));
+      let errorTitle = t('quote.list.submitError');
+      let errorBody = '';
+      if (error.title && error.body) {
+        errorTitle = error.title;
+        errorBody = error.body;
+      } else if (typeof error.message === 'string') {
+        errorTitle = error.message;
+      }
+      const formatted = errorBody ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}` : errorTitle;
+      toast.error(formatted);
     }
   }, [token, t, quotes]);
 
   const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
     const toastId = toast.loading(t('common.file.importingCSV'));
+    let successShown = false;
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const response = await secureApiClient.request(QUOTE_ENDPOINTS.IMPORT_CSV, { method: 'POST', body: formData }, true, true);
+      const response = await secureApiClient.post(QUOTE_ENDPOINTS.IMPORT_CSV, formData, true, true);
 
       if (response.status === 401) {
         toast.error(t('common.unauthorized'), { id: toastId });
@@ -701,32 +1104,43 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
       const data = await response.json();
 
-      if (response.ok) {
-        // Success response (200 OK)
-        const count = data.data?.count || 0;
-        toast.success(data.message || t('catalog.messages.imported', { count }), { id: toastId });
+      if (response.ok && data.succeeded) {
+        const imported = data.data?.importedCount || data.data?.imported || data.data?.count || 0;
+        const total = data.data?.total || data.data?.count || imported;
+        const successMessage = data.message || t('common.file.importSuccess', { imported, total });
+
+        toast.dismiss(toastId);
+        successShown = true;
+        toast.success(successMessage, {
+          duration: 4000,
+          style: {
+            background: '#f0fdf4',
+            color: '#166534',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }
+        });
         await fetchQuotes();
       } else {
-        // Validation error response (400/409) - Show in modal
         const errorMessage = data.message || t('errors.failedToImportCSV');
-        const details = data.details && Array.isArray(data.details) ? data.details : [];
-        
-        // Dismiss the loading toast before showing the modal
+        const details = (Array.isArray(data.errors) && data.errors.length > 0)
+          ? data.errors
+          : (Array.isArray(data.details) ? data.details : []);
+
         toast.dismiss(toastId);
-        
         setErrorModal({
           isOpen: true,
           title: t('common.error'),
           message: errorMessage,
-          details: details
+          details
         });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('errors.failedToImportCSV');
-      
-      // Dismiss the loading toast before showing the modal
       toast.dismiss(toastId);
-      
       setErrorModal({
         isOpen: true,
         title: t('common.error'),
@@ -735,6 +1149,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       });
     } finally {
       setImportLoading(false);
+      if (!successShown) {
+        toast.dismiss(toastId);
+      }
     }
   }, [token, t, fetchQuotes]);
 

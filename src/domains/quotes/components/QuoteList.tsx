@@ -82,7 +82,7 @@ interface QuoteListProps {
 interface Filters {
   dateFrom: string;
   dateTo: string;
-  customerName: string;
+  q: string;
   status: string;
   amountFrom: string;
   amountTo: string;
@@ -122,7 +122,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   const [filters, setFilters] = useState<Filters>({
     dateFrom: '',
     dateTo: '',
-    customerName: '',
+    q: '',
     status: 'all',
     amountFrom: '',
     amountTo: ''
@@ -260,7 +260,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     setFilters({
       dateFrom: '',
       dateTo: '',
-      customerName: '',
+      q: '',
       status: 'all',
       amountFrom: '',
       amountTo: ''
@@ -563,16 +563,16 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700 flex items-center">
                 <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                {t('quote.filters.customerName')}
+                {t('invoice.filters.searchTerm')}
               </label>
               <input
                 type="text"
-                name="customerName"
-                value={filters.customerName}
+                name="q"
+                value={filters.q}
                 onChange={handleFilterChange}
-                placeholder={t('quote.filters.searchCustomer')}
+                placeholder={t('invoice.filters.searchPlaceholder')}
                 className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-colors duration-150"
               />
             </div>
@@ -829,13 +829,13 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                          />
                        </td>
                        <td className="px-4 py-2 whitespace-nowrap">
-                         <div 
-                           className={`text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center ${quote.createdBy ? 'cursor-help relative group/tooltip' : ''}`}
-                           title={quote.createdBy ? t('quote.tooltip.createdBy', { 
-                             date: quote.createdAt ? new Date(quote.createdAt).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US') : 'Unknown date',
-                             name: quote.createdBy
-                           }) : undefined}
-                         >
+                          <div 
+                            className={`text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center ${quote.createdBy ? 'cursor-help relative group/tooltip' : ''}`}
+                            title={quote.createdBy ? t('quote.tooltip.createdBy', { 
+                              date: quote.createdAt ? new Date(quote.createdAt).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US') : t('common.unknownDate'),
+                              name: quote.createdBy
+                            }) : undefined}
+                          >
                            <span className="text-blue-600 mr-1">#</span>
                            {quote.quoteNumber}
                            {quote.createdBy && (

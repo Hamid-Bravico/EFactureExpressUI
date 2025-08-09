@@ -143,7 +143,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
 
   const handleDelete = async (id: number) => {
     if (!window.confirm(t('customers.confirm.delete'))) return;
-    const toastId = toast.loading(t('common.deleting'));
+    const toastId = toast.loading(t('common.processing'));
     try {
       const res = await secureApiClient.delete(CUSTOMER_ENDPOINTS.DELETE(id));
       if (!res.ok) throw new Error(t('customers.messages.deleteFailed'));

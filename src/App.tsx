@@ -656,7 +656,7 @@ function App() {
   }, [token, invoices, t, optimisticallyUpdateInvoice, silentlyUpdateInvoiceInList]);
 
   const handleDeleteInvoice = useCallback(async (id: number) => {
-    const toastId = toast.loading(t('common.deletingInvoice'));
+    const toastId = toast.loading(t('common.processing'));
     
     // Store original data for rollback
     const originalData = invoiceListData;

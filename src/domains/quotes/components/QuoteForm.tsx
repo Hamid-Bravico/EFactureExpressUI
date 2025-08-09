@@ -159,7 +159,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
   const openCatalogModal = () => {
     setCatalogModalOpen(true);
     setCatalogLoading(true);
-    secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/catalog`)
+    secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/catalog?size=1000&page=1`)
       .then(async res => {
         const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
         if (!res.ok || !responseData?.succeeded) {
