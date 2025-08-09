@@ -454,51 +454,47 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         throw new Error('No valid token available');
       }
 
-      // Step 1: Fetch data to sign (supports both wrapped JSON and raw text)
+      // Step 1: Fetch data to sign from wrapped JSON response and extract only the data field
       const dataResponse = await secureApiClient.get(INVOICE_ENDPOINTS.DATA_TO_SIGN(invoice.id));
+      const dataToSignResponse = await dataResponse.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      if (!dataResponse.ok || !dataToSignResponse?.succeeded) {
+        let errorTitle = t('invoice.errors.failedToFetchDataToSign') || 'Failed to fetch data to sign';
+        let errorBody = '';
 
-      const rawText = await dataResponse.text();
-      let dataToSign = '';
-      try {
-        const parsed = JSON.parse(rawText);
-        const responseData = parsed as any;
-
-        if (!dataResponse.ok || !responseData?.succeeded) {
-          let errorTitle = t('invoice.errors.failedToFetchDataToSign') || 'Failed to fetch data to sign';
-          let errorBody = '';
-
-          if (responseData?.errors) {
-            if (Array.isArray(responseData.errors)) {
-              errorBody = responseData.errors.join('\n');
-            } else if (typeof responseData.errors === 'object') {
-              errorBody = Object.values(responseData.errors).flat().join('\n');
-            }
+        if (dataToSignResponse?.errors) {
+          if (Array.isArray(dataToSignResponse.errors)) {
+            errorBody = dataToSignResponse.errors.join('\n');
+          } else if (typeof dataToSignResponse.errors === 'object') {
+            errorBody = Object.values(dataToSignResponse.errors).flat().join('\n');
           }
-
-          if (responseData?.message) {
-            errorTitle = responseData.message;
-          } else if (responseData?.title) {
-            errorTitle = responseData.title;
-          }
-
-          const error = new Error(errorBody || errorTitle);
-          (error as any).title = errorTitle;
-          (error as any).body = errorBody;
-          (error as any).errors = responseData?.errors;
-          throw error;
         }
 
-        const payload = responseData.data;
-        dataToSign = typeof payload === 'string' ? payload : (payload?.dataToSign || payload?.payload || '');
-        if (!dataToSign) {
+        if (dataToSignResponse?.message) {
+          errorTitle = dataToSignResponse.message;
+        } else if (dataToSignResponse?.title) {
+          errorTitle = dataToSignResponse.title;
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = dataToSignResponse?.errors;
+        throw error;
+      }
+
+      const apiData = dataToSignResponse.data;
+      let dataToSign = '';
+      if (typeof apiData === 'string') {
+        dataToSign = apiData;
+      } else if (apiData != null) {
+        try {
+          dataToSign = JSON.stringify(apiData);
+        } catch {
           throw new Error('No data to sign provided by server');
         }
-      } catch (e) {
-        // If response is not JSON (likely text/plain), use raw text when successful
-        if (!dataResponse.ok) {
-          throw new Error(`Failed to fetch data to sign: ${dataResponse.status}`);
-        }
-        dataToSign = rawText;
+      }
+      if (!dataToSign) {
+        throw new Error('No data to sign provided by server');
       }
 
       // Step 2: Check if Web Crypto API is available
@@ -622,14 +618,47 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         
         ws.onopen = () => {
           console.log('Connected to signing helper app');
-          ws.send(dataToSign);
+          const culture = i18n.language === 'fr' ? 'fr-FR' : 'en-US';
+          const request = { DataToSign: dataToSign, Culture: culture };
+          ws.send(JSON.stringify(request));
         };
         
-        ws.onmessage = (event) => {
-          const signature = event.data;
-          console.log('Digital signature received from helper app',signature);
-          ws.close();
-          resolve(signature);
+        ws.onmessage = async (event) => {
+          try {
+            let payload: string;
+            if (typeof event.data === 'string') {
+              payload = event.data;
+            } else if (event.data && typeof (event.data as any).text === 'function') {
+              payload = await (event.data as Blob).text();
+            } else {
+              payload = String(event.data);
+            }
+
+            try {
+              const response = JSON.parse(payload);
+              if (response && typeof response === 'object' && 'Succeeded' in response && 'Data' in response) {
+                if (response.Succeeded) {
+                  const signature = String(response.Data ?? '');
+                  ws.close();
+                  return resolve(signature);
+                }
+                ws.close();
+                return reject(new Error(String(response.Data ?? t('errors.anErrorOccurred'))));
+              }
+            } catch {}
+
+            if (payload.toLowerCase().includes('error')) {
+              ws.close();
+              return reject(new Error(payload.trim()));
+            }
+
+            const signature = payload;
+            ws.close();
+            resolve(signature);
+          } catch (e: any) {
+            ws.close();
+            reject(new Error(e?.message || t('errors.anErrorOccurred')));
+          }
         };
         
         ws.onerror = (error) => {
