@@ -10,9 +10,9 @@ import InvoiceForm from "./domains/invoices/components/InvoiceForm";
 import QuoteManagement from "./domains/quotes/components/QuoteManagement";
 import LoginPage from "./domains/auth/components/LoginPage";
 import RegisterPage from "./domains/auth/components/RegisterPage";
-import { ApiResponse, LoginData } from "./domains/auth/types/auth.types";
+import { ApiResponse } from "./domains/auth/types/auth.types";
 import Users from "./domains/users/components/Users";
-import { getSecureJsonHeaders, getSecureHeaders, getJsonHeaders, secureApiClient } from "./config/api";
+import { getSecureHeaders, getJsonHeaders, secureApiClient } from "./config/api";
 import { API_BASE_URL } from "./config/constants";
 import { AUTH_ENDPOINTS } from "./domains/auth/api/auth.endpoints";
 import { INVOICE_ENDPOINTS } from "./domains/invoices/api/invoice.endpoints";
@@ -255,13 +255,13 @@ function App() {
     } finally {
       setDashboardLoading(false);
     }
-  }, [token]);
+  }, []);
 
   // ─── HANDLE DASHBOARD FILTERS ─────────────────────────────────────────────
   const handleDashboardFiltersChange = useCallback((filters: DashboardFilters) => {
     setDashboardFilters(filters);
     fetchDashboardStats(filters);
-  }, []);
+  }, [fetchDashboardStats]);
 
   // ─── FETCH LIST ────────────────────────────────────────────────────────────
   const fetchInvoices = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
@@ -323,7 +323,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   // Track if initial data has been loaded to prevent infinite loops
   const initialLoadRef = useRef(false);
@@ -334,7 +334,7 @@ function App() {
       fetchInvoices();
       fetchDashboardStats();
     }
-  }, [token]);
+  }, [token, fetchInvoices, fetchDashboardStats]);
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
   const handleLogin = useCallback(async (email: string, password: string) => {
@@ -400,8 +400,9 @@ function App() {
         credentials: 'include',
       });
     } catch (error) {
-      console.error('Logout request failed:', error);
-    } finally {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Logout request failed:', error);
+      }
       // Clear frontend auth data
       tokenManager.clearAuthData();
       setToken(null);
@@ -543,7 +544,7 @@ function App() {
       });
       throw error;
     }
-  }, [token, userEmail, t, optimisticallyAddInvoice, optimisticallyRemoveInvoice, silentlyAddInvoiceToList]);
+  }, [userEmail, t, optimisticallyAddInvoice, optimisticallyRemoveInvoice, silentlyAddInvoiceToList]);
 
   const handleUpdateInvoice = useCallback(async (invoice: NewInvoice, customerName?: string) => {
     if (!invoice.id) {
@@ -653,7 +654,7 @@ function App() {
       });
       throw error;
     }
-  }, [token, invoices, t, optimisticallyUpdateInvoice, silentlyUpdateInvoiceInList]);
+  }, [invoices, t, optimisticallyUpdateInvoice, silentlyUpdateInvoiceInList]);
 
   const handleDeleteInvoice = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.processing'));
@@ -788,7 +789,7 @@ function App() {
         }
       });
     }
-  }, [token, invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
+  }, [invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice, fetchInvoices]);
 
   const handleDownloadPdf = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.downloadingPDF'));
@@ -880,7 +881,7 @@ function App() {
         }
       });
     }
-  }, [token, t]);
+  }, [t]);
 
   const handleSubmitInvoice = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.submittingInvoice'));
@@ -944,11 +945,11 @@ function App() {
       });
     } catch (err: any) {
       // Handle error with title and body structure
-      let errorTitle = t('errors.failedToSubmitInvoice');
+      //let errorTitle = t('errors.failedToSubmitInvoice');
       let errorBody = '';
       
       if (err.title && err.body) {
-        errorTitle = err.title;
+        //errorTitle = err.title;
         errorBody = err.body;
       } else {
         errorBody = err.message || t('errors.anErrorOccurred');
@@ -968,7 +969,7 @@ function App() {
         }
       });
     }
-  }, [token, invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
+  }, [invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
 
   const handleImportCSV = useCallback(async (file: File) => {
     setImportLoading(true);
@@ -1051,7 +1052,7 @@ function App() {
         toast.dismiss(toastId);
       }
     }
-  }, [token, t, fetchInvoices, invoiceListData]);
+  }, [t, fetchInvoices, invoiceListData]);
 
   const handleBulkDelete = useCallback(async (ids: number[]) => {
     const toastId = toast.loading(t('invoice.bulk.deleting', { count: ids.length }));
@@ -1167,7 +1168,7 @@ function App() {
         }
       });
     }
-  }, [token, invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice]);
+  }, [invoices, invoiceListData, t, optimisticallyRemoveInvoice, optimisticallyAddInvoice, fetchInvoices]);
 
   const handleBulkSubmit = useCallback(async (ids: number[]) => {
     const toastId = toast.loading(t('invoice.bulk.submitting', { count: ids.length }));
@@ -1259,7 +1260,7 @@ function App() {
         }
       });
     }
-  }, [token, invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
+  }, [invoices, t, optimisticallyUpdateInvoiceStatus, optimisticallyUpdateInvoice]);
 
   const toggleLanguage = useCallback(() => {
     const newLang = i18n.language === 'en' ? 'fr' : 'en';
