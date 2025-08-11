@@ -33,6 +33,7 @@
     "creating": "Création...",
     "updateSuccess": "Mis à jour avec succès",
     "saveChanges": "Enregistrer les modifications",
+    "create": "Créer",
     "refresh": "Actualiser",
     "copy": "Copier",
     "copied": "Copié !",
@@ -74,6 +75,7 @@
     "register": "S'inscrire",
     "registerButton": "S'inscrire",
     "registering": "Inscription en cours...",
+    "registrationSuccess": "Inscription réussie ! Redirection vers la connexion...",
     "email": "Adresse e-mail",
     "emailPlaceholder": "Entrez votre e-mail",
     "password": "Mot de passe",
@@ -97,6 +99,19 @@
     "noICE": "Aucun ICE fourni",
     "noIdentifiantFiscal": "Aucun identifiant fiscal fourni",
     "noCompanyName": "Aucun nom d'entreprise fourni",
+    "validation": {
+              "iceRequired": "L'ICE est requis.",
+        "iceMustBe15Digits": "L'ICE doit contenir exactement 15 chiffres.",
+        "identifiantFiscalMustBe8Chars": "L'Identifiant Fiscal doit contenir exactement 8 caractères.",
+      "passwordRequired": "Le mot de passe est requis.",
+      "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères.",
+      "passwordUppercase": "Le mot de passe doit contenir au moins une lettre majuscule.",
+      "passwordLowercase": "Le mot de passe doit contenir au moins une lettre minuscule.",
+              "passwordDigit": "Le mot de passe doit contenir au moins un chiffre.",
+        "passwordSpecial": "Le mot de passe doit contenir au moins un caractère non alphanumérique.",
+        "confirmPasswordRequired": "Veuillez confirmer votre mot de passe.",
+        "passwordsDoNotMatch": "Les mots de passe ne correspondent pas."
+    },
     "tokenRefreshed": "Session actualisée avec succès",
     "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter."
   },
@@ -116,8 +131,9 @@
     "unauthorized": "Accès non autorisé. Veuillez vous reconnecter.",
     "invoiceNotFound": "Facture introuvable",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
-    "registrationFailed": "Échec de l'inscription. Veuillez réessayer.",
+    "registrationFailed": "Échec de l'inscription.",
     "emailAlreadyExists": "Cette adresse e-mail est déjà enregistrée.",
+    "ICEAlreadyExists": "Ce numéro ICE est déjà enregistré.",
     "taxIdAlreadyExists": "Ce numéro de TVA est déjà enregistré.",
     "databaseError": "Une erreur de base de données est survenue. Veuillez réessayer.",
     "validationFailed": "Veuillez corriger les erreurs de validation ci-dessous.",
@@ -811,6 +827,14 @@
     "resetOwnPassword": "Réinitialiser mon mot de passe",
     "newPassword": "Nouveau mot de passe",
     "passwordRequirements": "Le mot de passe doit contenir au moins 8 caractères",
+    "passwordValidation": {
+      "required": "Le mot de passe est requis.",
+      "minLength": "Le mot de passe doit contenir au moins 8 caractères.",
+      "uppercase": "Le mot de passe doit contenir au moins une lettre majuscule.",
+      "lowercase": "Le mot de passe doit contenir au moins une lettre minuscule.",
+      "digit": "Le mot de passe doit contenir au moins un chiffre.",
+      "special": "Le mot de passe doit contenir au moins un caractère non alphanumérique."
+    },
     "messages": {
         "created": "Utilisateur créé avec succès.",
         "updated": "Utilisateur mis à jour avec succès.",
@@ -824,7 +848,8 @@
       "cannotUpdateAdmin": "Les administrateurs ne peuvent pas être modifiés",
       "managersCannotChangeRoles": "Les gestionnaires ne peuvent pas modifier les rôles",
       "invalidRole": "Rôle utilisateur invalide",
-      "invalidUserId": "ID utilisateur invalide dans le jeton."
+      "invalidUserId": "ID utilisateur invalide dans le jeton.",
+      "createUserFailed": "Erreur création utilisateur :"
     },
     "confirm": {
       "delete": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?"

@@ -377,9 +377,9 @@ function App() {
 
       // Store access token; refresh token is handled by HttpOnly cookie
       tokenManager.setToken(data.token);
-      tokenManager.setUserData(decoded.role, decoded.userId, data.company);
-      if (data.company) {
-        setCompany(data.company);
+      tokenManager.setUserData(decoded.role, decoded.userId, data.companyDetails);
+      if (data.companyDetails) {
+        setCompany(data.companyDetails);
       }
       setToken(data.token);
     } catch (error) {

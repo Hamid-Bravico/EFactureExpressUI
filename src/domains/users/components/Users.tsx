@@ -33,6 +33,38 @@ const Users = React.memo(({ token }: UsersProps) => {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = [];
+    
+    if (!password) {
+      errors.push(t('users.passwordValidation.required'));
+      return errors;
+    }
+    
+    if (password.length < 8) {
+      errors.push(t('users.passwordValidation.minLength'));
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push(t('users.passwordValidation.uppercase'));
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push(t('users.passwordValidation.lowercase'));
+    }
+    
+    if (!/\d/.test(password)) {
+      errors.push(t('users.passwordValidation.digit'));
+    }
+    
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      errors.push(t('users.passwordValidation.special'));
+    }
+    
+    return errors;
+  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -74,6 +106,14 @@ const Users = React.memo(({ token }: UsersProps) => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate password before submission
+    const passwordErrors = validatePassword(newUser.password);
+    if (passwordErrors.length > 0) {
+      setPasswordErrors(passwordErrors);
+      return;
+    }
+    
     try {
       const trimmedUser = {
         ...newUser,
@@ -85,24 +125,25 @@ const Users = React.memo(({ token }: UsersProps) => {
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {
-        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('users.messages.createFailed');
+        const errorMessage = responseData?.errors?.join('\n') || responseData?.message || t('users.messages.createFailed');
         throw new Error(errorMessage);
       }
 
       await fetchUsers();
       setShowUserForm(false);
       setNewUser({ email: '', password: '', role: 'Clerk' });
+      setPasswordErrors([]);
       toast.success(t('users.messages.created'));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create user';
+      const errorMessage = err instanceof Error ? err.message : t('users.errors.createUserFailed');
       toast.error(
         <div className="space-y-1">
-          <p className="font-medium">Error creating user:</p>
+          <p className="font-medium">{t('users.errors.createUserFailed')}</p>
           {errorMessage.split('\n').map((line, index) => (
             <p key={index} className="text-sm">{line}</p>
           ))}
         </div>,
-        { duration: 5000 }
+        { duration: 9000 }
       );
     }
   };
@@ -112,6 +153,15 @@ const Users = React.memo(({ token }: UsersProps) => {
       // Find the current user data
       const currentUser = users.find(user => user.id === userId);
       if (!currentUser) return;
+      
+      // Validate password if it's being updated
+      if (updates.password) {
+        const passwordErrors = validatePassword(updates.password);
+        if (passwordErrors.length > 0) {
+          setPasswordErrors(passwordErrors);
+          return;
+        }
+      }
 
       // If user is Admin, prevent any updates except password reset
       if (currentUser.roles.includes('Admin')) {
@@ -128,10 +178,11 @@ const Users = React.memo(({ token }: UsersProps) => {
             throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('users.messages.updateFailed'));
           }
 
-          await fetchUsers();
-          setEditingUser(null);
-          setEditForm({ email: '', role: 'Clerk', password: '' });
-          toast.success(t('users.messages.passwordUpdated'));
+                await fetchUsers();
+      setEditingUser(null);
+      setEditForm({ email: '', role: 'Clerk', password: '' });
+      setPasswordErrors([]);
+      toast.success(t('users.messages.passwordUpdated'));
           // Log out user after password change
           tokenManager.clearAuthData();
           setTimeout(() => {
@@ -175,7 +226,6 @@ const Users = React.memo(({ token }: UsersProps) => {
       }
 
       const response = await secureApiClient.put(`${USER_ENDPOINTS.LIST}/${userId}`, payload);
-
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {
         throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('users.messages.updateFailed'));
@@ -184,7 +234,8 @@ const Users = React.memo(({ token }: UsersProps) => {
       await fetchUsers();
       setEditingUser(null);
       setEditForm({ email: '', role: 'Clerk', password: '' });
-      toast.success(t('users.messages.updated'));
+      setPasswordErrors([]);
+      toast.success(responseData.message || t('users.messages.updated'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update user');
     }
@@ -317,7 +368,10 @@ const Users = React.memo(({ token }: UsersProps) => {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">{t('users.addUser')}</h2>
                 <button
-                  onClick={() => setShowUserForm(false)}
+                  onClick={() => {
+                    setShowUserForm(false);
+                    setPasswordErrors([]);
+                  }}
                   className="text-gray-400 hover:text-gray-500 focus:outline-none"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -359,20 +413,52 @@ const Users = React.memo(({ token }: UsersProps) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
-                  <input
-                    type="password"
-                    id="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value.trim() })}
-                    className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                    placeholder="••••••••"
-                    required
-                    minLength={8}
-                  />
+                                     <input
+                     type={showPassword ? "text" : "password"}
+                     id="password"
+                     value={newUser.password}
+                     onChange={(e) => {
+                       const password = e.target.value;
+                       setNewUser({ ...newUser, password });
+                       const errors = validatePassword(password);
+                       setPasswordErrors(errors);
+                     }}
+                     className={`appearance-none block w-full pl-10 pr-10 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                       passwordErrors.length > 0 ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                     }`}
+                     placeholder="••••••••"
+                     required
+                   />
+                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                     <button
+                       type="button"
+                       onClick={() => setShowPassword(!showPassword)}
+                       className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                     >
+                       {showPassword ? (
+                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                         </svg>
+                       ) : (
+                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                         </svg>
+                       )}
+                     </button>
+                   </div>
                 </div>
-                <p className="mt-1.5 text-xs text-gray-500">
-                  {t('users.passwordRequirements')}
-                </p>
+                {passwordErrors.length > 0 ? (
+                  <div className="mt-1.5 space-y-1">
+                    {passwordErrors.map((error, index) => (
+                      <p key={index} className="text-xs text-red-600">{error}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    {t('users.passwordRequirements')}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -400,7 +486,10 @@ const Users = React.memo(({ token }: UsersProps) => {
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowUserForm(false)}
+                  onClick={() => {
+                    setShowUserForm(false);
+                    setPasswordErrors([]);
+                  }}
                   className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   {t('common.cancel')}
@@ -425,13 +514,14 @@ const Users = React.memo(({ token }: UsersProps) => {
                 <h2 className="text-lg font-semibold text-gray-900">
                   {editingUser.roles.includes('Admin') ? t('users.resetOwnPassword') : t('users.editUser')}
                 </h2>
-                <button
-                  onClick={() => {
-                    setEditingUser(null);
-                    setEditForm({ email: '', role: 'Clerk', password: '' });
-                  }}
-                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                >
+                                  <button
+                    onClick={() => {
+                      setEditingUser(null);
+                      setEditForm({ email: '', role: 'Clerk', password: '' });
+                      setPasswordErrors([]);
+                    }}
+                    className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                  >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -458,10 +548,16 @@ const Users = React.memo(({ token }: UsersProps) => {
                       type={showPassword ? "text" : "password"}
                       id="edit-password"
                       value={editForm.password || ''}
-                      onChange={(e) => setEditForm({ ...editForm, password: e.target.value.trim() })}
-                      className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                      onChange={(e) => {
+                        const password = e.target.value;
+                        setEditForm({ ...editForm, password });
+                        const errors = validatePassword(password);
+                        setPasswordErrors(errors);
+                      }}
+                      className={`appearance-none block w-full pl-10 pr-10 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                        passwordErrors.length > 0 ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                      }`}
                       placeholder="••••••••"
-                      minLength={8}
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                       <button
@@ -482,9 +578,17 @@ const Users = React.memo(({ token }: UsersProps) => {
                       </button>
                     </div>
                   </div>
-                  <p className="mt-1.5 text-xs text-gray-500">
-                    {t('users.passwordRequirements')}
-                  </p>
+                  {passwordErrors.length > 0 ? (
+                    <div className="mt-1.5 space-y-1">
+                      {passwordErrors.map((error, index) => (
+                        <p key={index} className="text-xs text-red-600">{error}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      {t('users.passwordRequirements')}
+                    </p>
+                  )}
                 </div>
               ) : (
                 // Regular user edit form
@@ -516,10 +620,16 @@ const Users = React.memo(({ token }: UsersProps) => {
                         type={showPassword ? "text" : "password"}
                         id="edit-password"
                         value={editForm.password || ''}
-                        onChange={(e) => setEditForm({ ...editForm, password: e.target.value.trim() })}
-                        className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                        onChange={(e) => {
+                          const password = e.target.value;
+                          setEditForm({ ...editForm, password });
+                          const errors = validatePassword(password);
+                          setPasswordErrors(errors);
+                        }}
+                        className={`appearance-none block w-full pl-10 pr-10 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                          passwordErrors.length > 0 ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                        }`}
                         placeholder="••••••••"
-                        minLength={8}
                       />
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                         <button
@@ -529,7 +639,7 @@ const Users = React.memo(({ token }: UsersProps) => {
                         >
                           {showPassword ? (
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0 8.268 2.943 9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           ) : (
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -540,9 +650,17 @@ const Users = React.memo(({ token }: UsersProps) => {
                         </button>
                       </div>
                     </div>
-                    <p className="mt-1.5 text-xs text-gray-500">
-                      {t('users.passwordRequirements')}
-                    </p>
+                    {passwordErrors.length > 0 ? (
+                      <div className="mt-1.5 space-y-1">
+                        {passwordErrors.map((error, index) => (
+                          <p key={index} className="text-xs text-red-600">{error}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        {t('users.passwordRequirements')}
+                      </p>
+                    )}
                   </div>
                   {currentUserRole === 'Admin' && (
                     <div>
@@ -570,6 +688,7 @@ const Users = React.memo(({ token }: UsersProps) => {
                   onClick={() => {
                     setEditingUser(null);
                     setEditForm({ email: '', role: 'Clerk', password: '' });
+                    setPasswordErrors([]);
                   }}
                   className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >

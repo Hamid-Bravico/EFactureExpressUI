@@ -5,6 +5,7 @@ import { APP_CONFIG } from '../../../config/app';
 import { getJsonHeaders } from '../../../config/api';
 import { AUTH_ENDPOINTS } from '../api/auth.endpoints';
 import { RegisterPageProps, RegisterFormData } from '../types/auth.types';
+import { toast } from 'react-hot-toast';
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLanguage }) => {
   const navigate = useNavigate();
@@ -19,108 +20,248 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     confirmPassword: ''
   });
   const [error, setError] = useState<string>('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+
+  const validateICE = (ice: string): string[] => {
+    const errors: string[] = [];
+    if (!ice) {
+      errors.push(t('auth.validation.iceRequired'));
+    } else if (!/^\d{15}$/.test(ice)) {
+      errors.push(t('auth.validation.iceMustBe15Digits'));
+    }
+    return errors;
+  };
+
+  const validateIdentifiantFiscal = (identifiantFiscal: string): string[] => {
+    const errors: string[] = [];
+    if (identifiantFiscal && identifiantFiscal.length !== 8) {
+      errors.push(t('auth.validation.identifiantFiscalMustBe8Chars'));
+    }
+    return errors;
+  };
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = [];
+    
+    if (!password) {
+      errors.push(t('auth.validation.passwordRequired'));
+      return errors;
+    }
+    
+    if (password.length < 8) {
+      errors.push(t('auth.validation.passwordMinLength'));
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push(t('auth.validation.passwordUppercase'));
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push(t('auth.validation.passwordLowercase'));
+    }
+    
+    if (!/\d/.test(password)) {
+      errors.push(t('auth.validation.passwordDigit'));
+    }
+    
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      errors.push(t('auth.validation.passwordSpecial'));
+    }
+    
+    return errors;
+  };
+
+  const validateConfirmPassword = (password: string, confirmPassword: string): string[] => {
+    const errors: string[] = [];
+    
+    if (!confirmPassword) {
+      errors.push(t('auth.validation.confirmPasswordRequired'));
+    } else if (password !== confirmPassword) {
+      errors.push(t('auth.validation.passwordsDoNotMatch'));
+    }
+    
+    return errors;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const trimmedValue = value.trim();
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: trimmedValue
     }));
-    // Clear field-specific error when user starts typing
-    if (fieldErrors[name]) {
-      setFieldErrors(prev => {
+
+    // Clear validation errors for this field
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
+    }
+
+    // Validate specific fields
+    if (name === 'ICE') {
+      const iceErrors = validateICE(trimmedValue);
+      if (iceErrors.length > 0) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [name]: iceErrors
+        }));
+      }
+    }
+
+    if (name === 'identifiantFiscal') {
+      const identifiantFiscalErrors = validateIdentifiantFiscal(trimmedValue);
+      if (identifiantFiscalErrors.length > 0) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [name]: identifiantFiscalErrors
+        }));
+      }
+    }
+
+    if (name === 'password') {
+      const passwordErrors = validatePassword(trimmedValue);
+      if (passwordErrors.length > 0) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [name]: passwordErrors
+        }));
+      }
+      
+      // Also validate confirm password when password changes
+      if (formData.confirmPassword) {
+        const confirmPasswordErrors = validateConfirmPassword(trimmedValue, formData.confirmPassword);
+        if (confirmPasswordErrors.length > 0) {
+          setValidationErrors(prev => ({
+            ...prev,
+            confirmPassword: confirmPasswordErrors
+          }));
+        } else {
+          setValidationErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.confirmPassword;
+            return newErrors;
+          });
+        }
+      }
+    }
+
+    if (name === 'confirmPassword') {
+      const confirmPasswordErrors = validateConfirmPassword(formData.password, trimmedValue);
+      if (confirmPasswordErrors.length > 0) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [name]: confirmPasswordErrors
+        }));
+      }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setFieldErrors({});
+    setValidationErrors({});
 
-    const newFieldErrors: Record<string, string[]> = {};
-    if (!formData.companyName.trim()) {
-      newFieldErrors['CompanyName'] = [t('customers.errors.companyNameRequired')];
-    }
-    if (!formData.ICE.trim()) {
-      newFieldErrors['ICE'] = [t('customers.errors.ICERequired')];
-    }
-    if (!formData.email.trim()) {
-      newFieldErrors['Email'] = [t('customers.errors.emailRequired')];
-    }
-    if (!formData.password) {
-      newFieldErrors['Password'] = [t('customers.errors.passwordRequired')];
-    }
-    if (formData.password !== formData.confirmPassword) {
-      newFieldErrors['ConfirmPassword'] = [t('errors.passwordsDoNotMatch')];
-    }
-
-    if (Object.keys(newFieldErrors).length > 0) {
-      setFieldErrors(newFieldErrors);
+    // Frontend validation
+    const iceErrors = validateICE(formData.ICE);
+    const identifiantFiscalErrors = validateIdentifiantFiscal(formData.identifiantFiscal);
+    const passwordErrors = validatePassword(formData.password);
+    const confirmPasswordErrors = validateConfirmPassword(formData.password, formData.confirmPassword);
+    
+    if (iceErrors.length > 0 || identifiantFiscalErrors.length > 0 || passwordErrors.length > 0 || confirmPasswordErrors.length > 0) {
+      setValidationErrors({
+        ICE: iceErrors,
+        identifiantFiscal: identifiantFiscalErrors,
+        password: passwordErrors,
+        confirmPassword: confirmPasswordErrors
+      });
       return;
     }
 
     setLoading(true);
 
     try {
+      // Prepare request data with trimmed values
+      const requestData = {
+        companyName: formData.companyName.trim(),
+        ICE: formData.ICE.trim(),
+        identifiantFiscal: formData.identifiantFiscal.trim(),
+        address: formData.address.trim(),
+        email: formData.email.trim(),
+        password: formData.password
+      };
+
       const response = await fetch(AUTH_ENDPOINTS.REGISTER, {
         method: 'POST',
         headers: getJsonHeaders(),
-        body: JSON.stringify({
-          companyName: formData.companyName.trim(),
-          ICE: formData.ICE.trim(),
-          identifiantFiscal: formData.identifiantFiscal.trim(),
-          address: formData.address.trim(),
-          email: formData.email.trim(),
-          password: formData.password
-        })
+        body: JSON.stringify(requestData)
       });
 
-      if (response.ok) {
-        navigate('/login');
-        return;
+             // Handle successful response
+       if (response.ok) {
+         const successData = await response.json();
+         toast.success(successData.message || t('auth.registrationSuccess'));
+         navigate('/login');
+         return;
+       }
+
+      // Parse error response
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch {
+        responseData = { succeeded: false, message: t('errors.registrationFailed') };
       }
 
-      // Handle different response statuses
+      // Handle different error scenarios
       if (response.status === 409) {
         // Handle conflict errors (duplicate email or tax ID)
-        const errorData = await response.json();
-        if (errorData.field === 'email') {
-          setError(t('errors.emailAlreadyExists'));
-        } else if (errorData.field === 'ICE') {
-          setError(t('errors.ICEAlreadyExists'));
+        if (responseData.field === 'email') {
+          throw new Error(t('errors.emailAlreadyExists'));
+        } else if (responseData.field === 'ICE') {
+          throw new Error(t('errors.ICEAlreadyExists'));
         } else {
-          setError(errorData.error || t('errors.registrationFailed'));
+          throw new Error(responseData.message || t('errors.registrationFailed'));
         }
       } else if (response.status === 400) {
         // Handle validation errors
-        const errorData = await response.json();
-        if (errorData.errors) {
-          setFieldErrors(errorData.errors);
-          setError(t('errors.validationFailed'));
+        if (responseData.errors && Array.isArray(responseData.errors)) {
+          const errorMessage = responseData.errors.join('\n');
+          throw new Error(errorMessage);
         } else {
-          setError(t('errors.registrationFailed'));
+          throw new Error(responseData.message || t('errors.validationFailed'));
         }
       } else if (response.status === 500) {
-        setError(t('errors.serverError'));
+        throw new Error(t('errors.serverError'));
       } else {
-        setError(t('errors.registrationFailed'));
+        throw new Error(responseData.message || t('errors.registrationFailed'));
       }
-        } catch (err: any) {
-      setError(t('errors.registrationFailed'));
+
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : t('errors.registrationFailed');
+      
+      // Show error toast
+      toast.error(
+        <div className="space-y-1">
+          <p className="font-medium">{t('errors.registrationFailed')}</p>
+          {errorMessage.split('\n').map((line, index) => (
+            <p key={index} className="text-sm">{line}</p>
+          ))}
+        </div>,
+        { duration: 9000 }
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const renderFieldError = (fieldName: string) => {
-    const errors = fieldErrors[fieldName];
+  const renderFieldErrors = (fieldName: string) => {
+    const errors = validationErrors[fieldName];
     if (!errors || errors.length === 0) return null;
     
     return (
@@ -128,7 +269,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
         {errors.map((error, index) => (
           <div key={index} className="flex items-center">
             <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             {error}
           </div>
@@ -136,6 +277,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
       </div>
     );
   };
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -152,11 +295,17 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center">
-              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {error}
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+              <div className="flex items-start">
+                <svg className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <div className="space-y-1">
+                  {error.split('\n').map((line, index) => (
+                    <p key={index} className={index === 0 ? "font-medium" : "text-sm"}>{line}</p>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -173,12 +322,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                   required
                   value={formData.companyName}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['CompanyName'] ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
+                  className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                   placeholder={t('auth.companyNamePlaceholder')}
                 />
-                {renderFieldError('CompanyName')}
               </div>
             </div>
 
@@ -194,12 +340,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                   required
                   value={formData.ICE}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['ICE'] ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
+                  className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                    validationErrors['ICE'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
                   placeholder={t('auth.icePlaceholder')}
                 />
-                {renderFieldError('ICE')}
+                {renderFieldErrors('ICE')}
               </div>
             </div>
 
@@ -208,20 +354,20 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                 {t('auth.identifiantFiscal')}
               </label>
               <div className="mt-1">
-                <input
-                  id="identifiantFiscal"
-                  name="identifiantFiscal"
-                  type="text"
-                  value={formData.identifiantFiscal}
-                  onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['IdentifiantFiscal'] ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
-                  placeholder={t('auth.identifiantFiscalPlaceholder')}
-                />
-                {renderFieldError('IdentifiantFiscal')}
-              </div>
-            </div>
+                                 <input
+                   id="identifiantFiscal"
+                   name="identifiantFiscal"
+                   type="text"
+                   value={formData.identifiantFiscal}
+                   onChange={handleChange}
+                   className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                     validationErrors['identifiantFiscal'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                   }`}
+                                      placeholder={t('auth.identifiantFiscalPlaceholder')}
+                 />
+                 {renderFieldErrors('identifiantFiscal')}
+               </div>
+             </div>
 
             <div>
               <label htmlFor="address" className="block text-sm font-medium text-gray-700">
@@ -234,12 +380,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                   type="text"
                   value={formData.address}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['Address'] ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
+                  className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                   placeholder={t('auth.addressPlaceholder')}
                 />
-                {renderFieldError('Address')}
               </div>
             </div>
 
@@ -255,12 +398,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['Email'] ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
+                  className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                   placeholder={t('auth.emailPlaceholder')}
                 />
-                {renderFieldError('Email')}
               </div>
             </div>
 
@@ -276,9 +416,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['Password'] ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
+                  className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                    validationErrors['password'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
                   placeholder={t('auth.passwordPlaceholder')}
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -300,7 +440,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                   </button>
                 </div>
               </div>
-              {renderFieldError('Password')}
+              {renderFieldErrors('password')}
             </div>
 
             <div>
@@ -308,18 +448,18 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                 {t('auth.confirmPassword')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1 relative">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    fieldErrors['ConfirmPassword'] ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200`}
-                  placeholder={t('auth.confirmPasswordPlaceholder')}
-                />
+                                 <input
+                   id="confirmPassword"
+                   name="confirmPassword"
+                   type={showPassword ? "text" : "password"}
+                   required
+                   value={formData.confirmPassword}
+                   onChange={handleChange}
+                   className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                     validationErrors['confirmPassword'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                   }`}
+                   placeholder={t('auth.confirmPasswordPlaceholder')}
+                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <button
                     type="button"
@@ -337,10 +477,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
                       </svg>
                     )}
                   </button>
-                </div>
-              </div>
-              {renderFieldError('ConfirmPassword')}
-            </div>
+                                 </div>
+               </div>
+               {renderFieldErrors('confirmPassword')}
+             </div>
           </div>
 
           <div>

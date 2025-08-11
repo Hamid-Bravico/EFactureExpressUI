@@ -26,7 +26,7 @@ export interface LoginCredentials {
 
 export interface LoginData {
   token: string;
-  company: {
+  companyDetails: {
     id: string;
     name: string;
     ice: string;
@@ -51,7 +51,7 @@ export interface AuthResponse {
     email: string;
     role: string;
   };
-  company: {
+  companyDetails: {
     id: number;
     name: string;
     ICE?: string;
