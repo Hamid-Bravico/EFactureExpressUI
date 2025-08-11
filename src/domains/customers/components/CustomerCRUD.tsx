@@ -42,7 +42,11 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
         throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetchCustomers'));
       }
       
-      setCustomers(responseData.data || []);
+      const apiData = responseData.data;
+      const items = Array.isArray(apiData?.items)
+        ? apiData.items
+        : (Array.isArray(apiData) ? apiData : []);
+      setCustomers(items);
     } catch (e: any) {
       setError(e.message || t('errors.anErrorOccurred'));
     } finally {
@@ -78,53 +82,103 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     e.preventDefault();
     if (isSubmitting) return;
 
-    setIsSubmitting(true);
+    // Frontend validation first
     setFieldErrors({});
+    if (!validate()) return;
+
+    setIsSubmitting(true);
     const toastId = toast.loading(editingCustomer ? t('common.updating') : t('common.creating'));
 
     try {
+      // Trim all string fields before sending
+      const sanitizedForm: Record<string, any> = {};
+      Object.entries(form).forEach(([key, value]) => {
+        sanitizedForm[key] = typeof value === 'string' ? value.trim() : value;
+      });
+
       const method = editingCustomer ? 'PUT' : 'POST';
       const url = editingCustomer
         ? CUSTOMER_ENDPOINTS.UPDATE(editingCustomer.id)
         : CUSTOMER_ENDPOINTS.CREATE;
       const res = await (method === 'PUT'
-        ? secureApiClient.put(url, form)
-        : secureApiClient.post(url, form)
+        ? secureApiClient.put(url, sanitizedForm)
+        : secureApiClient.post(url, sanitizedForm)
       );
 
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await res.json();
-          if (errorData.errors) {
-            setFieldErrors(errorData.errors);
-            throw new Error(errorData.title || t('errors.validationFailed'));
-          }
-        }
-        throw new Error(t('customers.messages.saveFailed'));
+      let responseData: any = null;
+      try {
+        responseData = await res.json();
+      } catch {
+        responseData = { succeeded: false, message: t('errors.anErrorOccurred') };
       }
 
-      const contentType = res.headers.get('content-type');
-      const responseData = contentType && contentType.includes('application/json') ? await res.json() : null;
+      if (!res.ok || !responseData?.succeeded) {
+        // Backend validation errors: object keyed by fields or array
+        if (responseData?.errors) {
+          if (!Array.isArray(responseData.errors) && typeof responseData.errors === 'object') {
+            setFieldErrors(responseData.errors as Record<string, string[]>);
+          }
+        }
+
+        const title = responseData?.message || responseData?.title || t('errors.validationFailed');
+        const detailsArray = Array.isArray(responseData?.errors)
+          ? responseData.errors
+          : (responseData?.details && Array.isArray(responseData.details) ? responseData.details : []);
+        const body = detailsArray.length > 0 ? `\n\n${detailsArray.map((d: string) => `• ${d}`).join('\n')}` : '';
+        toast.error(`${title}${body}`, {
+          id: toastId,
+          duration: 5000,
+          style: {
+            background: '#fef2f2',
+            color: '#991b1b',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            whiteSpace: 'pre-line'
+          }
+        });
+        return;
+      }
+
+      // Success
+      const successMessage = responseData?.message || (editingCustomer ? t('customers.messages.updated') : t('customers.messages.created'));
+      toast.success(successMessage, {
+        id: toastId,
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+
       setShowForm(false);
       setEditingCustomer(null);
       setForm({});
-      toast.success(editingCustomer ? t('customers.messages.updated') : t('customers.messages.created'), { id: toastId });
-      
+
       if (editingCustomer) {
+        const updated = responseData?.data as Customer | undefined;
         setCustomers(prevCustomers => 
           prevCustomers.map(c => 
             c.id === editingCustomer.id 
-              ? { ...c, ...form }
+              ? (updated ? updated : { ...c, ...sanitizedForm as Partial<Customer> })
               : c
           )
         );
-      } else if (responseData && responseData.id) {
-        const newCustomer = { ...form, id: responseData.id } as Customer;
-        setCustomers(prevCustomers => [newCustomer, ...prevCustomers]);
+      } else {
+        const created = responseData?.data as Customer | undefined;
+        if (created && created.id) {
+          setCustomers(prevCustomers => [created, ...prevCustomers]);
+        }
       }
     } catch (e: any) {
-      toast.error(e.message || t('errors.anErrorOccurred'), { id: toastId });
+      toast.error(e?.message || t('errors.anErrorOccurred'), { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -146,8 +200,46 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     const toastId = toast.loading(t('common.processing'));
     try {
       const res = await secureApiClient.delete(CUSTOMER_ENDPOINTS.DELETE(id));
-      if (!res.ok) throw new Error(t('customers.messages.deleteFailed'));
-      toast.success(t('customers.messages.deleted'), { id: toastId });
+
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      console.log(responseData);
+      //if(!responseData.test) return ;
+      if (!res.ok || !responseData?.succeeded) {
+        let title = responseData?.message || responseData?.title || t('customers.messages.deleteFailed');
+        const details = Array.isArray(responseData?.errors)
+          ? responseData.errors
+          : (responseData?.details && Array.isArray(responseData.details) ? responseData.details : []);
+        const body = details.length > 0 ? `\n\n${details.map((d: string) => `• ${d}`).join('\n')}` : '';
+        toast.error(`${title}${body}`, {
+          id: toastId,
+          duration: 5000,
+          style: {
+            background: '#fef2f2',
+            color: '#991b1b',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            whiteSpace: 'pre-line'
+          }
+        });
+        return;
+      }
+
+      toast.success(responseData?.message || t('customers.messages.deleted'), {
+        id: toastId,
+        duration: 4000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
       setCustomers(prevCustomers => prevCustomers.filter(c => c.id !== id));
     } catch (e: any) {
       toast.error(e.message || t('errors.anErrorOccurred'), { id: toastId });
@@ -212,7 +304,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full divide-y divide-gray-100">
             <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
               <tr>
@@ -224,85 +316,81 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
                 {canPerformActions && <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.actions')}</th>}
               </tr>
             </thead>
-          </table>
-          <div className="overflow-x-auto">
-            <table className="w-full divide-y divide-gray-100">
-              <tbody className="bg-white divide-y divide-gray-50">
-              {customers.map(c => (
-                <tr key={c.id} className="hover:bg-blue-50/40 transition-all duration-300 group">
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center">
-                      <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      {c.name}
+            <tbody className="bg-white divide-y divide-gray-50">
+            {customers.map(c => (
+              <tr key={c.id} className="hover:bg-blue-50/40 transition-all duration-300 group">
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    {c.name}
+                  </div>
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-700 flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {c.ice || '-'}
+                  </div>
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-700 flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {c.taxId || '-'}
+                  </div>
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-700 flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {c.email || '-'}
+                  </div>
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-700 flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    {c.phoneNumber || '-'}
+                  </div>
+                </td>
+                {canPerformActions && (
+                  <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {canUpdate && (
+                        <button 
+                          onClick={() => handleEdit(c)} 
+                          className="text-blue-600 hover:text-blue-700 p-1.5 rounded-lg transition-all duration-200 hover:bg-blue-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-blue-200"
+                          title={t('customers.actions.edit')}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button 
+                          onClick={() => handleDelete(c.id)} 
+                          className="text-red-600 hover:text-red-700 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-red-200"
+                          title={t('customers.actions.delete')}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-sm text-gray-700 flex items-center">
-                      <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {c.ice || '-'}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-sm text-gray-700 flex items-center">
-                      <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {c.taxId || '-'}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-sm text-gray-700 flex items-center">
-                      <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      {c.email || '-'}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-sm text-gray-700 flex items-center">
-                      <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      {c.phoneNumber || '-'}
-                    </div>
-                  </td>
-                  {canPerformActions && (
-                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {canUpdate && (
-                          <button 
-                            onClick={() => handleEdit(c)} 
-                            className="text-blue-600 hover:text-blue-700 p-1.5 rounded-lg transition-all duration-200 hover:bg-blue-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-blue-200"
-                            title={t('customers.actions.edit')}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2.5 2.5 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button 
-                            onClick={() => handleDelete(c.id)} 
-                            className="text-red-600 hover:text-red-700 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-red-200"
-                            title={t('customers.actions.delete')}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
+                )}
+              </tr>
+            ))}
             </tbody>
           </table>
-        </div>
         </div>
       )}
 
