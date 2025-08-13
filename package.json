@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
     "@tanstack/react-table": "^8.21.3",
     "@testing-library/dom": "^10.4.0",

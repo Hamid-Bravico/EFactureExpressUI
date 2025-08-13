@@ -65,7 +65,8 @@
       "upload": "Télécharger",
       "importCSV": "Importer CSV",
       "importingCSV": "Importation du fichier CSV..."
-    }
+    },
+    "creditNotes": "Avoirs"
   },
   "auth": {
     "signIn": "Se connecter",
@@ -652,6 +653,249 @@
             "NotesPrivees - Notes privées"
           ]
         }
+    }
+  },
+  "creditNote": {
+    "title": "Avoir",
+    "title_plural": "Avoirs",
+    "create": "Créer un avoir",
+    "edit": "Modifier l'avoir",
+    "view": "Voir l'avoir",
+    "delete": "Supprimer l'avoir",
+    "submit": "Soumettre l'avoir",
+    "download": "Télécharger le PDF",
+    "creditNoteNumber": "Numéro d'avoir",
+    "deleting": "Suppression de l'avoir...",
+    "submitting": "Soumission de l'avoir...",
+    "downloadingPDF": "Téléchargement du PDF...",
+    "status": {
+      "draft": "Brouillon",
+      "pending": "Prêt",
+      "ready": "Prêt",
+      "awaitingClearance": "En attente de validation",
+      "validated": "Validé",
+      "rejected": "Rejeté",
+      "paid": "Payé",
+      "overdue": "En retard",
+      "cancelled": "Annulé",
+      "submitted": "Soumis",
+      "draftDescription": "En cours de travail",
+      "readyDescription": "Prêt pour soumission",
+      "awaitingClearanceDescription": "En attente de validation des autorités",
+      "validatedDescription": "Validé par les autorités",
+      "rejectedDescription": "Rejeté par les autorités"
+    },
+    "form": {
+      "customerInfo": "Informations client",
+      "creditNoteInfo": "Informations avoir",
+      "items": "Articles",
+      "addItem": "Ajouter un article",
+      "removeItem": "Supprimer l'article",
+      "subtotal": "Sous-total",
+      "tax": "Taxe",
+      "total": "Total",
+      "notes": "Notes",
+      "terms": "Conditions générales",
+      "editTitle": "Modifier l'avoir",
+      "createTitle": "Créer un nouvel avoir",
+      "creditNoteNumber": "Numéro d'avoir",
+      "date": "Date",
+      "customerName": "Nom du client",
+      "vatRate": "Taux de TVA (%)",
+      "linesTitle": "Lignes d'avoir",
+      "addLine": "+ Ajouter une ligne",
+      "description": "Description",
+      "quantity": "Quantité",
+      "unitPrice": "Prix unitaire",
+      "vat": "TVA",
+      "status": "Statut",
+      "taxRate": "Taux de TVA (%)",
+      "selectCustomer": "Sélectionner un client",
+      "addFromCatalog": "Ajouter depuis le catalogue",
+      "catalogModal": {
+        "title": "Ajouter depuis le catalogue",
+        "search": "Rechercher...",
+        "loading": "Chargement...",
+        "noItems": "Aucun article trouvé dans le catalogue.",
+        "cancel": "Annuler",
+        "add": "Ajouter"
+      },
+      "errors": {
+        "creditNoteNumberRequired": "Le numéro d'avoir est requis",
+        "dateRequired": "La date est requise",
+        "customerNameRequired": "Le nom du client est requis",
+        "vatRateRange": "Le taux de TVA doit être compris entre 0 et 100",
+        "descriptionRequired": "La description est requise",
+        "quantityPositive": "La quantité doit être supérieure à 0",
+        "unitPricePositive": "Le prix unitaire doit être supérieur à zéro",
+        "oneLineRequired": "Au moins une ligne valide est requise",
+        "cannotRemoveLastLine": "Impossible de supprimer la dernière ligne",
+        "fixErrors": "Veuillez corriger les erreurs dans le formulaire",
+        "submissionError": "Une erreur s'est produite lors de la soumission du formulaire. Veuillez vérifier les champs en surbrillance.",
+        "saveFailed": "Échec de l'enregistrement de l'avoir. Veuillez réessayer.",
+        "importFailed": "Échec de l'importation des avoirs. Veuillez vérifier votre fichier et réessayer."
+      },
+      "selectOriginalInvoice": "Sélectionner la facture d'origine",
+      "originalInvoice": "Facture d'origine"
+    },
+    "filters": {
+      "title": "Filtres",
+      "show": "Afficher les filtres",
+      "hide": "Masquer les filtres",
+      "apply": "Appliquer les filtres",
+      "reset": "Réinitialiser",
+      "dateRange": "Période",
+      "searchTerm": "Recherche",
+      "searchPlaceholder": "Rechercher avoirs, clients, numéros...",
+      "status": "Statut",
+      "all": "Tous",
+      "amountRange": "Fourchette de montant",
+      "min": "Min",
+      "max": "Max"
+    },
+    "bulk": {
+      "selected": "{{count}} avoir sélectionné",
+      "selected_plural": "{{count}} avoirs sélectionnés",
+      "submit": "Soumettre la sélection",
+      "delete": "Supprimer la sélection",
+      "submitting": "Soumission de {{count}} avoirs...",
+      "deleting": "Suppression de {{count}} avoirs...",
+      "confirm": {
+        "delete": "Êtes-vous sûr de vouloir supprimer les avoirs sélectionnés ?",
+        "submit": "Êtes-vous sûr de vouloir soumettre les avoirs sélectionnés ?"
+      }
+    },
+    "list": {
+      "noCreditNotes": "Aucun avoir trouvé",
+      "adjustFilters": "Essayez d'ajuster vos filtres",
+      "getStarted": "Commencez par créer votre premier avoir.",
+      "creditNoteNumber": "Avoir #",
+      "date": "Date",
+      "customer": "Client",
+      "amount": "Montant",
+      "actions": "Actions",
+      "status": "Statut",
+      "statusUpdateSuccess": "Statut de l'avoir mis à jour avec succès"
+    },
+    "actions": {
+      "edit": "Modifier l'avoir",
+      "submit": "Soumettre à la DGI",
+      "makeReady": "Marquer comme prêt",
+      "backToDraft": "Retour au brouillon",
+      "download": "Télécharger le PDF",
+      "delete": "Supprimer l'avoir",
+      "downloadJson": "Télécharger JSON",
+      "refreshStatus": "Actualiser le statut",
+      "viewRejectionReason": "Voir la raison du rejet",
+      "copyDgiSubmissionId": "Copier l'ID de soumission DGI",
+      "signing": "Signature en cours...",
+      "downloading": "Téléchargement..."
+    },
+    "details": {
+      "title": "Détails de l'avoir",
+      "description": "Description",
+      "quantity": "Quantité",
+      "unitPrice": "Prix unitaire",
+      "total": "Total",
+      "subtotal": "Sous-total",
+      "vat": "TVA",
+      "grandTotal": "Total Général",
+      "creditNoteInfo": "Informations de l'avoir",
+      "creditNoteNumber": "Numéro d'avoir",
+      "date": "Date",
+      "status": "Statut",
+      "customerInfo": "Informations client",
+      "customerName": "Nom du client",
+      "ice": "ICE",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "dgiSubmissionId": "ID de soumission DGI",
+      "rejectionReason": "Raison du rejet DGI",
+      "warnings": "Avertissements",
+      "taxRate": "Taux de TVA",
+      "createdBy": "Créé par",
+      "createdAt": "Créé le"
+    },
+    "tooltip": {
+      "createdBy": "Créé le {{date}} par {{name}}"
+    },
+    "confirm": {
+      "title": "Confirmer {{action}}",
+      "message": "Êtes-vous sûr de vouloir {{action}} {{count}} avoir{{plural}} ?{{warning}}",
+      "warning": " Cette action ne peut pas être annulée.",
+      "makeReady": "Êtes-vous sûr de vouloir marquer l'avoir #{{creditNoteNumber}} comme Prêt ?",
+      "backToDraft": "Êtes-vous sûr de vouloir marquer l'avoir #{{creditNoteNumber}} comme Brouillon ?",
+      "delete": "Êtes-vous sûr de vouloir supprimer cet avoir ?",
+      "submit": "Êtes-vous sûr de vouloir soumettre cet avoir ?"
+    },
+    "dgiStatus": {
+      "checking": "Vérification du statut...",
+      "stillPending": "Le statut est toujours en attente...",
+      "rejectionReason": "Raison du rejet",
+      "errorChecking": "Erreur lors de la vérification du statut",
+      "switchToDraft": "Passer en brouillon"
+    },
+    "messages": {
+      "created": "Avoir créé avec succès.",
+      "updated": "Avoir mis à jour avec succès.",
+      "deleted": "Avoir supprimé avec succès.",
+      "submitted": "Avoir soumis avec succès.",
+      "bulkDeleted": "{{count}} avoir(s) supprimé(s) avec succès.",
+      "bulkSubmitted": "{{count}} avoir(s) soumis avec succès.",
+      "pdfReady": "Le PDF est prêt à être téléchargé.",
+      "statusUpdateSuccess": "Statut de l'avoir mis à jour avec succès",
+      "statusUpdateError": "Échec de la mise à jour du statut de l'avoir",
+      "fetchFailed": "Échec de la récupération des avoirs",
+      "deleteFailed": "Échec de la suppression de l'avoir",
+      "submitFailed": "Échec de la soumission de l'avoir",
+      "updateFailed": "Impossible de mettre à jour l'avoir : ID manquant",
+      "fetchDetailsFailed": "Échec de la récupération des détails de l'avoir",
+      "bulkActionFailed": "Échec de {{action}} des avoirs : {{error}}"
+    },
+    "errors": {
+      "helperAppRequired": "L'API Web Crypto n'est pas prise en charge. Veuillez installer l'Assistant de signature EFacture Express.",
+      "noCertificate": "Aucun certificat numérique trouvé. Un certificat valide doit être installé sur votre ordinateur pour signer les avoirs. Veuillez consulter notre section Aide pour les instructions.",
+      "signatureCreationFailed": "Impossible de créer la signature. Le certificat sélectionné peut être expiré ou invalide. Veuillez sélectionner un autre certificat ou contacter le support.",
+      "signatureVerificationFailed": "Le serveur n'a pas pu vérifier votre signature. Veuillez actualiser la page pour vous assurer que vous signez la dernière version de l'avoir et réessayer. Si le problème persiste, veuillez contacter le support.",
+      "helperAppNotRunning": "L'application d'aide à la signature numérique n'est pas en cours d'exécution",
+      "helperAppRunning": "L'application d'aide à la signature numérique est en cours d'exécution",
+      "checkingHelperApp": "Vérification de l'application d'aide à la signature numérique...",
+      "connectionFailed": "Échec de la connexion à l'application d'aide à la signature. Veuillez vous assurer que l'application d'aide à la signature numérique est en cours d'exécution.",
+      "connectionClosed": "La connexion à l'application d'aide à la signature a été fermée de manière inattendue. Veuillez vous assurer que l'application d'aide est en cours d'exécution et réessayer.",
+      "signingTimeout": "L'opération de signature a expiré. Veuillez réessayer.",
+      "signatureCreationError": "Impossible de créer la signature. Veuillez vous assurer que l'application d'aide à la signature numérique est en cours d'exécution."
+    },
+    "import": {
+      "title": "Importer des avoirs",
+      "description": "Importer plusieurs avoirs depuis un fichier CSV",
+      "instructions": "Téléchargez le modèle et remplissez-le avec vos données d'avoir",
+      "downloadTemplate": "Télécharger le modèle",
+      "uploading": "Téléchargement...",
+      "success": "{{imported}} avoirs importés avec succès sur {{total}} au total",
+      "error": {
+        "title": "Erreur d'importation",
+        "message": "Certains avoirs n'ont pas pu être importés. Veuillez vérifier les détails ci-dessous :",
+        "general": "Erreur lors de l'importation"
+      },
+      "help": {
+        "title": "Format d'importation CSV",
+        "description": "Le fichier doit être au format CSV avec les en-têtes suivants sur la première ligne. L'ordre des colonnes n'a pas d'importance.",
+        "requiredHeaders": "En-têtes requis :",
+        "optionalHeaders": "En-têtes optionnels :",
+        "requiredFields": [
+          "NumeroAvoir - Numéro d'avoir",
+          "Date - Date d'avoir",
+          "NumeroFactureOriginale - Numéro de la facture d'origine",
+          "ClientICE - Numéro ICE du client",
+          "Description - Description de l'article",
+          "Quantite - Quantité",
+          "PrixUnitaire - Prix unitaire",
+          "TauxTVA - Taux de TVA"
+        ],
+        "optionalFields": [
+          "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)"
+        ]
+      }
     }
   },
   "catalog": {

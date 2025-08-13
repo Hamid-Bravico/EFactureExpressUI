@@ -28,6 +28,7 @@ import { tokenManager } from "./utils/tokenManager";
 import CompanyProfile from "./components/CompanyProfile";
 import CustomerCRUD from "./domains/customers/components/CustomerCRUD";
 import CatalogManagement from "./domains/catalog/components/CatalogManagement";
+import CreditNoteManagement from "./domains/creditNotes/components/CreditNoteManagement";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -63,7 +64,6 @@ function App() {
     message: '',
     details: []
   });
-
   // Track last used invoice list query to preserve filters/sort on silent refreshes
   const lastInvoiceFiltersRef = useRef<any | undefined>(undefined);
   const lastInvoiceSortRef = useRef<any | undefined>(undefined);
@@ -211,22 +211,6 @@ function App() {
       };
     });
   }, []);
-
-  /*const silentlyRemoveInvoiceFromList = useCallback((id: number) => {
-    setInvoiceListData((prev: any) => {
-      if (!prev) return prev;
-      const updatedInvoices = prev.invoices.filter((inv: any) => inv.id !== id);
-      return {
-        ...prev,
-        invoices: updatedInvoices,
-        pagination: {
-          ...prev.pagination,
-          totalItems: prev.pagination.totalItems - 1,
-          totalPages: Math.ceil((prev.pagination.totalItems - 1) / prev.pagination.pageSize)
-        }
-      };
-    });
-  }, []);*/
 
   // ─── FETCH DASHBOARD STATS ─────────────────────────────────────────────────
   const fetchDashboardStats = useCallback(async (filters?: DashboardFilters) => {
@@ -578,6 +562,7 @@ function App() {
       
       // Apply optimistic update
       optimisticallyUpdateInvoice(updatedInvoice);
+      console.log('invoice', invoice);
 
       const res = await secureApiClient.put(INVOICE_ENDPOINTS.UPDATE(invoice.id), invoice);
       
@@ -981,6 +966,7 @@ function App() {
       formData.append('file', file);
 
       const response = await secureApiClient.post(INVOICE_ENDPOINTS.IMPORT, formData, true, true);
+
 
       if (response.status === 401) {
         toast.error(t('common.unauthorized'), { id: toastId });
@@ -1386,6 +1372,20 @@ function App() {
                         {t('common.users')}
                       </NavLink>
                     )}
+                    <NavLink
+                      to="/credit-notes"
+                      className={({ isActive }) =>
+                        `inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 relative
+                        ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"}
+                        after:absolute after:left-3 after:right-3 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-blue-500 after:scale-x-0 after:transition-transform after:duration-200
+                        hover:after:scale-x-100 focus:after:scale-x-100 ${isActive ? 'after:scale-x-100' : ''}`
+                      }
+                    >
+                      <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 8h10M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                      </svg>
+                      {t('common.creditNotes')}
+                    </NavLink>
                   </div>
                   {/* Mobile menu */}
                   {mobileMenuOpen && (
@@ -1490,6 +1490,22 @@ function App() {
                           {t('common.users')}
                         </NavLink>
                       )}
+                      <NavLink
+                        to="/credit-notes"
+                        className={({ isActive }) =>
+                          `inline-flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${
+                            isActive
+                              ? "bg-blue-50 text-blue-700 shadow-sm"
+                              : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                          }`
+                        }
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 8h10M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                        </svg>
+                        {t('common.creditNotes')}
+                      </NavLink>
                     </div>
                   )}
                 </>
@@ -1801,6 +1817,24 @@ function App() {
                         }
                       >
                         <CatalogManagement token={token} />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/credit-notes"
+                  element={
+                    <ProtectedRoute>
+                      <ErrorBoundary
+                        fallback={
+                          <ErrorPage
+                            inline
+                            title={t('errors.applicationError')}
+                            message={t('errors.sectionError')}
+                          />
+                        }
+                      >
+                        <CreditNoteManagement />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   }

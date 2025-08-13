@@ -65,7 +65,8 @@
       "upload": "Upload",
       "importCSV": "Import CSV",
       "importingCSV": "Importing CSV file..."
-    }
+    },
+    "creditNotes": "Credit Notes"
   },
   "auth": {
     "signIn": "Sign in",
@@ -907,5 +908,248 @@
     "admin": "Admin",
     "manager": "Manager",
     "clerk": "Clerk"
+  },
+  "creditNote": {
+    "title": "Credit Note",
+    "title_plural": "Credit Notes",
+    "create": "Create Credit Note",
+    "edit": "Edit Credit Note",
+    "view": "View Credit Note",
+    "delete": "Delete Credit Note",
+    "submit": "Submit Credit Note",
+    "download": "Download PDF",
+    "creditNoteNumber": "Credit Note Number",
+    "deleting": "Deleting credit note...",
+    "submitting": "Submitting credit note...",
+    "downloadingPDF": "Downloading PDF...",
+    "status": {
+      "draft": "Draft",
+      "pending": "Ready",
+      "ready": "Ready",
+      "awaitingClearance": "Awaiting Clearance",
+      "validated": "Validated",
+      "rejected": "Rejected",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "cancelled": "Cancelled",
+      "submitted": "Submitted",
+      "draftDescription": "Work in progress",
+      "readyDescription": "Ready for submission",
+      "awaitingClearanceDescription": "Awaiting clearance from authorities",
+      "validatedDescription": "Validated by authorities",
+      "rejectedDescription": "Rejected by authorities"
+    },
+    "form": {
+      "selectOriginalInvoice": "Select original invoice",
+      "originalInvoice": "Original invoice",
+      "customerInfo": "Customer Information",
+      "creditNoteInfo": "Credit Note Information",
+      "items": "Items",
+      "addItem": "Add Item",
+      "removeItem": "Remove Item",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total",
+      "notes": "Notes",
+      "terms": "Terms and Conditions",
+      "editTitle": "Edit Credit Note",
+      "createTitle": "Create New Credit Note",
+      "creditNoteNumber": "Credit Note Number",
+      "date": "Date",
+      "customerName": "Customer Name",
+      "vatRate": "VAT Rate (%)",
+      "linesTitle": "Credit Note Lines",
+      "addLine": "+ Add Line",
+      "description": "Description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "vat": "VAT",
+      "status": "Status",
+      "taxRate": "Tax Rate (%)",
+      "selectCustomer": "Select Customer",
+      "addFromCatalog": "Add from Catalog",
+      "catalogModal": {
+        "title": "Add from Catalog",
+        "search": "Search...",
+        "loading": "Loading...",
+        "noItems": "No items found in catalog.",
+        "cancel": "Cancel",
+        "add": "Add"
+      },
+      "errors": {
+        "creditNoteNumberRequired": "Credit note number is required",
+        "dateRequired": "Date is required",
+        "customerNameRequired": "Customer name is required",
+        "vatRateRange": "VAT rate must be between 0 and 100",
+        "descriptionRequired": "Description is required",
+        "quantityPositive": "Quantity must be greater than 0",
+        "unitPricePositive": "Unit price must be greater than zero",
+        "oneLineRequired": "At least one valid line is required",
+        "cannotRemoveLastLine": "Cannot remove the last line",
+        "fixErrors": "Please fix the errors in the form",
+        "submissionError": "There was an error submitting the form. Please check the highlighted fields.",
+        "saveFailed": "Failed to save credit note. Please try again.",
+        "importFailed": "Failed to import credit notes. Please check your file and try again."
+      }
+    },
+    "filters": {
+      "title": "Filters",
+      "show": "Show Filters",
+      "hide": "Hide Filters",
+      "apply": "Apply Filters",
+      "reset": "Reset",
+      "dateRange": "Date Range",
+      "searchTerm": "Search",
+      "searchPlaceholder": "Search credit notes, customers, numbers...",
+      "status": "Status",
+      "all": "All",
+      "amountRange": "Amount Range",
+      "min": "Min",
+      "max": "Max"
+    },
+    "bulk": {
+      "selected": "{{count}} credit note selected",
+      "selected_plural": "{{count}} credit notes selected",
+      "submit": "Submit Selection",
+      "delete": "Delete Selection",
+      "submitting": "Submitting {{count}} credit notes...",
+      "deleting": "Deleting {{count}} credit notes...",
+      "confirm": {
+        "delete": "Are you sure you want to delete the selected credit notes?",
+        "submit": "Are you sure you want to submit the selected credit notes?"
+      }
+    },
+    "list": {
+      "noCreditNotes": "No Credit Notes Found",
+      "adjustFilters": "Try adjusting your filters",
+      "getStarted": "Get started by creating your first credit note.",
+      "creditNoteNumber": "Credit Note #",
+      "date": "Date",
+      "customer": "Customer",
+      "amount": "Amount",
+      "actions": "Actions",
+      "status": "Status",
+      "statusUpdateSuccess": "Credit note status updated successfully"
+    },
+    "actions": {
+      "edit": "Edit Credit Note",
+      "submit": "Submit to DGI",
+      "makeReady": "Make Ready",
+      "backToDraft": "Back to Draft",
+      "download": "Download PDF",
+      "delete": "Delete Credit Note",
+      "downloadJson": "Download JSON",
+      "refreshStatus": "Refresh Status",
+      "viewRejectionReason": "View Rejection Reason",
+      "copyDgiSubmissionId": "Copy DGI Submission ID",
+      "signing": "Signing...",
+      "downloading": "Downloading..."
+    },
+    "details": {
+      "title": "Credit Note Details",
+      "description": "Description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "subtotal": "Subtotal",
+      "vat": "VAT",
+      "grandTotal": "Grand Total",
+      "creditNoteInfo": "Credit Note Information",
+      "creditNoteNumber": "Credit Note Number",
+      "date": "Date",
+      "status": "Status",
+      "customerInfo": "Customer Information",
+      "customerName": "Customer Name",
+      "ice": "ICE",
+      "email": "Email",
+      "phone": "Phone",
+      "dgiSubmissionId": "DGI Submission ID",
+      "rejectionReason": "DGI Rejection Reason",
+      "warnings": "Warnings",
+      "taxRate": "Tax Rate",
+      "createdBy": "Created By",
+      "createdAt": "Created At"
+    },
+    "tooltip": {
+      "createdBy": "Created on {{date}} by {{name}}"
+    },
+    "confirm": {
+      "title": "Confirm {{action}}",
+      "message": "Are you sure you want to {{action}} {{count}} credit note{{plural}}?{{warning}}",
+      "warning": " This action cannot be undone.",
+      "makeReady": "Are you sure you want to mark credit note #{{creditNoteNumber}} as Ready?",
+      "backToDraft": "Are you sure you want to mark credit note #{{creditNoteNumber}} as Draft?",
+      "delete": "Are you sure you want to delete this credit note?",
+      "submit": "Are you sure you want to submit this credit note?"
+    },
+    "dgiStatus": {
+      "checking": "Checking status...",
+      "stillPending": "Status is still pending...",
+      "rejectionReason": "Rejection Reason",
+      "errorChecking": "Error checking status",
+      "switchToDraft": "Switch to Draft"
+    },
+    "messages": {
+      "created": "Credit note created successfully.",
+      "updated": "Credit note updated successfully.",
+      "deleted": "Credit note deleted successfully.",
+      "submitted": "Credit note submitted successfully.",
+      "bulkDeleted": "{{count}} credit notes deleted successfully.",
+      "bulkSubmitted": "{{count}} credit notes submitted successfully.",
+      "pdfReady": "PDF is ready for download.",
+      "statusUpdateSuccess": "Credit note status updated successfully",
+      "statusUpdateError": "Failed to update credit note status",
+      "fetchFailed": "Failed to fetch credit notes",
+      "deleteFailed": "Failed to delete credit note",
+      "submitFailed": "Failed to submit credit note",
+      "updateFailed": "Cannot update credit note: Missing credit note ID",
+      "fetchDetailsFailed": "Failed to fetch credit note details",
+      "bulkActionFailed": "Failed to {{action}} credit notes: {{error}}"
+    },
+    "errors": {
+      "helperAppRequired": "Web Crypto API not supported. Please install the EFacture Express Signing Helper.",
+      "noCertificate": "No digital certificate found. A valid certificate must be installed on your computer to sign credit notes. Please visit our Help Section for instructions.",
+      "signatureCreationFailed": "Could not create the signature. The selected certificate may be expired or invalid. Please select another certificate or contact support.",
+      "signatureVerificationFailed": "The server could not verify your signature. Please refresh the page to ensure you are signing the latest version of the credit note and try again. If the problem persists, please contact support.",
+      "helperAppNotRunning": "Digital signing helper app is not running",
+      "helperAppRunning": "Digital signing helper app is running",
+      "checkingHelperApp": "Checking digital signing helper app...",
+      "connectionFailed": "Failed to connect to signing helper app. Please ensure the digital signing helper app is running.",
+      "connectionClosed": "Connection to signing helper app was closed unexpectedly. Please ensure the helper app is running and try again.",
+      "signingTimeout": "Signing operation timed out. Please try again.",
+      "signatureCreationError": "Could not create the signature. Please ensure the digital signing helper app is running."
+    },
+    "import": {
+      "title": "Import Credit Notes",
+      "description": "Import multiple credit notes from a CSV file",
+      "instructions": "Download the template and fill it with your credit note data",
+      "downloadTemplate": "Download Template",
+      "uploading": "Uploading...",
+      "success": "{{imported}} credit notes imported successfully out of {{total}} total",
+      "error": {
+        "title": "Import Error",
+        "message": "Some credit notes could not be imported. Please check the details below:",
+        "general": "Error during import"
+      },
+      "help": {
+        "title": "CSV Import Format",
+        "description": "The file must be in CSV format with the following headers on the first line. The order of columns does not matter.",
+        "requiredHeaders": "Required Headers:",
+        "optionalHeaders": "Optional Headers:",
+        "requiredFields": [
+          "NumeroAvoir - Credit note number",
+          "Date - Credit note date",
+          "NumeroFactureOriginale - Original invoice number",
+          "ClientICE - Customer ICE number",
+          "Description - Item description",
+          "Quantite - Quantity",
+          "PrixUnitaire - Unit price",
+          "TauxTVA - VAT rate"
+        ],
+        "optionalFields": [
+          "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)"
+        ]
+      }
+    }
   }
 }
