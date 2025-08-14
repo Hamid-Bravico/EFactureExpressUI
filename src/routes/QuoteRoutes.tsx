@@ -3,29 +3,23 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import ErrorPage from "../components/ErrorPage";
 import QuoteManagement from "../domains/quotes/components/QuoteManagement";
 import { useTranslation } from "react-i18next";
-import { Route } from "react-router-dom";
 
-export default function QuoteRoutes({ token }: { token: string | null }) {
+export default function QuotePage({ token }: { token: string | null }) {
   const { t } = useTranslation();
   return (
-    <Route
-      path="/quotes"
-      element={
-        <ProtectedRoute>
-          <ErrorBoundary
-            fallback={
-              <ErrorPage
-                inline
-                title={t('errors.applicationError')}
-                message={t('errors.sectionError')}
-                onRetry={undefined}
-              />
-            }
-          >
-            <QuoteManagement token={token || ""} />
-          </ErrorBoundary>
-        </ProtectedRoute>
-      }
-    />
+    <ProtectedRoute>
+      <ErrorBoundary
+        fallback={
+          <ErrorPage
+            inline
+            title={t('errors.applicationError')}
+            message={t('errors.sectionError')}
+            onRetry={undefined}
+          />
+        }
+      >
+        <QuoteManagement token={token || ""} />
+      </ErrorBoundary>
+    </ProtectedRoute>
   );
 }

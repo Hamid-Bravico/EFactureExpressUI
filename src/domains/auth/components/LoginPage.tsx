@@ -27,7 +27,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onToggleLanguage, curren
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg relative">
+        {/* Language Toggle Button */}
+        <button
+          onClick={onToggleLanguage}
+          className="absolute top-4 right-4 px-3 py-2 text-sm font-medium text-gray-700 bg-white/80 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transform hover:scale-105"
+        >
+          {currentLanguage === 'en' ? 'FR' : 'EN'}
+        </button>
+        
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <img

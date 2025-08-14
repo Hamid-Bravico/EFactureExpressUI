@@ -202,55 +202,25 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
         body: JSON.stringify(requestData)
       });
 
-             // Handle successful response
-       if (response.ok) {
-         const successData = await response.json();
-         toast.success(successData.message || t('auth.registrationSuccess'));
-         navigate('/login');
-         return;
-       }
-
-      // Parse error response
-      let responseData;
-      try {
-        responseData = await response.json();
-      } catch {
-        responseData = { succeeded: false, message: t('errors.registrationFailed') };
+      const responseData = await response.json();
+      
+      if (!responseData.succeeded) {
+        const errorMessage = responseData.errors?.join('\n') || responseData.message || t('errors.registrationFailed');
+        throw new Error(errorMessage, { cause: responseData.message });
       }
 
-      // Handle different error scenarios
-      if (response.status === 409) {
-        // Handle conflict errors (duplicate email or tax ID)
-        if (responseData.field === 'email') {
-          throw new Error(t('errors.emailAlreadyExists'));
-        } else if (responseData.field === 'ICE') {
-          throw new Error(t('errors.ICEAlreadyExists'));
-        } else {
-          throw new Error(responseData.message || t('errors.registrationFailed'));
-        }
-      } else if (response.status === 400) {
-        // Handle validation errors
-        if (responseData.errors && Array.isArray(responseData.errors)) {
-          const errorMessage = responseData.errors.join('\n');
-          throw new Error(errorMessage);
-        } else {
-          throw new Error(responseData.message || t('errors.validationFailed'));
-        }
-      } else if (response.status === 500) {
-        throw new Error(t('errors.serverError'));
-      } else {
-        throw new Error(responseData.message || t('errors.registrationFailed'));
-      }
+      // Handle successful response
+      toast.success(responseData.message || t('auth.registrationSuccess'));
+      navigate('/login');
 
     } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : t('errors.registrationFailed');
       
-      // Show error toast
       toast.error(
         <div className="space-y-1">
-          <p className="font-medium">{t('errors.registrationFailed')}</p>
+          <p className="font-medium">{err.cause || t('errors.registrationFailed')}</p>
           {errorMessage.split('\n').map((line, index) => (
-            <p key={index} className="text-sm">{line}</p>
+            <p key={index} className="text-sm"> - {line}</p>
           ))}
         </div>,
         { duration: 9000 }
@@ -282,7 +252,15 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg relative">
+        {/* Language Toggle Button */}
+        <button
+          onClick={onToggleLanguage}
+          className="absolute top-4 right-4 px-3 py-2 text-sm font-medium text-gray-700 bg-white/80 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transform hover:scale-105"
+        >
+          {currentLanguage === 'en' ? 'FR' : 'EN'}
+        </button>
+        
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <img

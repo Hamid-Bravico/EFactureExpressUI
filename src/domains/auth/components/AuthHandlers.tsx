@@ -30,6 +30,7 @@ export function useAuthHandlers() {
         body: JSON.stringify({ email: email.trim(), password: password.trim() }),
       });
       const responseData = await response.json();
+      
       if (!responseData.succeeded) {
         const errorMessage = responseData.errors?.join(', ') || responseData.message || t('errors.invalidCredentials');
         throw new Error(errorMessage);
@@ -76,6 +77,8 @@ export function useAuthHandlers() {
       if (process.env.NODE_ENV === 'development') {
         console.error('Logout request failed:', error);
       }
+    } finally {
+      // Always clear auth data and reset state, regardless of request success/failure
       tokenManager.clearAuthData();
       setToken(null);
       setCompany(null);

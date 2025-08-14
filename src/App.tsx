@@ -14,13 +14,13 @@ import { useAuthHandlers } from "./domains/auth/components/AuthHandlers";
 import { useLanguage } from "./utils/useLanguage";
 import { useTokenRefresh } from "./utils/useTokenRefresh";
 import { useUserInfo } from "./utils/useUserInfo";
-import DashboardRoutes from "./routes/DashboardRoutes";
-import InvoiceRoutes from "./routes/InvoiceRoutes";
-import QuoteRoutes from "./routes/QuoteRoutes";
-import CustomerRoutes from "./routes/CustomerRoutes";
-import CatalogRoutes from "./routes/CatalogRoutes";
-import UserRoutes from "./routes/UserRoutes";
-import CreditNoteRoutes from "./routes/CreditNoteRoutes";
+import DashboardPage from "./routes/DashboardRoutes";
+import InvoicePage from "./routes/InvoiceRoutes";
+import QuotePage from "./routes/QuoteRoutes";
+import CustomerPage from "./routes/CustomerRoutes";
+import CatalogPage from "./routes/CatalogRoutes";
+import UserPage from "./routes/UserRoutes";
+import CreditNotePage from "./routes/CreditNoteRoutes";
 import AppNavbar from "./components/AppNavbar";
 
 function App() {
@@ -74,58 +74,142 @@ function App() {
       <BrowserRouter>
         <div className="min-h-screen bg-gray-100">
           <Toaster position="top-right" />
-          <AppNavbar
-            token={token}
-            userRole={userRole || ""}
-            userEmail={userEmail || ""}
-            company={company}
-            i18n={i18n}
-            t={t}
-            handleLogout={handleLogout}
-            toggleLanguage={toggleLanguage}
-            dropdownOpen={dropdownOpen}
-            setDropdownOpen={setDropdownOpen}
-            dropdownRef={dropdownRef}
-            mobileMenuOpen={mobileMenuOpen}
-            setMobileMenuOpen={setMobileMenuOpen}
-          />
-
-          {!token ? (
-            <Routes>
-              <Route
-                path="/login"
-                element={
+          
+          {token && (
+            <AppNavbar
+              token={token}
+              userRole={userRole || ""}
+              userEmail={userEmail || ""}
+              company={company}
+              i18n={i18n}
+              t={t}
+              handleLogout={handleLogout}
+              toggleLanguage={toggleLanguage}
+              dropdownOpen={dropdownOpen}
+              setDropdownOpen={setDropdownOpen}
+              dropdownRef={dropdownRef}
+              mobileMenuOpen={mobileMenuOpen}
+              setMobileMenuOpen={setMobileMenuOpen}
+            />
+          )}
+          
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                !token ? (
                   <LoginPage
                     onLogin={handleLogin}
                     onToggleLanguage={toggleLanguage}
                     currentLanguage={i18n.language}
                   />
-                }
-              />
-              <Route
-                path="/register"
-                element={
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                !token ? (
                   <RegisterPage
                     onToggleLanguage={toggleLanguage}
                     currentLanguage={i18n.language}
                   />
-                }
-              />
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          ) : (
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-              <Routes>
-                {DashboardRoutes({ token })}
-                {InvoiceRoutes({ token })}
-                {QuoteRoutes({ token })}
-                {CustomerRoutes({ token })}
-                {CatalogRoutes({ token })}
-                {UserRoutes({ token })}
-                {CreditNoteRoutes({ token })}
-                <Route
-                  path="/profile"
-                  element={
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <DashboardPage token={token} />
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/invoices"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <InvoicePage token={token} />
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/quotes"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <QuotePage token={token} />
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/customers"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <CustomerPage token={token} />
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/catalog"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <CatalogPage token={token} />
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <UserPage token={token} />
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/credit-notes"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <CreditNotePage token={token} />
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                token ? (
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                     <ProtectedRoute>
                       <CompanyProfile 
                         company={company} 
@@ -139,12 +223,19 @@ function App() {
                         }}
                       />
                     </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
-          )}
+                  </main>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route 
+              path="*" 
+              element={
+                token ? <Navigate to="/" replace /> : <Navigate to="/login" replace />
+              } 
+            />
+          </Routes>
         </div>
       </BrowserRouter>
     </ErrorBoundary>
