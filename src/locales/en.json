@@ -48,6 +48,9 @@
     "customers": "Customers",
     "catalog": "Catalog",
     "profile": "Profile",
+    "today": "Today",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
     "companyProfile": "Company Profile",
     "pagination": {
       "showing": "Showing",

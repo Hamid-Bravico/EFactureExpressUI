@@ -21,7 +21,7 @@ import CustomerPage from "./routes/CustomerRoutes";
 import CatalogPage from "./routes/CatalogRoutes";
 import UserPage from "./routes/UserRoutes";
 import CreditNotePage from "./routes/CreditNoteRoutes";
-import AppNavbar from "./components/AppNavbar";
+import Layout from "./components/Layout";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -33,20 +33,7 @@ function App() {
 
   useTokenRefresh(setToken, setCompany, t);
 
-  // ─── ACCOUNT DROPDOWN ──────────────────────────────────────────────────────
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!dropdownOpen) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownOpen]);
 
   // Track if initial data has been loaded to prevent infinite loops
   const initialLoadRef = useRef(false);
@@ -57,8 +44,7 @@ function App() {
     }
   }, [token]);
 
-  // ─── RENDER NAVBAR ─────────────────────────────────────────────────────────
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
 
   // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
@@ -72,27 +58,17 @@ function App() {
       }
     >
       <BrowserRouter>
-        <div className="min-h-screen bg-gray-100">
+        <Layout
+          token={token}
+          userRole={userRole || ""}
+          userEmail={userEmail || ""}
+          company={company}
+          i18n={i18n}
+          t={t}
+          handleLogout={handleLogout}
+          toggleLanguage={toggleLanguage}
+        >
           <Toaster position="top-right" />
-          
-          {token && (
-            <AppNavbar
-              token={token}
-              userRole={userRole || ""}
-              userEmail={userEmail || ""}
-              company={company}
-              i18n={i18n}
-              t={t}
-              handleLogout={handleLogout}
-              toggleLanguage={toggleLanguage}
-              dropdownOpen={dropdownOpen}
-              setDropdownOpen={setDropdownOpen}
-              dropdownRef={dropdownRef}
-              mobileMenuOpen={mobileMenuOpen}
-              setMobileMenuOpen={setMobileMenuOpen}
-            />
-          )}
-          
           <Routes>
             <Route
               path="/login"
@@ -236,7 +212,7 @@ function App() {
               } 
             />
           </Routes>
-        </div>
+        </Layout>
       </BrowserRouter>
     </ErrorBoundary>
   );
