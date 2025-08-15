@@ -69,7 +69,17 @@
       "importCSV": "Importer CSV",
       "importingCSV": "Importation du fichier CSV..."
     },
-    "creditNotes": "Avoirs"
+    "creditNotes": "Avoirs",
+    "december2024": "Décembre 2024",
+    "overdueInvoices": "factures en retard",
+    "settings": "Paramètres",
+    "stats": {
+      "loading": "Chargement des statistiques...",
+      "error": "Échec du chargement des statistiques",
+      "revenue": "Revenus",
+      "overdue": "En retard",
+      "totalCount": "Nombre total"
+    }
   },
   "auth": {
     "signIn": "Se connecter",

@@ -9,6 +9,7 @@ import InvoiceList from "./InvoiceList";
 import ImportCSV from "./ImportCSV";
 import InvoiceForm from "./InvoiceForm";
 import ErrorModal from "../../../components/ErrorModal";
+import { useStatsContext } from '../../stats/context/StatsContext';
 
 interface InvoiceManagementProps {
   token: string;
@@ -16,6 +17,12 @@ interface InvoiceManagementProps {
 
 function InvoiceManagement({ token }: InvoiceManagementProps) {
   const { t } = useTranslation();
+  const { 
+    incrementSidebarCount, 
+    refreshSidebarCountsSilently,
+    refreshRevenueIfInPeriod,
+    refreshOverdueSilently
+  } = useStatsContext();
   
   // ─── LISTING STATE ─────────────────────────────────────────────────────────
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -291,6 +298,16 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
       optimisticallyRemoveInvoice(tempInvoice.id);
       optimisticallyAddInvoice(data);
       silentlyAddInvoiceToList(data);
+
+      // Sidebar: increment invoices count optimistically, then reconcile silently
+      incrementSidebarCount('invoicesCount', 1);
+      refreshSidebarCountsSilently();
+
+      // Navbar revenue: refresh only if invoice date within selected period
+      await refreshRevenueIfInPeriod(data.date);
+
+      // Overdue may change depending on status/date; refresh silently
+      refreshOverdueSilently();
     } catch (error: any) {
       // Handle error with title and body structure
       let errorTitle = t('invoice.form.errors.submissionFailed');
@@ -536,6 +553,18 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
           lineHeight: '1.5'
         }
       });
+
+      // Sidebar: decrement invoices count optimistically, then reconcile silently
+      incrementSidebarCount('invoicesCount', -1);
+      refreshSidebarCountsSilently();
+
+      // Navbar revenue: if deleted invoice was within selected period, refresh
+      if (originalInvoice?.date) {
+        await refreshRevenueIfInPeriod(originalInvoice.date);
+      }
+
+      // Overdue may change as well
+      refreshOverdueSilently();
     } catch (error: any) {
       // Handle error with title and body structure
       let errorTitle = t('invoice.form.errors.submissionFailed');

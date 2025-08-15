@@ -69,7 +69,17 @@
       "importCSV": "Import CSV",
       "importingCSV": "Importing CSV file..."
     },
-    "creditNotes": "Credit Notes"
+    "creditNotes": "Credit Notes",
+    "december2024": "December 2024",
+    "overdueInvoices": "overdue invoices",
+    "settings": "Settings",
+    "stats": {
+      "loading": "Loading stats...",
+      "error": "Failed to load stats",
+      "revenue": "Revenue",
+      "overdue": "Overdue",
+      "totalCount": "Total Count"
+    }
   },
   "auth": {
     "signIn": "Sign in",

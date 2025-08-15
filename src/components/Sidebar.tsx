@@ -15,6 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { APP_CONFIG } from '../config/app';
+import { useStatsContext } from '../domains/stats/context/StatsContext';
 
 interface SidebarProps {
   userRole: string;
@@ -31,6 +32,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
   const isAdmin = userRole === 'Admin';
   const isManager = userRole === 'Manager';
   const canAccessUsers = isAdmin || isManager;
+
+  const { stats } = useStatsContext();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -57,28 +60,28 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
       path: '/customers',
       label: t('common.customers'),
       icon: Users,
-      badge: '23',
+      badge: stats.sidebarCounts?.customersCount?.toString() || '0',
       permission: true
     },
     {
       path: '/invoices',
       label: t('common.invoices'),
       icon: FileText,
-      badge: '47',
+      badge: stats.sidebarCounts?.invoicesCount?.toString() || '0',
       permission: true
     },
     {
       path: '/quotes',
       label: t('common.quotes'),
       icon: FileCheck,
-      badge: '12',
+      badge: stats.sidebarCounts?.quotesCount?.toString() || '0',
       permission: true
     },
     {
       path: '/credit-notes',
       label: t('common.creditNotes'),
       icon: Receipt,
-      badge: '3',
+      badge: stats.sidebarCounts?.creditNotesCount?.toString() || '0',
       permission: true
     }
   ];
@@ -121,6 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
             ? 'bg-white text-blue-600 shadow-sm' 
             : 'text-gray-600 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
           }
+          ${isCollapsed && !isMobile ? 'justify-center px-2' : ''}
         `}
         tabIndex={0}
       >
@@ -134,11 +138,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
         {/* Icon container */}
         <span
           className={`relative flex items-center justify-center transition-all duration-300
-            ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}
+            ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}
+            ${isCollapsed && !isMobile ? 'w-8 h-4' : ''}
           `}
         >
           <Icon
-            size={18}
+            size={isCollapsed && !isMobile ? 22 : 18}
             className="transition-transform duration-300 group-hover:scale-105"
           />
         </span>
@@ -163,7 +168,11 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
                   : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
                 }
               `}>
-                {item.badge}
+                {stats.loading.sidebar ? (
+                  <div className="animate-pulse bg-gray-200 h-3 w-4 rounded"></div>
+                ) : (
+                  item.badge
+                )}
               </span>
             )}
           </>
@@ -244,7 +253,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
            >
              <Settings size={18} />
              {(!isCollapsed || isMobile) && (
-               <span className="text-sm font-medium">Paramètres</span>
+               <span className="text-sm font-medium">{t('common.settings')}</span>
              )}
            </NavLink>
          </div>

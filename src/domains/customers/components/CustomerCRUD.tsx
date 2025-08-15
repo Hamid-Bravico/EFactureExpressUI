@@ -6,6 +6,7 @@ import { ApiResponse } from '../../auth/types/auth.types';
 import { decodeJWT } from '../../../utils/jwt';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
+import { useStatsContext } from '../../stats/context/StatsContext';
 
 interface CustomerCRUDProps {
   token: string | null;
@@ -13,6 +14,7 @@ interface CustomerCRUDProps {
 
 const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
   const { t } = useTranslation();
+  const { incrementSidebarCount, refreshSidebarCountsSilently } = useStatsContext();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -175,6 +177,9 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
         const created = responseData?.data as Customer | undefined;
         if (created && created.id) {
           setCustomers(prevCustomers => [created, ...prevCustomers]);
+          // Sidebar: increment customers count optimistically and reconcile silently
+          incrementSidebarCount('customersCount', 1);
+          refreshSidebarCountsSilently();
         }
       }
     } catch (e: any) {
@@ -241,6 +246,9 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
         }
       });
       setCustomers(prevCustomers => prevCustomers.filter(c => c.id !== id));
+      // Sidebar: decrement customers count optimistically and reconcile silently
+      incrementSidebarCount('customersCount', -1);
+      refreshSidebarCountsSilently();
     } catch (e: any) {
       toast.error(e.message || t('errors.anErrorOccurred'), { id: toastId });
     }

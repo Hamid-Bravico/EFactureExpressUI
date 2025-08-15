@@ -14,6 +14,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { Transition } from '@headlessui/react';
+import { useStatsContext } from '../domains/stats/context/StatsContext';
+import { formatCurrency } from '../domains/stats/utils/stats.utils';
 
 interface StatusBarProps {
   token: string | null;
@@ -48,6 +50,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const notificationRef = useRef<HTMLDivElement>(null);
   const periodDropdownRef = useRef<HTMLDivElement>(null);
 
+  const { stats, fetchNavbarStats } = useStatsContext();
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -64,9 +68,13 @@ const StatusBar: React.FC<StatusBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentMonthRevenue = '127,450 MAD';
-  const pendingPayments = 3;
-  const pendingAmount = '23,500 MAD';
+  const currentMonthRevenue = stats.navbarStats?.periodRevenue 
+    ? formatCurrency(stats.navbarStats.periodRevenue)
+    : formatCurrency(0);
+  const pendingPayments = stats.overdueStats?.count || stats.navbarStats?.overdueStats?.count || 0;
+  const pendingAmount = stats.overdueStats?.totalAmount || stats.navbarStats?.overdueStats?.totalAmount
+    ? formatCurrency(stats.overdueStats?.totalAmount || stats.navbarStats?.overdueStats?.totalAmount || 0)
+    : formatCurrency(0);
 
   const periodOptions = [
     { value: 'today', label: t('common.today') || "Aujourd'hui" },
@@ -78,27 +86,27 @@ const StatusBar: React.FC<StatusBarProps> = ({
     {
       id: 1,
       type: 'warning',
-      title: 'Facture en retard',
-      message: 'INV-2024-001 est en retard de 5 jours',
-      time: 'Il y a 2h',
+      title: 'Overdue Invoice',
+      message: 'INV-2024-001 is 5 days overdue',
+      time: '2 hours ago',
       icon: AlertTriangle,
       color: 'text-orange-600 bg-orange-50'
     },
     {
       id: 2,
       type: 'success',
-      title: 'Paiement reçu',
-      message: '15,000 MAD reçu pour INV-2024-003',
-      time: 'Il y a 5h',
+      title: 'Payment Received',
+      message: '15,000 MAD received for INV-2024-003',
+      time: '5 hours ago',
       icon: DollarSign,
       color: 'text-green-600 bg-green-50'
     },
     {
       id: 3,
       type: 'info',
-      title: 'Nouveau client',
-      message: 'Société ABC ajoutée avec succès',
-      time: 'Hier',
+      title: 'New Customer',
+      message: 'ABC Company added successfully',
+      time: 'Yesterday',
       icon: User,
       color: 'text-blue-600 bg-blue-50'
     }
@@ -115,8 +123,14 @@ const StatusBar: React.FC<StatusBarProps> = ({
                          <div className="hidden lg:flex items-center gap-6">
                <div className="flex items-center gap-2">
                  <Calendar className="text-gray-400" size={18} />
-                 <span className="text-sm font-medium text-gray-600">Décembre 2024:</span>
-                 <span className="text-lg font-bold text-gray-900">{currentMonthRevenue}</span>
+                 <span className="text-sm font-medium text-gray-600">{stats.navbarStats?.period || t('common.december2024')}:</span>
+                 <span className="text-lg font-bold text-gray-900">
+                   {stats.loading.navbar ? (
+                     <div className="animate-pulse bg-gray-200 h-6 w-24 rounded"></div>
+                   ) : (
+                     currentMonthRevenue
+                   )}
+                 </span>
 
                  <div className="relative ml-3" ref={periodDropdownRef}>
                    <button
@@ -143,6 +157,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
                            onClick={() => {
                              setPeriodFilter(option.value as any);
                              setPeriodDropdownOpen(false);
+                             fetchNavbarStats(option.value as any);
                            }}
                            className={`
                              w-full text-left px-3 py-2 text-sm transition-colors
@@ -165,9 +180,21 @@ const StatusBar: React.FC<StatusBarProps> = ({
                <div className="flex items-center gap-2">
                  <AlertTriangle className="text-orange-500" size={18} />
                  <span className="text-sm text-gray-600">
-                   <span className="font-bold text-orange-600">{pendingPayments}</span> factures en retard
+                   {stats.loading.navbar ? (
+                     <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
+                   ) : (
+                     <>
+                       <span className="font-bold text-orange-600">{pendingPayments}</span> {t('common.overdueInvoices')}
+                     </>
+                   )}
                  </span>
-                 <span className="text-sm text-gray-500">({pendingAmount})</span>
+                 <span className="text-sm text-gray-500">
+                   {stats.loading.navbar ? (
+                     <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
+                   ) : (
+                     `(${pendingAmount})`
+                   )}
+                 </span>
                </div>
              </div>
           </div>
