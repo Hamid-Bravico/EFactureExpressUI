@@ -81,6 +81,63 @@
       "totalCount": "Total Count"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure app-wide settings for document generation and formatting",
+    "documentPrefixes": "Document Prefixes",
+    "documentPrefixesDesc": "Configure the prefixes used for document numbering",
+    "documentSettings": "Document Settings", 
+    "documentSettingsDesc": "Configure document numbering and formatting options",
+    "financialSettings": "Financial Settings",
+    "financialSettingsDesc": "Configure default tax rates and currency settings",
+    "invoicePrefix": "Invoice Prefix",
+    "quotePrefix": "Quote Prefix", 
+    "creditNotePrefix": "Credit Note Prefix",
+    "numberResetPeriod": "Number Reset Period",
+    "numberResetPeriodDesc": "When to reset document numbering",
+    "decimalPlaces": "Decimal Places",
+    "decimalPlacesDesc": "Number of decimal places for amounts",
+    "itemsPerPage": "Items Per Page",
+    "itemsPerPageDesc": "Number of items to display per page in lists",
+    "defaultTaxRate": "Default Tax Rate (%)",
+    "defaultTaxRateDesc": "Default tax rate for new documents",
+    "currencySymbol": "Currency Symbol",
+    "currencySymbolDesc": "Currency symbol displayed on documents",
+    "defaults": {
+      "invoicePrefix": "Default: FACT",
+      "quotePrefix": "Default: DEV", 
+      "creditNotePrefix": "Default: AV",
+      "decimalPlaces": "Default: 2"
+    },
+    "taxRates": {
+      "0": "0% - No Tax",
+      "7": "7% - Reduced Rate",
+      "10": "10% - Intermediate Rate", 
+      "14": "14% - Higher Rate",
+      "20": "20% - Standard Rate"
+    },
+    "resetPeriods": {
+      "yearly": "Yearly",
+      "never": "Never"
+    },
+    "decimalOptions": {
+      "0": "0 decimal places",
+      "2": "2 decimal places", 
+      "3": "3 decimal places"
+    },
+    "itemsPerPageOptions": {
+      "5": "5 items",
+      "10": "10 items",
+      "20": "20 items",
+      "50": "50 items",
+      "100": "100 items"
+    },
+    "messages": {
+      "updateSuccess": "Settings updated successfully",
+      "updateFailed": "Failed to update settings",
+      "loadFailed": "Failed to load settings"
+    }
+  },
   "auth": {
     "signIn": "Sign in",
     "signInButton": "Sign in",
@@ -993,6 +1050,7 @@
         "creditNoteNumberRequired": "Credit note number is required",
         "dateRequired": "Date is required",
         "customerNameRequired": "Customer name is required",
+        "originalInvoiceRequired": "Original invoice is required",
         "vatRateRange": "VAT rate must be between 0 and 100",
         "descriptionRequired": "Description is required",
         "quantityPositive": "Quantity must be greater than 0",
@@ -1003,7 +1061,8 @@
         "submissionError": "There was an error submitting the form. Please check the highlighted fields.",
         "saveFailed": "Failed to save credit note. Please try again.",
         "importFailed": "Failed to import credit notes. Please check your file and try again."
-      }
+      },
+      "noInvoicesFound": "No invoices found for this customer"
     },
     "filters": {
       "title": "Filters",

@@ -81,6 +81,63 @@
       "totalCount": "Nombre total"
     }
   },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Configurer les paramètres de l'application pour la génération et le formatage des documents",
+    "documentPrefixes": "Préfixes de documents",
+    "documentPrefixesDesc": "Configurer les préfixes utilisés pour la numérotation des documents",
+    "documentSettings": "Paramètres de document",
+    "documentSettingsDesc": "Configurer les options de numérotation et de formatage des documents",
+    "financialSettings": "Paramètres financiers",
+    "financialSettingsDesc": "Configurer les taux de TVA par défaut et les paramètres de devise",
+    "invoicePrefix": "Préfixe des factures",
+    "quotePrefix": "Préfixe des devis",
+    "creditNotePrefix": "Préfixe des avoirs",
+    "numberResetPeriod": "Période de remise à zéro",
+    "numberResetPeriodDesc": "Quand remettre à zéro la numérotation des documents",
+    "decimalPlaces": "Décimales",
+    "decimalPlacesDesc": "Nombre de décimales pour les montants",
+    "itemsPerPage": "Éléments par page",
+    "itemsPerPageDesc": "Nombre d'éléments à afficher par page dans les listes",
+    "defaultTaxRate": "Taux de TVA par défaut (%)",
+    "defaultTaxRateDesc": "Taux de TVA par défaut pour les nouveaux documents",
+    "currencySymbol": "Symbole de devise",
+    "currencySymbolDesc": "Symbole de devise affiché sur les documents",
+    "defaults": {
+      "invoicePrefix": "Défaut : FACT",
+      "quotePrefix": "Défaut : DEV",
+      "creditNotePrefix": "Défaut : AV",
+      "decimalPlaces": "Défaut : 2"
+    },
+    "taxRates": {
+      "0": "0% - Pas de TVA",
+      "7": "7% - Taux réduit",
+      "10": "10% - Taux intermédiaire",
+      "14": "14% - Taux supérieur",
+      "20": "20% - Taux normal"
+    },
+    "resetPeriods": {
+      "yearly": "Annuel",
+      "never": "Jamais"
+    },
+    "decimalOptions": {
+      "0": "0 décimale",
+      "2": "2 décimales",
+      "3": "3 décimales"
+    },
+    "itemsPerPageOptions": {
+      "5": "5 éléments",
+      "10": "10 éléments",
+      "20": "20 éléments",
+      "50": "50 éléments",
+      "100": "100 éléments"
+    },
+    "messages": {
+      "updateSuccess": "Paramètres mis à jour avec succès",
+      "updateFailed": "Échec de la mise à jour des paramètres",
+      "loadFailed": "Échec du chargement des paramètres"
+    }
+  },
   "auth": {
     "signIn": "Se connecter",
     "signInButton": "Se connecter",
@@ -737,6 +794,7 @@
         "creditNoteNumberRequired": "Le numéro d'avoir est requis",
         "dateRequired": "La date est requise",
         "customerNameRequired": "Le nom du client est requis",
+        "originalInvoiceRequired": "La facture d'origine est requise",
         "vatRateRange": "Le taux de TVA doit être compris entre 0 et 100",
         "descriptionRequired": "La description est requise",
         "quantityPositive": "La quantité doit être supérieure à 0",
@@ -749,7 +807,8 @@
         "importFailed": "Échec de l'importation des avoirs. Veuillez vérifier votre fichier et réessayer."
       },
       "selectOriginalInvoice": "Sélectionner la facture d'origine",
-      "originalInvoice": "Facture d'origine"
+      "originalInvoice": "Facture d'origine",
+      "noInvoicesFound": "Aucune facture trouvée pour ce client"
     },
     "filters": {
       "title": "Filtres",
