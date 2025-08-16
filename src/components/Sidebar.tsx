@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
   const navigationItems = [
     {
       path: '/',
-      label: 'Home',
+      label: t('common.home') || 'Home',
       icon: Home,
       badge: null,
       permission: true
@@ -83,7 +83,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
       icon: Receipt,
       badge: stats.sidebarCounts?.creditNotesCount?.toString() || '0',
       permission: true
-    }
+    },
+
   ];
 
   const adminItems = [

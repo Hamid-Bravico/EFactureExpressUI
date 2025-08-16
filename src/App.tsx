@@ -22,6 +22,7 @@ import CatalogPage from "./routes/CatalogRoutes";
 import UserPage from "./routes/UserRoutes";
 import CreditNotePage from "./routes/CreditNoteRoutes";
 import SettingsPage from "./routes/SettingsRoutes";
+import NotificationPage from "./routes/NotificationRoutes";
 import Layout from "./components/Layout";
 import { StatsProvider } from "./domains/stats/context/StatsContext";
 
@@ -135,6 +136,14 @@ function App() {
                 element={
                   <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                     <SettingsPage token={token} />
+                  </main>
+                }
+              />
+              <Route
+                path="/notifications/*"
+                element={
+                  <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    <NotificationPage token={token} />
                   </main>
                 }
               />

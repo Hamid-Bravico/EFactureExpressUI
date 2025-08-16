@@ -1,5 +1,6 @@
 {
   "common": {
+    "home": "Home",
     "loading": "Loading...",
     "error": "Error",
     "retry": "Retry",
@@ -80,6 +81,43 @@
       "overdue": "Overdue",
       "totalCount": "Total Count"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Stay updated with your latest notifications",
+    "empty": "No notifications",
+    "emptyDescription": "You're all caught up!",
+    "markAsRead": "Mark as read",
+    "markAllAsRead": "Mark all as read",
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "minutesAgo_plural": "{{count}} mins ago",
+      "hoursAgo": "{{count}} hour ago",
+      "hoursAgo_plural": "{{count}} hours ago",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week"
+    },
+    "filters": {
+      "title": "Filters",
+      "active": "Active",
+      "status": "Status",
+      "severity": "Severity",
+      "type": "Type",
+      "all": "All notifications",
+      "unreadOnly": "Unread only",
+      "readOnly": "Read only",
+      "allSeverities": "All severities",
+      "allTypes": "All types"
+    },
+    "types": {
+      "invoiceCreated": "Invoice Created",
+      "customerCreated": "Customer Created"
+    },
+                  "pagination": {
+                "results": "notifications"
+              },
+              "showAll": "Show all notifications"
   },
   "settings": {
     "title": "Settings",

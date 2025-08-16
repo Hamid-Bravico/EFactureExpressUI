@@ -1,5 +1,6 @@
 {
   "common": {
+    "home": "Accueil",
     "loading": "Chargement...",
     "error": "Erreur",
     "retry": "Réessayer",
@@ -80,6 +81,43 @@
       "overdue": "En retard",
       "totalCount": "Nombre total"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Restez informé de vos dernières notifications",
+    "empty": "Aucune notification",
+    "emptyDescription": "Vous êtes à jour !",
+    "markAsRead": "Marquer comme lue",
+    "markAllAsRead": "Marquer tout comme lu",
+    "time": {
+      "justNow": "À l'instant",
+      "minutesAgo": "il y a {{count}} minute",
+      "minutesAgo_plural": "il y a {{count}} minutes",
+      "hoursAgo": "il y a {{count}} heure",
+      "hoursAgo_plural": "il y a {{count}} heures",
+      "yesterday": "Hier",
+      "thisWeek": "Cette semaine"
+    },
+    "filters": {
+      "title": "Filtres",
+      "active": "Actif",
+      "status": "Statut",
+      "severity": "Gravité",
+      "type": "Type",
+      "all": "Toutes les notifications",
+      "unreadOnly": "Non lues seulement",
+      "readOnly": "Lues seulement",
+      "allSeverities": "Toutes les gravités",
+      "allTypes": "Tous les types"
+    },
+    "types": {
+      "invoiceCreated": "Facture créée",
+      "customerCreated": "Client créé"
+    },
+                  "pagination": {
+                "results": "notifications"
+              },
+              "showAll": "Voir toutes les notifications"
   },
   "settings": {
     "title": "Paramètres",

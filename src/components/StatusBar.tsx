@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   Plus, 
@@ -11,11 +11,18 @@ import {
   User,
   LogOut,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Check,
+  Eye
 } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 import { useStatsContext } from '../domains/stats/context/StatsContext';
 import { formatCurrency } from '../domains/stats/utils/stats.utils';
+import { API_BASE_URL } from '../config/constants';
+import { secureApiClient } from '../config/api';
+import { ApiResponse } from '../domains/auth/types/auth.types';
+import { format, differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, isYesterday, isThisWeek } from 'date-fns';
+import { fr, enUS } from 'date-fns/locale';
 
 interface StatusBarProps {
   token: string | null;
@@ -42,6 +49,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   sidebarCollapsed,
   isMobile
 }) => {
+  const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'week' | 'month'>('month');
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -49,8 +57,31 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const periodDropdownRef = useRef<HTMLDivElement>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const [markingReadId, setMarkingReadId] = useState<number | null>(null);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const { stats, fetchNavbarStats } = useStatsContext();
+
+  // Fetch unread count on mount and when notification actions occur
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await secureApiClient.get(`${API_BASE_URL}/notifications/counts`);
+      const data: ApiResponse<any> = await res.json();
+      if (res.ok && data.succeeded) {
+        setUnreadCount(data.data?.unreadCount || 0);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -68,13 +99,48 @@ const StatusBar: React.FC<StatusBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (notificationOpen) {
+      setNotificationsLoading(true);
+      setNotificationsError(null);
+      (async () => {
+        try {
+          const res = await secureApiClient.get(`${API_BASE_URL}/notifications?page=1&pageSize=5&includeRead=true`);
+          
+          const data: ApiResponse<any> = await res.json();
+          if (!res.ok || !data.succeeded) {
+            const errorMsg = (data.errors && data.errors.length > 0) ? data.errors.join(', ') : (data.message || 'Failed to fetch notifications');
+            throw new Error(errorMsg);
+          }
+          setNotifications(data.data?.items || []);
+        } catch (err: any) {
+          setNotificationsError(err.message || 'Error fetching notifications');
+        } finally {
+          setNotificationsLoading(false);
+        }
+      })();
+    }
+  }, [notificationOpen]);
+
   const currentMonthRevenue = stats.navbarStats?.periodRevenue 
-    ? formatCurrency(stats.navbarStats.periodRevenue)
-    : formatCurrency(0);
+    ? `${stats.navbarStats.periodRevenue.toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })} MAD`
+    : `${(0).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })} MAD`;
   const pendingPayments = stats.overdueStats?.count || stats.navbarStats?.overdueStats?.count || 0;
   const pendingAmount = stats.overdueStats?.totalAmount || stats.navbarStats?.overdueStats?.totalAmount
-    ? formatCurrency(stats.overdueStats?.totalAmount || stats.navbarStats?.overdueStats?.totalAmount || 0)
-    : formatCurrency(0);
+    ? `${(stats.overdueStats?.totalAmount || stats.navbarStats?.overdueStats?.totalAmount || 0).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })} MAD`
+    : `${(0).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })} MAD`;
 
   const periodOptions = [
     { value: 'today', label: t('common.today') || "Aujourd'hui" },
@@ -82,35 +148,22 @@ const StatusBar: React.FC<StatusBarProps> = ({
     { value: 'month', label: t('common.thisMonth') || 'Ce mois' }
   ];
 
-  const notifications = [
-    {
-      id: 1,
-      type: 'warning',
-      title: 'Overdue Invoice',
-      message: 'INV-2024-001 is 5 days overdue',
-      time: '2 hours ago',
-      icon: AlertTriangle,
-      color: 'text-orange-600 bg-orange-50'
-    },
-    {
-      id: 2,
-      type: 'success',
-      title: 'Payment Received',
-      message: '15,000 MAD received for INV-2024-003',
-      time: '5 hours ago',
-      icon: DollarSign,
-      color: 'text-green-600 bg-green-50'
-    },
-    {
-      id: 3,
-      type: 'info',
-      title: 'New Customer',
-      message: 'ABC Company added successfully',
-      time: 'Yesterday',
-      icon: User,
-      color: 'text-blue-600 bg-blue-50'
-    }
-  ];
+  function timeAgo(dateString: string) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const seconds = differenceInSeconds(now, date);
+    const minutes = differenceInMinutes(now, date);
+    const hours = differenceInHours(now, date);
+    const days = differenceInDays(now, date);
+    const lang = i18n.language === 'fr' ? 'fr' : 'en';
+    
+    if (seconds < 30) return t('notifications.time.justNow') || (lang === 'fr' ? "À l'instant" : 'Just now');
+    if (minutes < 60) return t('notifications.time.minutesAgo', { count: minutes }) || (lang === 'fr' ? `il y a ${minutes} minute${minutes > 1 ? 's' : ''}` : `${minutes} min${minutes > 1 ? 's' : ''} ago`);
+    if (hours < 24) return t('notifications.time.hoursAgo', { count: hours }) || (lang === 'fr' ? `il y a ${hours} heure${hours > 1 ? 's' : ''}` : `${hours} hour${hours > 1 ? 's' : ''} ago`);
+    if (isYesterday(date)) return t('notifications.time.yesterday') || (lang === 'fr' ? 'Hier' : 'Yesterday');
+    if (isThisWeek(date, { weekStartsOn: 1, locale: lang === 'fr' ? fr : enUS })) return t('notifications.time.thisWeek') || (lang === 'fr' ? 'Cette semaine' : 'This week');
+    return format(date, 'P', { locale: lang === 'fr' ? fr : enUS });
+  }
 
   return (
     <div className={`
@@ -177,25 +230,27 @@ const StatusBar: React.FC<StatusBarProps> = ({
                
                <div className="h-8 w-px bg-gray-200" />
                
-               <div className="flex items-center gap-2">
-                 <AlertTriangle className="text-orange-500" size={18} />
-                 <span className="text-sm text-gray-600">
-                   {stats.loading.navbar ? (
-                     <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
-                   ) : (
-                     <>
-                       <span className="font-bold text-orange-600">{pendingPayments}</span> {t('common.overdueInvoices')}
-                     </>
-                   )}
-                 </span>
-                 <span className="text-sm text-gray-500">
-                   {stats.loading.navbar ? (
-                     <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
-                   ) : (
-                     `(${pendingAmount})`
-                   )}
-                 </span>
-               </div>
+               {pendingPayments > 0 && (
+                 <div className="flex items-center gap-2">
+                   <AlertTriangle className="text-orange-500" size={18} />
+                   <span className="text-sm text-gray-600">
+                     {stats.loading.navbar ? (
+                       <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
+                     ) : (
+                       <>
+                         <span className="font-bold text-orange-600">{pendingPayments}</span> {t('common.overdueInvoices')}
+                       </>
+                     )}
+                   </span>
+                   <span className="text-sm text-gray-500">
+                     {stats.loading.navbar ? (
+                       <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
+                     ) : (
+                       `(${pendingAmount})`
+                     )}
+                   </span>
+                 </div>
+               )}
              </div>
           </div>
           
@@ -206,7 +261,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
                 className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Bell size={20} />
-                {pendingPayments > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
@@ -227,33 +282,114 @@ const StatusBar: React.FC<StatusBarProps> = ({
                   <div className="p-4 border-b border-gray-100">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-                      <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                        Marquer tout comme lu
+                      <button
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                        disabled={markingAllRead}
+                        onClick={async () => {
+                          setMarkingAllRead(true);
+                          try {
+                            const res = await secureApiClient.post(`${API_BASE_URL}/notifications/mark-all-read`);
+                            const data: ApiResponse<any> = await res.json();
+                            if (!res.ok || !data.succeeded) {
+                              throw new Error(data.message || 'Failed to mark all as read');
+                            }
+                            setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                            setUnreadCount(0);
+                          } catch {}
+                          setMarkingAllRead(false);
+                        }}
+                      >
+                        {markingAllRead ? t('common.loading') || 'Loading...' : t('notifications.markAllAsRead') || 'Mark all as read'}
                       </button>
                     </div>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {notifications.map((notification) => {
-                      const Icon = notification.icon;
+                    {notificationsLoading && (
+                      <div className="p-4 text-center text-gray-400">{t('common.loading') || 'Loading...'}</div>
+                    )}
+                    {notificationsError && (
+                      <div className="p-4 text-center text-red-500">{t('common.error') || 'Error'}: {notificationsError}</div>
+                    )}
+                    {!notificationsLoading && !notificationsError && notifications.length === 0 && (
+                      <div className="p-4 text-center text-gray-400">{t('notifications.empty') || 'No notifications'}</div>
+                    )}
+                    {!notificationsLoading && !notificationsError && notifications.map((notification) => {
+                      // Numeric severity: 0=Info, 1=Success, 2=Warning, 3=Error
+                      let Icon = Bell;
+                      let color = 'text-gray-600 bg-gray-100';
+                      if (notification.severity === 2) {
+                        Icon = AlertTriangle;
+                        color = 'text-orange-600 bg-orange-50';
+                      } else if (notification.severity === 1) {
+                        Icon = DollarSign;
+                        color = 'text-green-600 bg-green-50';
+                      } else if (notification.severity === 0) {
+                        Icon = User;
+                        color = 'text-blue-600 bg-blue-50';
+                      } else if (notification.severity === 3) {
+                        Icon = AlertTriangle;
+                        color = 'text-red-600 bg-red-50';
+                      }
+                      // Optionally map type to icon (example: InvoiceCreated, CustomerCreated, etc.)
+                      if (notification.type === 0) {
+                        Icon = DollarSign; // InvoiceCreated
+                      } else if (notification.type === 26) {
+                        Icon = User; // CustomerCreated
+                      }
                       return (
-                        <div key={notification.id} className="p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
-                          <div className="flex gap-3">
-                            <div className={`p-2 rounded-lg ${notification.color}`}>
-                              <Icon size={16} />
-                            </div>
+                        <div
+                          key={notification.id}
+                          className="p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
+                        >
+                          <div className="flex gap-3 items-start">
+                            <div className={`p-2 rounded-lg ${color}`}> <Icon size={16} /> </div>
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900">{notification.title}</p>
                               <p className="text-sm text-gray-600 mt-0.5">{notification.message}</p>
-                              <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
+                              <p className="text-xs text-gray-400 mt-1" title={new Date(notification.createdAt).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}>{timeAgo(notification.createdAt)}</p>
                             </div>
+                            {!notification.isRead && (
+                              <button
+                                className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded-full disabled:opacity-50"
+                                disabled={markingReadId === notification.id}
+                                title={t('notifications.markAsRead') || 'Mark as read'}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setMarkingReadId(notification.id);
+                                  try {
+                                    const res = await secureApiClient.post(`${API_BASE_URL}/notifications/${notification.id}/mark-read`);
+                                    const data: ApiResponse<any> = await res.json();
+                                    if (!res.ok || !data.succeeded) {
+                                      throw new Error(data.message || 'Failed to mark as read');
+                                    }
+                                    setNotifications((prev) => prev.map((n) => n.id === notification.id ? { ...n, isRead: true } : n));
+                                    setUnreadCount((prev) => Math.max(0, prev - 1));
+                                  } catch {}
+                                  setMarkingReadId(null);
+                                }}
+                              >
+                                {markingReadId === notification.id ? (
+                                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                                ) : (
+                                  <Check size={16} />
+                                )}
+                              </button>
+                            )}
+                            {!notification.isRead && <span className="w-2 h-2 bg-blue-500 rounded-full self-start mt-2" />}
                           </div>
                         </div>
                       );
                     })}
                   </div>
                   <div className="p-3 border-t border-gray-100">
-                    <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                      Voir toutes les notifications
+                    <button 
+                      onClick={() => {
+                        navigate('/notifications');
+                        setNotificationOpen(false);
+                      }}
+                      className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      {t('notifications.showAll') || 'Show all notifications'}
                     </button>
                   </div>
                 </div>

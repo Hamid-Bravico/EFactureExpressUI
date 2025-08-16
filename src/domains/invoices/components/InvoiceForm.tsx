@@ -297,21 +297,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     } catch (error: any) {
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
-        // Don't show toast here as it will be handled by the parent component
-      } else if (error.message) {
-        // Handle complex error message structure
-        if (typeof error.message === 'object' && error.message.value) {
-          toast.error(error.message.value);
-        } else if (typeof error.message === 'string') {
-          toast.error(error.message);
-        } else {
-          toast.error(t('invoice.form.errors.saveFailed'));
-        }
-      } else if (error.title) {
-        toast.error(error.title);
-      } else {
-        toast.error(t('invoice.form.errors.saveFailed'));
       }
+      // Don't show toasts here as they will be handled by the parent component
     } finally {
       setIsSubmitting(false);
     }
