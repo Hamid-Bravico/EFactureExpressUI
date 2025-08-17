@@ -12,6 +12,46 @@ export const QUOTE_STATUS = {
   CONVERTED: 'Converted'
 } as const;
 
+// Update operation permissions for PUT /api/quotes/{id}
+export const canUpdateQuote = (userRole: UserRole, quoteStatus: QuoteStatus): boolean => {
+  switch (userRole) {
+    case 'Admin':
+      // Admin: Can update any quote in any status (serves as a system override)
+      return true;
+    
+    case 'Manager':
+      // Manager: Can update any quote if its status is Draft or Sent
+      return quoteStatus === QUOTE_STATUS.DRAFT || quoteStatus === QUOTE_STATUS.SENT;
+    
+    case 'Clerk':
+      // Clerk: Can update if the status is Draft or Sent
+      return quoteStatus === QUOTE_STATUS.DRAFT || quoteStatus === QUOTE_STATUS.SENT;
+    
+    default:
+      return false;
+  }
+};
+
+// Delete operation permissions for DELETE /api/quotes/{id}
+export const canDeleteQuote = (userRole: UserRole, quoteStatus: QuoteStatus): boolean => {
+  switch (userRole) {
+    case 'Admin':
+      // Admin: Can delete any quote in any status (serves as a system override)
+      return true;
+    
+    case 'Manager':
+      // Manager: Can delete any quote only if its status is Draft
+      return quoteStatus === QUOTE_STATUS.DRAFT;
+    
+    case 'Clerk':
+      // Clerk: Can delete quotes only if its status is Draft
+      return quoteStatus === QUOTE_STATUS.DRAFT;
+    
+    default:
+      return false;
+  }
+};
+
 // Quote-specific permission functions
 export const canModifyQuote = (userRole: UserRole, quoteStatus: QuoteStatus): boolean => {
   switch (userRole) {
@@ -31,23 +71,18 @@ export const canModifyQuote = (userRole: UserRole, quoteStatus: QuoteStatus): bo
   }
 };
 
-export const canDeleteQuote = (userRole: UserRole, quoteStatus: QuoteStatus): boolean => {
-  // Same rules as modify for deletion
-  return canModifyQuote(userRole, quoteStatus);
-};
-
 export const canChangeQuoteStatus = (userRole: UserRole, quoteStatus: QuoteStatus): boolean => {
   switch (userRole) {
     case 'Clerk':
-      // Clerks cannot change status at all
-      return false;
-    
-    case 'Manager':
-    case 'Admin':
-      // Managers and Admins can change status for Draft, Sent, and Rejected quotes
+      // Clerks can perform basic workflow actions on Draft, Sent, and Rejected quotes
       return quoteStatus === QUOTE_STATUS.DRAFT ||
              quoteStatus === QUOTE_STATUS.SENT ||
              quoteStatus === QUOTE_STATUS.REJECTED;
+    
+    case 'Manager':
+    case 'Admin':
+      // Managers and Admins can perform any status transition on any quote
+      return true;
     
     default:
       return false;
@@ -62,34 +97,51 @@ export const canConvertQuoteToInvoice = (userRole: UserRole, quoteStatus: QuoteS
 
 export const getValidQuoteStatusTransitions = (userRole: UserRole, currentStatus: QuoteStatus): QuoteStatus[] => {
   if (userRole === 'Clerk') {
-    // Clerks cannot change status
-    return [currentStatus];
+    // Clerks can perform basic workflow actions: Draft ↔ Sent and Sent → Rejected
+    switch (currentStatus) {
+      case QUOTE_STATUS.DRAFT:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT];
+      
+      case QUOTE_STATUS.SENT:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT, QUOTE_STATUS.REJECTED];
+      
+      case QUOTE_STATUS.REJECTED:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.REJECTED];
+      
+      case QUOTE_STATUS.ACCEPTED:
+      case QUOTE_STATUS.CONVERTED:
+        // Clerks cannot change Accepted or Converted quotes
+        return [currentStatus];
+      
+      default:
+        return [currentStatus];
+    }
   }
 
-  switch (currentStatus) {
-    case QUOTE_STATUS.DRAFT:
-      // Draft can go to Sent
-      return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT];
-    
-    case QUOTE_STATUS.SENT:
-      // Sent can go back to Draft or stay Sent
-      return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT];
-    
-    case QUOTE_STATUS.ACCEPTED:
-      // Accepted cannot be changed manually
-      return [QUOTE_STATUS.ACCEPTED];
-    
-    case QUOTE_STATUS.REJECTED:
-      // Rejected can go back to Draft
-      return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.REJECTED];
-    
-    case QUOTE_STATUS.CONVERTED:
-      // Converted is immutable
-      return [QUOTE_STATUS.CONVERTED];
-    
-    default:
-      return [currentStatus];
+  // Admin and Manager can perform any status transition
+  if (userRole === 'Admin' || userRole === 'Manager') {
+    switch (currentStatus) {
+      case QUOTE_STATUS.DRAFT:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT, QUOTE_STATUS.ACCEPTED, QUOTE_STATUS.REJECTED];
+      
+      case QUOTE_STATUS.SENT:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT, QUOTE_STATUS.ACCEPTED, QUOTE_STATUS.REJECTED];
+      
+      case QUOTE_STATUS.ACCEPTED:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT, QUOTE_STATUS.ACCEPTED, QUOTE_STATUS.REJECTED, QUOTE_STATUS.CONVERTED];
+      
+      case QUOTE_STATUS.REJECTED:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT, QUOTE_STATUS.ACCEPTED, QUOTE_STATUS.REJECTED];
+      
+      case QUOTE_STATUS.CONVERTED:
+        return [QUOTE_STATUS.DRAFT, QUOTE_STATUS.SENT, QUOTE_STATUS.ACCEPTED, QUOTE_STATUS.REJECTED, QUOTE_STATUS.CONVERTED];
+      
+      default:
+        return [currentStatus];
+    }
   }
+
+  return [currentStatus];
 };
 
 export const canTransitionQuoteToStatus = (
@@ -99,6 +151,18 @@ export const canTransitionQuoteToStatus = (
 ): boolean => {
   const validTransitions = getValidQuoteStatusTransitions(userRole, currentStatus);
   return validTransitions.includes(targetStatus);
+};
+
+// Check if user can perform business-critical status changes
+export const canPerformBusinessStatusChange = (userRole: UserRole, targetStatus: QuoteStatus): boolean => {
+  // Only Admin and Manager can perform business-critical status changes
+  if (userRole !== 'Admin' && userRole !== 'Manager') {
+    return false;
+  }
+  
+  // Business-critical statuses that require higher permissions
+  const businessCriticalStatuses: QuoteStatus[] = [QUOTE_STATUS.ACCEPTED, QUOTE_STATUS.REJECTED, QUOTE_STATUS.CONVERTED];
+  return businessCriticalStatuses.includes(targetStatus);
 };
 
 export const canSelectQuoteForBulkOperation = (
@@ -120,9 +184,11 @@ export const canSelectQuoteForBulkOperation = (
 export const getQuoteActionPermissions = (userRole: UserRole, quoteStatus: QuoteStatus) => {
   return {
     canEdit: canModifyQuote(userRole, quoteStatus),
+    canUpdate: canUpdateQuote(userRole, quoteStatus),
     canDelete: canDeleteQuote(userRole, quoteStatus),
     canChangeStatus: canChangeQuoteStatus(userRole, quoteStatus),
     canConvertToInvoice: canConvertQuoteToInvoice(userRole, quoteStatus),
+    canPerformBusinessStatusChange: canPerformBusinessStatusChange(userRole, quoteStatus),
     validStatusTransitions: getValidQuoteStatusTransitions(userRole, quoteStatus)
   };
 };

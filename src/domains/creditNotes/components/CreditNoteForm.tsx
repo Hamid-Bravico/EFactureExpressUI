@@ -382,19 +382,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
         // Don't show toast here as it will be handled by the parent component
-      } else if (error.message) {
-        // Handle complex error message structure
-        if (typeof error.message === 'object' && error.message.value) {
-          toast.error(error.message.value);
-        } else if (typeof error.message === 'string') {
-          toast.error(error.message);
-        } else {
-          toast.error(t('creditNote.form.errors.saveFailed'));
-        }
-      } else if (error.title) {
-        toast.error(error.title);
-      } else {
-        toast.error(t('creditNote.form.errors.saveFailed'));
       }
     } finally {
       setIsSubmitting(false);

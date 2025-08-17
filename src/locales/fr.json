@@ -141,6 +141,8 @@
     "defaultTaxRateDesc": "Taux de TVA par défaut pour les nouveaux documents",
     "currencySymbol": "Symbole de devise",
     "currencySymbolDesc": "Symbole de devise affiché sur les documents",
+    "managerApprovalLimit": "Limite d'approbation du manager",
+    "managerApprovalLimitDesc": "Montant maximum des factures qu'un Manager peut signer (défaut : 20000)",
     "defaults": {
       "invoicePrefix": "Défaut : FACT",
       "quotePrefix": "Défaut : DEV",
@@ -651,8 +653,8 @@
       "title": "Gestion des devis",
       "selectedCount": "{{count}} devis sélectionné",
       "selectedCount_plural": "{{count}} devis sélectionnés",
-      "bulkSubmit": "Soumettre la sélection",
       "bulkDelete": "Supprimer la sélection",
+      "bulkDeleteSuccess": "{{count}} devis supprimés avec succès",
       "expired": "Expiré"
     },
     "actions": {

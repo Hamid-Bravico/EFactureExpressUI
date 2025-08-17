@@ -231,33 +231,37 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
             ))}
           </div>
           
-          <div className="mt-8 pt-6 border-t border-gray-200/50">
-            {(!isCollapsed || isMobile) && (
-              <div className="px-4 py-2">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Administration</h3>
+          {adminItems.some(item => item.permission) && (
+            <div className="mt-8 pt-6 border-t border-gray-200/50">
+              {(!isCollapsed || isMobile) && (
+                <div className="px-4 py-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Administration</h3>
+                </div>
+              )}
+              <div className="space-y-1">
+                {adminItems.map((item) => (
+                  <NavItem key={item.path} item={item} />
+                ))}
               </div>
-            )}
-            <div className="space-y-1">
-              {adminItems.map((item) => (
-                <NavItem key={item.path} item={item} />
-              ))}
             </div>
-          </div>
+          )}
          
 
                 </nav>
          
-         <div className="border-t border-gray-200/50 p-4 bg-white/50">
-           <NavLink
-             to="/settings"
-             className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700 hover:bg-white/70"
-           >
-             <Settings size={18} />
-             {(!isCollapsed || isMobile) && (
-               <span className="text-sm font-medium">{t('common.settings')}</span>
-             )}
-           </NavLink>
-         </div>
+         {isAdmin && (
+           <div className="border-t border-gray-200/50 p-4 bg-white/50">
+             <NavLink
+               to="/settings"
+               className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700 hover:bg-white/70"
+             >
+               <Settings size={18} />
+               {(!isCollapsed || isMobile) && (
+                 <span className="text-sm font-medium">{t('common.settings')}</span>
+               )}
+             </NavLink>
+           </div>
+         )}
        
      </>
    );

@@ -7,9 +7,12 @@ import QuoteDetail from './QuoteDetail';
 import QuoteStatusBadge from './QuoteStatusBadge';
 import { 
   canSelectQuoteForBulkOperation,
-  QuoteStatus
+  QuoteStatus,
+  canUpdateQuote,
+  canDeleteQuote
 } from '../utils/quote.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
+import { decodeJWT } from '../../../utils/jwt';
 
 export interface QuoteListResponse {
   quotes: Array<{
@@ -73,7 +76,6 @@ interface QuoteListProps {
   token: string | null;
 
   onBulkDelete?: (ids: number[]) => Promise<void>;
-  onBulkSubmit?: (ids: number[]) => Promise<void>;
   onUpdateQuoteStatus?: (id: number, status: string) => void;
   onOptimisticQuoteStatusUpdate?: (id: number, status: string) => void;
   onConvertToInvoice?: (id: number) => Promise<void>;
@@ -102,7 +104,6 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
 
 
   onBulkDelete,
-  onBulkSubmit,
   onUpdateQuoteStatus,
   onOptimisticQuoteStatusUpdate,
   onConvertToInvoice
@@ -113,7 +114,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [editingQuote, setEditingQuote] = useState<Quote | undefined>();
   const [showFilters, setShowFilters] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState<{ type: 'submit' | 'delete'; count: number } | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState<{ type: 'delete'; count: number } | null>(null);
   const [rejectionModal, setRejectionModal] = useState<{ quoteId: number; reason: string } | null>(null);
   const [downloadDropdownOpenId, setDownloadDropdownOpenId] = useState<number | null>(null);
   const downloadDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -136,20 +137,15 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     const token = tokenManager.getToken();
     if (!token) return 'Clerk';
     
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.role || 'Clerk';
-    } catch {
-      return 'Clerk';
-    }
+    const decoded = decodeJWT(token);
+    return decoded?.role || 'Clerk';
   }, []);
 
   // Memoized computed values for better performance
   const selectableQuotes = useMemo(() => {
     if (!data?.quotes) return [];
     return data.quotes.filter(quote => 
-      canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete') ||
-      canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit')
+      canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete')
     );
   }, [data?.quotes, userRole]);
 
@@ -232,11 +228,10 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   const handleSelectQuote = useCallback((id: number, status: string) => {
     const quoteStatus = status as QuoteStatus;
     
-    // Check if quote can be selected for any bulk operation
+    // Check if quote can be selected for bulk delete operation
     const canSelectForDelete = canSelectQuoteForBulkOperation(userRole, quoteStatus, 'delete');
-    const canSelectForSubmit = canSelectQuoteForBulkOperation(userRole, quoteStatus, 'submit');
     
-    if (canSelectForDelete || canSelectForSubmit) {
+    if (canSelectForDelete) {
       setSelectedQuotes(prev => {
         const newSet = new Set(prev);
         if (newSet.has(id)) {
@@ -283,19 +278,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     }
   }, [data?.pagination]);
 
-  const handleBulkSubmit = useCallback(async () => {
-    if (!data?.quotes) return;
-    // Only allow bulk submit for quotes that can be submitted based on permissions
-    const submitIds = Array.from(selectedQuotes).filter(id => {
-      const quote = data.quotes.find(q => q.id === id);
-      return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit');
-    });
-    if (submitIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'submit',
-      count: submitIds.length
-    });
-  }, [selectedQuotes, data?.quotes, userRole]);
+
 
   const handleBulkDelete = useCallback(async () => {
     if (!data?.quotes) return;
@@ -317,37 +300,25 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     setShowConfirmDialog(null);
 
     try {
-      if (showConfirmDialog.type === 'submit') {
-        // Only submit quotes that can be submitted based on permissions
-        const submitIds = Array.from(selectedQuotes).filter(id => {
-          const quote = data.quotes.find(q => q.id === id);
-          return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit');
-        });
-        
-        if (onBulkSubmit && submitIds.length > 0) {
-          await onBulkSubmit(submitIds);
-        }
-      } else {
-        // Delete quotes that can be deleted based on permissions
-        const deleteIds = Array.from(selectedQuotes).filter(id => {
-          const quote = data.quotes.find(q => q.id === id);
-          return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete');
-        });
-        
-        if (onBulkDelete && deleteIds.length > 0) {
-          await onBulkDelete(deleteIds);
-        }
+      // Delete quotes that can be deleted based on permissions
+      const deleteIds = Array.from(selectedQuotes).filter(id => {
+        const quote = data.quotes.find(q => q.id === id);
+        return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete');
+      });
+      
+      if (onBulkDelete && deleteIds.length > 0) {
+        await onBulkDelete(deleteIds);
       }
       setSelectedQuotes(new Set());
     } catch (error) {
       toast.error(
         t('errors.bulkActionFailed', { 
-          action: showConfirmDialog.type === 'submit' ? t('quote.actions.submit') : t('quote.actions.delete'),
+          action: t('quote.actions.delete'),
           error: error instanceof Error ? error.message : t('errors.unknown')
         })
       );
     }
-  }, [showConfirmDialog, selectedQuotes, data?.quotes, onBulkSubmit, onBulkDelete, userRole, t]);
+  }, [showConfirmDialog, selectedQuotes, data?.quotes, onBulkDelete, userRole, t]);
 
   const handleDelete = useCallback((id: number) => {
     if (window.confirm(t('quote.confirm.message', { 
@@ -383,11 +354,11 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   }, []);
 
   const canEditQuote = useCallback((quote: any) => {
-    return quote.status === 'Draft'; // Only draft quotes can be edited
-  }, []);
+    return canUpdateQuote(userRole, quote.status as QuoteStatus);
+  }, [userRole]);
 
-  const canDeleteQuote = useCallback((quote: any) => {
-    return userRole === 'Admin' || userRole === 'Manager' || quote.status === 'Draft';
+  const canDeleteQuoteLocal = useCallback((quote: any) => {
+    return canDeleteQuote(userRole, quote.status as QuoteStatus);
   }, [userRole]);
 
   const handleEditQuote = useCallback((quoteData: any) => {
@@ -646,20 +617,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {(userRole === 'Admin' || userRole === 'Manager') && (
-                  <button
-                    onClick={handleBulkSubmit}
-                    disabled={disabled}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${
-                      disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    {t('quote.bulk.submit')}
-                  </button>
-                )}
+
                 <button
                   onClick={handleBulkDelete}
                   disabled={disabled}
@@ -910,7 +868,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                              </button>
                            )}
                            
-                           {canDeleteQuote(quote) && (
+                           {canDeleteQuoteLocal(quote) && (
                              <button
                                onClick={(e) => {
                                  e.stopPropagation();
@@ -1114,25 +1072,19 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
             <div className="flex items-center mb-4">
               <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 ${
-                showConfirmDialog.type === 'submit' ? 'bg-green-100' : 'bg-red-100'
+                                  'bg-red-100'
               }`}>
-                {showConfirmDialog.type === 'submit' ? (
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                )}
               </div>
               <h3 className="text-xl font-semibold text-gray-900">
-                {t('quote.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('quote.submit') : t('quote.delete') })}
+                {t('quote.confirm.title', { action: t('quote.delete') })}
               </h3>
             </div>
             <p className="text-sm text-gray-600 mb-6 leading-relaxed">
               {t('quote.confirm.message', { 
-                action: showConfirmDialog.type === 'submit' ? t('quote.submit') : t('quote.delete'),
+                action: t('quote.delete'),
                 count: showConfirmDialog.count,
                 plural: showConfirmDialog.count !== 1 ? 's' : '',
                 warning: showConfirmDialog.type === 'delete' ? t('quote.confirm.warning') : ''
@@ -1147,13 +1099,9 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
               </button>
               <button
                 onClick={confirmBulkAction}
-                className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 ${
-                  showConfirmDialog.type === 'submit'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
+                className="px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 bg-red-600 hover:bg-red-700"
               >
-                {showConfirmDialog.type === 'submit' ? t('quote.submit') : t('quote.delete')}
+                {t('quote.delete')}
               </button>
             </div>
           </div>

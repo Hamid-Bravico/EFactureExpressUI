@@ -4,7 +4,7 @@ import { NavbarStats, SidebarCounts, OverdueStats, StatsState, StatsPeriod } fro
 import { toast } from 'react-hot-toast';
 import { isDateWithinSelectedPeriod } from '../utils/stats.utils';
 
-export const useStats = (token: string | null) => {
+export const useStats = (token: string | null, userRole: string) => {
   const [stats, setStats] = useState<StatsState>({
     navbarStats: null,
     overdueStats: null,
@@ -23,7 +23,7 @@ export const useStats = (token: string | null) => {
   });
 
   const fetchNavbarStats = useCallback(async (period: StatsPeriod = 'month') => {
-    if (!token) return;
+    if (!token || userRole === 'Clerk') return;
     
     setStats(prev => ({
       ...prev,
@@ -48,7 +48,7 @@ export const useStats = (token: string | null) => {
       }));
       toast.error(errorMessage);
     }
-  }, [token]);
+  }, [token, userRole]);
 
   const fetchOverdueStats = useCallback(async () => {
     if (!token) return;
@@ -107,6 +107,34 @@ export const useStats = (token: string | null) => {
   const fetchAllStats = useCallback(async (period: StatsPeriod = 'month') => {
     if (!token) return;
     
+    // For Clerk users, only fetch sidebar counts
+    if (userRole === 'Clerk') {
+      setStats(prev => ({
+        ...prev,
+        loading: { navbar: false, overdue: false, sidebar: true },
+        error: { navbar: null, overdue: null, sidebar: null },
+        selectedPeriod: period
+      }));
+
+      try {
+        const sidebarCounts = await statsService.fetchSidebarCounts();
+        setStats(prev => ({
+          ...prev,
+          sidebarCounts,
+          loading: { navbar: false, overdue: false, sidebar: false }
+        }));
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch sidebar counts';
+        setStats(prev => ({
+          ...prev,
+          loading: { navbar: false, overdue: false, sidebar: false },
+          error: { navbar: null, overdue: null, sidebar: errorMessage }
+        }));
+        toast.error(errorMessage);
+      }
+      return;
+    }
+    
     setStats(prev => ({
       ...prev,
       loading: { navbar: true, overdue: true, sidebar: true },
@@ -132,7 +160,7 @@ export const useStats = (token: string | null) => {
       }));
       toast.error(errorMessage);
     }
-  }, [token]);
+  }, [token, userRole]);
 
   const updateNavbarStats = useCallback((navbarStats: NavbarStats) => {
     setStats(prev => ({
@@ -183,12 +211,12 @@ export const useStats = (token: string | null) => {
   }, [token]);
 
   const refreshRevenueIfInPeriod = useCallback(async (isoDate: string) => {
-    if (!token) return;
+    if (!token || userRole === 'Clerk') return;
     const period = stats.selectedPeriod;
     if (isDateWithinSelectedPeriod(isoDate, period)) {
       await fetchNavbarStats(period);
     }
-  }, [token, stats.selectedPeriod, fetchNavbarStats]);
+  }, [token, userRole, stats.selectedPeriod, fetchNavbarStats]);
 
   const refreshOverdueSilently = useCallback(async () => {
     if (!token) return;

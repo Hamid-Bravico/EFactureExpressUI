@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { COMPANY_ENDPOINTS } from '../domains/auth/api/company.endpoints';
 import { secureApiClient } from '../config/api';
 import { toast } from 'react-hot-toast';
+import { ApiResponse } from '../domains/auth/types/auth.types';
+import { decodeJWT } from '../utils/jwt';
 
 interface CompanyProfileProps {
   company: Company | null;
@@ -21,6 +23,10 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
     address: ''
   });
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const decodedToken = token ? decodeJWT(token) : null;
+  const userRole = decodedToken?.role;
+  const canEdit = userRole === 'Admin';
 
   if (!company) {
     return (
@@ -96,107 +102,41 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
       }
 
       const response = await secureApiClient.put(COMPANY_ENDPOINTS.UPDATE, updateData, true, true);
-
-      if (!response.ok) {
-        let responseData;
-        try {
-          responseData = await response.json();
-        } catch (parseError) {
-          responseData = { message: `HTTP error! status: ${response.status}` };
-        }
-        
-        let errorTitle = t('errors.updateCompanyFailed');
-        let errorBody = '';
-        
-        if (responseData?.errors) {
-          if (Array.isArray(responseData.errors)) {
-            errorBody = responseData.errors.join('\n');
-          } else if (typeof responseData.errors === 'object') {
-            errorBody = Object.values(responseData.errors).flat().join('\n');
-          }
-        }
-        if (responseData?.message) {
-          errorTitle = responseData.message;
-        } else if (responseData?.title) {
-          errorTitle = responseData.title;
-        } else if (response.status === 400) {
-          errorTitle = 'Bad Request - Please check your input data';
-        }
-        
-        const error = new Error(errorBody || errorTitle);
-        (error as any).title = errorTitle;
-        (error as any).body = errorBody;
-        (error as any).errors = responseData?.errors;
-        throw error;
-      }
-
-      // Check if response has content before parsing
-      const responseText = await response.text();
-      let responseData = null;
       
-      if (responseText.trim()) {
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (parseError) {
-          // Response might not be JSON, which is fine for success cases
-        }
+      const responseData: ApiResponse<Company> = await response.json().catch(() => ({ 
+        succeeded: false, 
+        message: t('errors.anErrorOccurred') 
+      }));
+
+      console.log(responseData);
+
+      if (!response.ok || !responseData?.succeeded) {
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('errors.updateCompanyFailed');
+        throw new Error(errorMessage);
       }
       
       if (onUpdate) {
-        // Create the update data with the correct field mapping
-        const updateData: Partial<Company> = {};
+        const updatePayload: Partial<Company> = {};
         
         if (field === 'name') {
-          updateData.name = editValues.name.trim();
+          updatePayload.name = trimmedValue;
         } else if (field === 'identifiantFiscal') {
-          updateData.identifiantFiscal = editValues.identifiantFiscal.trim() || undefined;
+          updatePayload.identifiantFiscal = trimmedValue || undefined;
         } else if (field === 'address') {
-          updateData.address = editValues.address.trim() || undefined;
+          updatePayload.address = trimmedValue || undefined;
         }
         
-        // If we have response data, merge it with our update data
-        if (responseData) {
-          Object.assign(updateData, responseData);
+        if (responseData.data) {
+          Object.assign(updatePayload, responseData.data);
         }
         
-        onUpdate(updateData);
+        onUpdate(updatePayload);
       }
       
-      const successMessage = responseData?.message || t('common.updateSuccess');
-      toast.success(successMessage, {
-        duration: 4000,
-        style: {
-          background: '#f0fdf4',
-          color: '#166534',
-          border: '1px solid #bbf7d0',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          lineHeight: '1.5'
-        }
-      });
+      toast.success(responseData.message || t('common.updateSuccess'));
       setEditingField(null);
     } catch (error: any) {
-      const errorTitle = error.title || t('errors.updateCompanyFailed');
-      const errorBody = error.body || '';
-      
-      const errorMessage = errorBody 
-        ? `${errorTitle}\n\n${errorBody.split('\n').map((line: string) => `• ${line}`).join('\n')}`
-        : errorTitle;
-      
-      toast.error(errorMessage, {
-        duration: 5000,
-        style: {
-          background: '#fef2f2',
-          color: '#991b1b',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          whiteSpace: 'pre-line'
-        }
-      });
+      toast.error(error.message || t('errors.updateCompanyFailed'));
     } finally {
       setIsUpdating(false);
     }
@@ -266,12 +206,14 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
         <span className="font-semibold text-gray-900">
           {currentValue || <span className="text-gray-500 italic">{t(`auth.no${label}`)}</span>}
         </span>
-        <button
-          onClick={() => handleEdit(field)}
-          className="ml-4 px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors duration-200"
-        >
-          {t('common.edit')}
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => handleEdit(field)}
+            className="ml-4 px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors duration-200"
+          >
+            {t('common.edit')}
+          </button>
+        )}
       </div>
     );
   };

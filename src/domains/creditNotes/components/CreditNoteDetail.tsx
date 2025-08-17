@@ -9,7 +9,9 @@ import { API_BASE_URL } from '../../../config/constants';
 import { CREDITNOTE_ENDPOINTS } from '../api/creditNote.endpoints';
 import { 
   getCreditNoteActionPermissions, 
-  CreditNoteStatus
+  CreditNoteStatus,
+  canRevertToDraft,
+  canSubmitToDGI
 } from '../utils/creditNote.permissions';
 import { UserRole } from '../../../utils/shared.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
@@ -844,7 +846,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
                          {/* Ready Status */}
              {creditNote.status === 1 && (
                <>
-                 {permissions.canSubmit && (
+                 {canSubmitToDGI(userRole) && (
                    <button
                      onClick={() => handleSubmit(creditNote.id)}
                      disabled={disabled}
@@ -853,7 +855,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
                      {t('creditNote.actions.submit')}
                    </button>
                  )}
-                 {permissions.canChangeStatus && (
+                 {canRevertToDraft(userRole) && (
                    <button
                      onClick={handleBackToDraft}
                      disabled={disabled}
@@ -969,7 +971,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
                          {/* Rejected Status */}
              {creditNote.status === 4 && (
                <>
-                 {permissions.canChangeStatus && (
+                 {canRevertToDraft(userRole) && (
                    <button
                      onClick={handleBackToDraft}
                      disabled={disabled}

@@ -10,6 +10,9 @@ import ImportCSV from "./ImportCSV";
 import InvoiceForm from "./InvoiceForm";
 import ErrorModal from "../../../components/ErrorModal";
 import { useStatsContext } from '../../stats/context/StatsContext';
+import { canImportCSV } from '../utils/invoice.permissions';
+import { UserRole } from '../../../utils/shared.permissions';
+import { tokenManager } from '../../../utils/tokenManager';
 
 interface InvoiceManagementProps {
   token: string;
@@ -23,6 +26,8 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
     refreshRevenueIfInPeriod,
     refreshOverdueSilently
   } = useStatsContext();
+  
+  const userRole = tokenManager.getUserRole() as UserRole || 'Clerk';
   
   // ─── LISTING STATE ─────────────────────────────────────────────────────────
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -706,18 +711,16 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
   const handleSubmitInvoice = useCallback(async (id: number) => {
     const toastId = toast.loading(t('common.submittingInvoice'));
     
-    // Store original invoice for rollback
-    const originalInvoice = invoices.find(inv => inv.id === id);
-    if (!originalInvoice) {
+    // Check if invoice exists
+    const invoice = invoices.find(inv => inv.id === id);
+    if (!invoice) {
       toast.error(t('errors.invoiceNotFound'), { id: toastId });
       return;
     }
 
     try {
-      // Optimistically update status to "Awaiting Clearance"
-      optimisticallyUpdateInvoiceStatus(id, 2);
-
       const response = await secureApiClient.post(INVOICE_ENDPOINTS.SUBMIT(id));
+
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!response.ok || !responseData?.succeeded) {
@@ -735,9 +738,6 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
         } else {
           errorBody = t('errors.anErrorOccurred');
         }
-        
-        // Revert optimistic update
-        optimisticallyUpdateInvoice(originalInvoice);
         
         const error = new Error(errorBody);
         (error as any).title = errorTitle;
@@ -994,12 +994,7 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
   const handleBulkSubmit = useCallback(async (ids: number[]) => {
     const toastId = toast.loading(t('invoice.bulk.submitting', { count: ids.length }));
     
-    // Store original invoices for rollback
-    const originalInvoices = invoices.filter(inv => ids.includes(inv.id));
-    
     try {
-      // Optimistically update all invoices to "Awaiting Clearance"
-      ids.forEach(id => optimisticallyUpdateInvoiceStatus(id, 2));
 
       // Perform all submit operations
       const results = await Promise.all(
@@ -1035,9 +1030,6 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
         }
       });
     } catch (err: any) {
-      // Revert all optimistic updates
-      originalInvoices.forEach(invoice => optimisticallyUpdateInvoice(invoice));
-      
       // Handle error with title and body structure
       let errorTitle = t('errors.failedToSubmitInvoice');
       let errorBody = '';
@@ -1086,7 +1078,9 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <ImportCSV onImport={handleImportCSV} loading={importLoading} />
+        {canImportCSV(userRole) && (
+          <ImportCSV onImport={handleImportCSV} loading={importLoading} />
+        )}
         <button
           onClick={() => setShowInvoiceForm(true)}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors ${

@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { NewQuote, NewLine, Quote } from '../types/quote.types';
 import { Customer } from '../../../types/common';
-import { ApiResponse } from '../../auth/types/auth.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { secureApiClient } from '../../../config/api';
 import { 
   QUOTE_STATUS
 } from '../utils/quote.permissions';
-import { tokenManager } from '../../../utils/tokenManager';
 import { Catalog } from '../../catalog/types/catalog.types';
 
 interface QuoteFormProps {
@@ -46,7 +44,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
           unitPrice: line.unitPrice,
           taxRate: line.taxRate,
         }))
-      : [{ description: '', quantity: 1, unitPrice: 0, taxRate: 20 }]
+      : [{ description: '', quantity: 1, unitPrice: 0.01, taxRate: 20 }]
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,16 +101,49 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     
     const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } } = {};
     let hasValidLine = false;
+    let hasNonEmptyDescription = false;
+    
     lines.forEach((line, index) => {
       const lineError: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } = {};
-      if (!line.description || !line.description.trim()) lineError.description = t('quote.form.errors.descriptionRequired');
-      if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('quote.form.errors.quantityPositive');
-      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice < 0) lineError.unitPrice = t('quote.form.errors.unitPricePositive');
-      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('quote.form.errors.vatRateRange');
-      if (Object.keys(lineError).length > 0) lineErrors[index] = lineError; else hasValidLine = true;
+      
+      // Description validation - required and not empty
+      if (!line.description || !line.description.trim()) {
+        lineError.description = t('quote.form.errors.descriptionRequired');
+      } else {
+        hasNonEmptyDescription = true;
+      }
+      
+      // Quantity validation - must be a positive number
+      if (typeof line.quantity !== 'number' || isNaN(line.quantity) || line.quantity <= 0) {
+        lineError.quantity = t('quote.form.errors.quantityPositive');
+      }
+      
+      // Unit price validation - must be a positive number greater than 0
+      if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || line.unitPrice <= 0) {
+        lineError.unitPrice = t('quote.form.errors.unitPricePositive');
+      }
+      
+      // Tax rate validation - must be a number between 0 and 100
+      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || line.taxRate < 0 || line.taxRate > 100) {
+        lineError.taxRate = t('quote.form.errors.vatRateRange');
+      }
+      
+      if (Object.keys(lineError).length > 0) {
+        lineErrors[index] = lineError;
+      } else {
+        hasValidLine = true;
+      }
     });
-    if (!hasValidLine) newErrors.lines = { 0: { description: t('quote.form.errors.oneLineRequired') } };
-    else if (Object.keys(lineErrors).length > 0) newErrors.lines = lineErrors;
+    
+    // Ensure at least one line has a non-empty description
+    if (!hasNonEmptyDescription) {
+      newErrors.lines = { 0: { description: t('quote.form.errors.descriptionRequired') } };
+    } else if (!hasValidLine) {
+      newErrors.lines = { 0: { description: t('quote.form.errors.oneLineRequired') } };
+    } else if (Object.keys(lineErrors).length > 0) {
+      newErrors.lines = lineErrors;
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -126,25 +157,43 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
       )
     );
   
+    // Clear field-specific errors when user starts typing
     if (errors.lines?.[index]) {
       setErrors(prev => {
         const prevLines = prev.lines || {};
         const thisLineErrors = prevLines[index] || {};
         const updatedLineErrors = { ...thisLineErrors, [field]: undefined };
-        const updatedLinesMap = { ...prevLines, [index]: updatedLineErrors };
-  
-        return {
-          ...prev,
-          lines: updatedLinesMap
-        };
+        
+        // Only keep the line if it still has other errors
+        if (Object.values(updatedLineErrors).some(error => error !== undefined)) {
+          const updatedLinesMap = { ...prevLines, [index]: updatedLineErrors };
+          return { ...prev, lines: updatedLinesMap };
+        } else {
+          // Remove the entire line if no errors remain
+          const { [index]: removed, ...remainingLines } = prevLines;
+          return { ...prev, lines: remainingLines };
+        }
       });
+    }
+    
+    // Clear backend errors for this field
+    const fieldMap: { [key: string]: string } = {
+      'description': `Lines[${index}].Description`,
+      'quantity': `Lines[${index}].Quantity`,
+      'unitPrice': `Lines[${index}].UnitPrice`,
+      'taxRate': `Lines[${index}].TaxRate`
+    };
+    
+    const backendKey = fieldMap[field];
+    if (backendKey) {
+      clearLineError(backendKey);
     }
   };
 
   const addLine = () => {
     setLines((prev) => [
       ...prev,
-      { description: "", quantity: 1, unitPrice: 0, taxRate: 20 },
+      { description: "", quantity: 1, unitPrice: 0.01, taxRate: 20 },
     ]);
   };
 
@@ -153,6 +202,29 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
       toast.error(t('quote.form.errors.cannotRemoveLastLine'));
       return;
     }
+    
+    // Clear errors for the line being removed
+    if (errors.lines?.[index]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        if (newErrors.lines) {
+          const { [index]: removed, ...remainingLines } = newErrors.lines;
+          newErrors.lines = remainingLines;
+        }
+        return newErrors;
+      });
+    }
+    
+    // Clear backend errors for the removed line
+    const lineKeys = [
+      `Lines[${index}].Description`,
+      `Lines[${index}].Quantity`,
+      `Lines[${index}].UnitPrice`,
+      `Lines[${index}].TaxRate`
+    ];
+    
+    lineKeys.forEach(key => clearLineError(key));
+    
     setLines((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -210,10 +282,10 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
         const item = catalogItems.find(c => c.id === Number(id));
         return item
           ? {
-              description: item.Name,
+              description: item.Name || '',
               quantity: 1,
-              unitPrice: item.UnitPrice,
-              taxRate: item.DefaultTaxRate,
+              unitPrice: item.UnitPrice && item.UnitPrice > 0 ? item.UnitPrice : 0.01,
+              taxRate: item.DefaultTaxRate && item.DefaultTaxRate >= 0 && item.DefaultTaxRate <= 100 ? item.DefaultTaxRate : 20,
               CatalogItemId: item.id,
             }
           : null;
@@ -292,7 +364,25 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     if (disabled || isSubmitting) return;
 
     if (!validateForm()) {
-      toast.error(t('quote.form.errors.fixErrors'));
+      // Don't show generic toast - field-level errors are already displayed
+      return;
+    }
+
+    // Additional validation: ensure all lines have valid data
+    const validLines = lines.filter(line => 
+      line.description && 
+      line.description.trim() && 
+      line.quantity > 0 && 
+      line.unitPrice > 0 && 
+      line.taxRate >= 0 && 
+      line.taxRate <= 100
+    );
+
+    if (validLines.length === 0) {
+      setErrors(prev => ({
+        ...prev,
+        lines: { 0: { description: t('quote.form.errors.oneLineRequired') } }
+      }));
       return;
     }
 
@@ -312,7 +402,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
         vat,
         total,
         status,
-        lines: lines.map(ln => ({
+        lines: validLines.map(ln => ({
           CatalogItemId: (ln as any).CatalogItemId || null,
           description: ln.description.trim(),
           quantity: ln.quantity,
@@ -328,14 +418,8 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     } catch (error: any) {
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
-        // Don't show toast here as it will be handled by the parent component
-      } else if (error.title) {
-        toast.error(error.title);
-      } else if (error.message) {
-        toast.error(error.message);
-      } else {
-        toast.error(t('quote.messages.saveFailed'));
       }
+      // Don't show toasts here as they will be handled by the parent component
     } finally {
       setIsSubmitting(false);
     }
@@ -532,7 +616,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.lines?.[idx]?.unitPrice || priceError ? 'border-red-500' : 'border-gray-300'}`}
                       disabled={disabled || isSubmitting}
                       step="0.01"
-                      min="0"
+                      min="0.01"
                       required
                     />
                     {priceError && (

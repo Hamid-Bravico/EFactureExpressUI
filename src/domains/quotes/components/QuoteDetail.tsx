@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Quote } from '../types/quote.types';
 import { ApiResponse } from '../../auth/types/auth.types';
 import { toast } from 'react-hot-toast';
@@ -6,6 +6,9 @@ import { useTranslation } from 'react-i18next';
 import QuoteStatusBadge from './QuoteStatusBadge';
 import { secureApiClient } from '../../../config/api';
 import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
+import { canConvertQuoteToInvoice, canTransitionQuoteToStatus, QuoteStatus } from '../utils/quote.permissions';
+import { decodeJWT } from '../../../utils/jwt';
+import { tokenManager } from '../../../utils/tokenManager';
 
 interface QuoteDetailProps {
   quote: Quote;
@@ -26,6 +29,15 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [refreshingStatusId, setRefreshingStatusId] = useState<number | null>(null);
+
+  // Extract user role from token
+  const userRole = useMemo(() => {
+    const tokenValue = tokenManager.getToken();
+    if (!tokenValue) return 'Clerk';
+    
+    const decoded = decodeJWT(tokenValue);
+    return decoded?.role || 'Clerk';
+  }, []);
 
   const formatCurrency = useCallback((amount: number) => {
     if (i18n.language === 'fr') {
@@ -222,13 +234,15 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
              {/* Draft Status */}
              {quote.status === 'Draft' && (
                <>
-                 <button
-                   onClick={handleMarkAsSent}
-                   disabled={disabled || refreshingStatusId === quote.id}
-                   className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {t('quote.actions.markAsSent')}
-                 </button>
+                 {canTransitionQuoteToStatus(userRole, quote.status as QuoteStatus, 'Sent') && (
+                   <button
+                     onClick={handleMarkAsSent}
+                     disabled={disabled || refreshingStatusId === quote.id}
+                     className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {t('quote.actions.markAsSent')}
+                   </button>
+                 )}
                  {onDownloadPdf && (
                    <button
                      onClick={handleDownloadPdf}
@@ -244,20 +258,24 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
              {/* Sent Status */}
              {quote.status === 'Sent' && (
                <>
-                 <button
-                   onClick={handleMarkAsAccepted}
-                   disabled={disabled || refreshingStatusId === quote.id}
-                   className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {t('quote.actions.markAsAccepted')}
-                 </button>
-                 <button
-                   onClick={handleMarkAsRejected}
-                   disabled={disabled || refreshingStatusId === quote.id}
-                   className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {t('quote.actions.markAsRejected')}
-                 </button>
+                 {canTransitionQuoteToStatus(userRole, quote.status as QuoteStatus, 'Accepted') && (
+                   <button
+                     onClick={handleMarkAsAccepted}
+                     disabled={disabled || refreshingStatusId === quote.id}
+                     className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {t('quote.actions.markAsAccepted')}
+                   </button>
+                 )}
+                 {canTransitionQuoteToStatus(userRole, quote.status as QuoteStatus, 'Rejected') && (
+                   <button
+                     onClick={handleMarkAsRejected}
+                     disabled={disabled || refreshingStatusId === quote.id}
+                     className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-green-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {t('quote.actions.markAsRejected')}
+                   </button>
+                 )}
                  {onDownloadPdf && (
                    <button
                      onClick={handleDownloadPdf}
@@ -273,7 +291,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
              {/* Accepted Status */}
              {quote.status === 'Accepted' && (
                <>
-                 {onConvertToInvoice && (
+                 {onConvertToInvoice && canConvertQuoteToInvoice(userRole, quote.status as QuoteStatus) && (
                     <button
                      onClick={handleConvertToInvoice}
                      disabled={disabled}

@@ -38,10 +38,11 @@ const StatsContext = createContext<StatsContextType | undefined>(undefined);
 interface StatsProviderProps {
   children: ReactNode;
   token: string | null;
+  userRole: string;
 }
 
-export const StatsProvider: React.FC<StatsProviderProps> = ({ children, token }) => {
-  const statsData = useStats(token);
+export const StatsProvider: React.FC<StatsProviderProps> = ({ children, token, userRole }) => {
+  const statsData = useStats(token, userRole);
 
   return (
     <StatsContext.Provider value={statsData}>

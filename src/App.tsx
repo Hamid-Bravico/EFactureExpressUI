@@ -63,7 +63,7 @@ function App() {
       <BrowserRouter>
         <Toaster position="top-right" />
         {token ? (
-          <StatsProvider token={token}>
+          <StatsProvider token={token} userRole={userRole || ""}>
             <Layout
               token={token}
               userRole={userRole || ""}

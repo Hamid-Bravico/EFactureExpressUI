@@ -17,6 +17,10 @@ export const canCreateInvoice = (userRole: UserRole): boolean => {
   return ['Admin', 'Manager', 'Clerk'].includes(userRole);
 };
 
+export const canImportCSV = (userRole: UserRole): boolean => {
+  return ['Admin', 'Manager'].includes(userRole);
+};
+
 // Core permission functions
 export const canModifyInvoice = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
   // Edit allowed only for Draft invoices for all roles
@@ -24,8 +28,8 @@ export const canModifyInvoice = (userRole: UserRole, invoiceStatus: InvoiceStatu
 };
 
 export const canDeleteInvoice = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
-  // Delete allowed only for Draft invoices for all roles
-  return invoiceStatus === INVOICE_STATUS.DRAFT;
+  // Admin and Manager can delete, but only Draft invoices
+  return (userRole === 'Admin' || userRole === 'Manager') && invoiceStatus === INVOICE_STATUS.DRAFT;
 };
 
 export const canChangeInvoiceStatus = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
@@ -47,15 +51,23 @@ export const canChangeInvoiceStatus = (userRole: UserRole, invoiceStatus: Invoic
 };
 
 export const canSubmitInvoice = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
-  // Only Managers and Admins can submit, and only Ready invoices
-  return (userRole === 'Manager' || userRole === 'Admin') && 
-         invoiceStatus === INVOICE_STATUS.READY;
+  // Admin and Manager can submit, but only Ready invoices
+  return (userRole === 'Admin' || userRole === 'Manager') && invoiceStatus === INVOICE_STATUS.READY;
 };
 
 export const canPerformDGIStatusCheck = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
-  // Only Managers and Admins can check DGI status for AwaitingClearance invoices
-  return (userRole === 'Manager' || userRole === 'Admin') && 
-         invoiceStatus === INVOICE_STATUS.AWAITING_CLEARANCE;
+  // All roles can check DGI status for AwaitingClearance invoices
+  return invoiceStatus === INVOICE_STATUS.AWAITING_CLEARANCE;
+};
+
+export const canGetDataToSign = (userRole: UserRole): boolean => {
+  // Admin and Manager can get data to sign
+  return ['Admin', 'Manager'].includes(userRole);
+};
+
+export const canSetReady = (userRole: UserRole): boolean => {
+  // Admin and Manager can set invoices to ready
+  return ['Admin', 'Manager'].includes(userRole);
 };
 
 export const canAccessRejectionReason = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
@@ -72,25 +84,23 @@ export const getValidStatusTransitions = (userRole: UserRole, currentStatus: Inv
 
   switch (currentStatus) {
     case INVOICE_STATUS.DRAFT:
-      // Draft can go to Ready
       return [INVOICE_STATUS.DRAFT, INVOICE_STATUS.READY];
-    
     case INVOICE_STATUS.READY:
-      // Ready can go back to Draft or stay Ready
-      return [INVOICE_STATUS.DRAFT, INVOICE_STATUS.READY];
-    
+      if (userRole === 'Admin' || userRole === 'Manager') {
+        return [INVOICE_STATUS.DRAFT, INVOICE_STATUS.READY];
+      }
+      return [INVOICE_STATUS.READY];
     case INVOICE_STATUS.AWAITING_CLEARANCE:
       // AwaitingClearance cannot be changed manually (only by DGI response)
       return [INVOICE_STATUS.AWAITING_CLEARANCE];
-    
     case INVOICE_STATUS.VALIDATED:
       // Validated is immutable
       return [INVOICE_STATUS.VALIDATED];
-    
     case INVOICE_STATUS.REJECTED:
-      // Rejected can go back to Draft
-      return [INVOICE_STATUS.DRAFT, INVOICE_STATUS.REJECTED];
-    
+      if (userRole === 'Admin') {
+        return [INVOICE_STATUS.DRAFT, INVOICE_STATUS.REJECTED];
+      }
+      return [INVOICE_STATUS.REJECTED];
     default:
       return [currentStatus];
   }

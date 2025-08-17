@@ -78,10 +78,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
   };
 
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (userRole !== 'Clerk') {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [userRole]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -100,7 +102,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   }, []);
 
   useEffect(() => {
-    if (notificationOpen) {
+    if (notificationOpen && userRole !== 'Clerk') {
       setNotificationsLoading(true);
       setNotificationsError(null);
       (async () => {
@@ -120,7 +122,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         }
       })();
     }
-  }, [notificationOpen]);
+  }, [notificationOpen, userRole]);
 
   const currentMonthRevenue = stats.navbarStats?.periodRevenue 
     ? `${stats.navbarStats.periodRevenue.toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { 
@@ -173,17 +175,18 @@ const StatusBar: React.FC<StatusBarProps> = ({
       <div className="w-full px-4 lg:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-                         <div className="hidden lg:flex items-center gap-6">
-               <div className="flex items-center gap-2">
-                 <Calendar className="text-gray-400" size={18} />
-                 <span className="text-sm font-medium text-gray-600">{stats.navbarStats?.period || t('common.december2024')}:</span>
-                 <span className="text-lg font-bold text-gray-900">
-                   {stats.loading.navbar ? (
-                     <div className="animate-pulse bg-gray-200 h-6 w-24 rounded"></div>
-                   ) : (
-                     currentMonthRevenue
-                   )}
-                 </span>
+                         {userRole !== 'Clerk' && (
+              <div className="hidden lg:flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Calendar className="text-gray-400" size={18} />
+                  <span className="text-sm font-medium text-gray-600">{stats.navbarStats?.period || t('common.december2024')}:</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    {stats.loading.navbar ? (
+                      <div className="animate-pulse bg-gray-200 h-6 w-24 rounded"></div>
+                    ) : (
+                      currentMonthRevenue
+                    )}
+                  </span>
 
                  <div className="relative ml-3" ref={periodDropdownRef}>
                    <button
@@ -252,22 +255,24 @@ const StatusBar: React.FC<StatusBarProps> = ({
                  </div>
                )}
              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="relative" ref={notificationRef}>
-              <button
-                onClick={() => setNotificationOpen(!notificationOpen)}
-                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
-                )}
-              </button>
+            {userRole !== 'Clerk' && (
+              <div className="relative" ref={notificationRef}>
+                <button
+                  onClick={() => setNotificationOpen(!notificationOpen)}
+                  className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Bell size={20} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  )}
+                </button>
               
               <Transition
                 show={notificationOpen}
@@ -394,7 +399,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
                   </div>
                 </div>
               </Transition>
-            </div>
+              </div>
+            )}
             
             <button
               onClick={toggleLanguage}

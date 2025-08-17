@@ -15,7 +15,7 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [, setError] = useState<string>('');
   const [settings, setSettings] = useState<SettingsMap>({});
 
   const initialState = useMemo(() => ({
@@ -26,7 +26,8 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
     'finance.default.tax.rate': 20,
     'finance.currency.symbol': 'MAD',
     'finance.decimal.places': 2,
-    'display.items.per.page': 10
+    'display.items.per.page': 10,
+    'finance.manager.approval.limit': 20000
   }) as SettingsMap, []);
 
   const fetchData = useCallback(async () => {
@@ -62,7 +63,8 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
         { key: 'finance.default.tax.rate', value: Number(settings['finance.default.tax.rate'] || 20) },
         { key: 'finance.currency.symbol', value: String(settings['finance.currency.symbol'] || 'MAD').trim() },
         { key: 'finance.decimal.places', value: Number(settings['finance.decimal.places'] || 2) },
-        { key: 'display.items.per.page', value: Number(settings['display.items.per.page'] || 10) }
+        { key: 'display.items.per.page', value: Number(settings['display.items.per.page'] || 10) },
+        { key: 'finance.manager.approval.limit', value: Number(settings['finance.manager.approval.limit'] || 20000) }
       ];
       const updated = await settingsService.updateMany(payload);
       setSettings(prev => ({ ...prev, ...updated }));
@@ -224,7 +226,7 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
             <div className="border-t border-gray-200 pt-8">
               <h3 className="text-lg font-medium text-gray-900 mb-4">{t('settings.financialSettings')}</h3>
               <p className="text-sm text-gray-600 mb-6">{t('settings.financialSettingsDesc')}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">{t('settings.defaultTaxRate')}</label>
                   <select
@@ -252,6 +254,19 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
                     placeholder="MAD"
                   />
                   <p className="text-xs text-gray-500 mt-1">{t('settings.currencySymbolDesc')}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">{t('settings.managerApprovalLimit')}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={Number(settings['finance.manager.approval.limit'] ?? 20000)}
+                    onChange={(e) => handleChange('finance.manager.approval.limit', Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="20000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">{t('settings.managerApprovalLimitDesc')}</p>
                 </div>
               </div>
             </div>

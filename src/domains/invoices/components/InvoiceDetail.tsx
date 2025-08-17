@@ -9,7 +9,10 @@ import { API_BASE_URL } from '../../../config/constants';
 import { INVOICE_ENDPOINTS } from '../api/invoice.endpoints';
 import { 
   getInvoiceActionPermissions, 
-  InvoiceStatus
+  InvoiceStatus,
+  canTransitionToStatus,
+  canSetReady,
+  INVOICE_STATUS
 } from '../utils/invoice.permissions';
 import { UserRole } from '../../../utils/shared.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
@@ -763,7 +766,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                          {/* Draft Status */}
              {invoice.status === 0 && (
                <>
-                                   {permissions.canChangeStatus && (
+                                   {canSetReady(userRole) && (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleMakeReadyWithSignature}
@@ -853,7 +856,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                      {t('invoice.actions.submit')}
                    </button>
                  )}
-                 {permissions.canChangeStatus && (
+                 {canTransitionToStatus(userRole, invoice.status, INVOICE_STATUS.DRAFT) && (
                    <button
                      onClick={handleBackToDraft}
                      disabled={disabled}
@@ -969,7 +972,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                          {/* Rejected Status */}
              {invoice.status === 4 && (
                <>
-                 {permissions.canChangeStatus && (
+                 {canTransitionToStatus(userRole, invoice.status, INVOICE_STATUS.DRAFT) && (
                    <button
                      onClick={handleBackToDraft}
                      disabled={disabled}

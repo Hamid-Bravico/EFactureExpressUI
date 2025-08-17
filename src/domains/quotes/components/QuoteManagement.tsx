@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { secureApiClient } from '../../../config/api';
 import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { NewQuote } from '../types/quote.types';
-import { ApiResponse } from '../../auth/types/auth.types';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import QuoteList, { QuoteListResponse } from './QuoteList';
 import QuoteImportCSV from './QuoteImportCSV';
 import ErrorModal from '../../../components/ErrorModal';
+import { canImportCSV } from '../../../utils/shared.permissions';
+import { decodeJWT } from '../../../utils/jwt';
+import { tokenManager } from '../../../utils/tokenManager';
+import { useStatsContext } from '../../stats/context/StatsContext';
 
 import QuoteForm from './QuoteForm';
 
@@ -17,6 +20,7 @@ interface QuoteManagementProps {
 
 const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   const { t } = useTranslation();
+  const { incrementSidebarCount } = useStatsContext();
   const [quotes, setQuotes] = useState<QuoteListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,6 +40,15 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const lastQuoteFiltersRef = React.useRef<any | undefined>(undefined);
   const lastQuoteSortRef = React.useRef<any | undefined>(undefined);
+
+  // Extract user role from token
+  const userRole = useMemo(() => {
+    const tokenValue = tokenManager.getToken();
+    if (!tokenValue) return 'Clerk';
+    
+    const decoded = decodeJWT(tokenValue);
+    return decoded?.role || 'Clerk';
+  }, []);
 
   const fetchQuotes = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
     setLoading(true);
@@ -198,6 +211,10 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
       }
 
       const data = responseData.data;
+      
+      // Update sidebar count
+      incrementSidebarCount('quotesCount', 1);
+      
       toast.success(responseData.message || t('quote.messages.created'), {
         duration: 4000,
         style: {
@@ -537,6 +554,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }
       }
 
+      // Update sidebar count
+      incrementSidebarCount('quotesCount', -1);
+
       toast.success(responseData.message || t('quote.list.deleteSuccess', { count: 1 }), {
         id: toastId,
         duration: 4000,
@@ -712,6 +732,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         }
       }
       
+      // Update sidebar count
+      incrementSidebarCount('quotesCount', -ids.length);
+      
       toast.success(t('quote.messages.deleted', { count: ids.length }), {
         id: toastId,
         duration: 4000,
@@ -744,80 +767,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
     }
   }, [token, t, quotes]);
 
-  const handleBulkSubmit = useCallback(async (ids: number[]) => {
-    const toastId = toast.loading(t('quote.bulk.submitting', { count: ids.length }));
-    
-    // Store original quotes for rollback
-    const originalQuotes = quotes?.quotes.filter(q => ids.includes(q.id)) || [];
-    
-    try {
-      // Optimistically update all quotes to "Sent" status
-      if (quotes) {
-        setQuotes(prev => ({
-          ...prev!,
-          quotes: prev!.quotes.map(q => 
-            ids.includes(q.id) ? { ...q, status: 'Sent' } : q
-          )
-        }));
-      }
 
-      // Perform all status updates (1 = Sent)
-      await Promise.all(
-        ids.map(async (id) => {
-          const response = await secureApiClient.post(`${QUOTE_ENDPOINTS.UPDATE_STATUS(id)}/1`);
-
-          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
-          if (!response.ok || !responseData?.succeeded) {
-            let errorTitle = t('quote.list.submitError');
-            let errorBody = '';
-            if (responseData?.errors) {
-              if (Array.isArray(responseData.errors)) {
-                errorBody = responseData.errors.join('\n');
-              } else if (typeof responseData.errors === 'object') {
-                errorBody = Object.values(responseData.errors).flat().join('\n');
-              }
-            }
-            if (responseData?.message) {
-              errorTitle = responseData.message;
-            } else if (responseData?.title) {
-              errorTitle = responseData.title;
-            }
-            const err = new Error(errorBody || errorTitle);
-            (err as any).title = errorTitle;
-            (err as any).body = errorBody;
-            (err as any).errors = responseData?.errors;
-            throw err;
-          }
-        })
-      );
-      
-      toast.success(t('quote.list.bulkSubmitSuccess', { count: ids.length }), { id: toastId });
-    } catch (err: any) {
-      // Revert all optimistic updates
-      if (quotes && originalQuotes.length > 0) {
-        setQuotes(prev => ({
-          ...prev!,
-          quotes: prev!.quotes.map(q => {
-            const originalQuote = originalQuotes.find(orig => orig.id === q.id);
-            return originalQuote || q;
-          })
-        }));
-      }
-      
-      let errorTitle = t('quote.list.bulkSubmitError');
-      let errorBody = '';
-      if (err.title && err.body) {
-        errorTitle = err.title;
-        errorBody = err.body;
-      } else if (typeof err.message === 'string') {
-        errorTitle = err.message;
-      }
-      const formatted = errorBody
-        ? `${errorTitle}\n\n${errorBody.split('\n').map((l: string) => `• ${l}`).join('\n')}`
-        : errorTitle;
-      toast.error(formatted, { id: toastId, duration: 5000, style: { background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-line' } });
-    }
-  }, [token, t, quotes]);
 
   // Add optimistic status update function for UI responsiveness
   const handleOptimisticQuoteStatusUpdate = useCallback((id: number, status: string) => {
@@ -1109,6 +1059,11 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         const total = data.data?.total || data.data?.count || imported;
         const successMessage = data.message || t('common.file.importSuccess', { imported, total });
 
+        // Update sidebar count
+        if (imported > 0) {
+          incrementSidebarCount('quotesCount', imported);
+        }
+
         toast.dismiss(toastId);
         successShown = true;
         toast.success(successMessage, {
@@ -1120,7 +1075,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
             borderRadius: '8px',
             padding: '12px 16px',
             fontSize: '14px',
-            lineHeight: '1.5'
+          lineHeight: '1.5'
           }
         });
         await fetchQuotes();
@@ -1175,7 +1130,9 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <QuoteImportCSV onImport={handleImportCSV} loading={importLoading} />
+        {canImportCSV(userRole) && (
+          <QuoteImportCSV onImport={handleImportCSV} loading={importLoading} />
+        )}
         <button
           onClick={() => setShowQuoteForm(true)}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors ${
@@ -1202,7 +1159,6 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
           token={token}
 
           onBulkDelete={handleBulkDelete}
-          onBulkSubmit={handleBulkSubmit}
           onUpdateQuoteStatus={handleUpdateQuoteStatus}
           onOptimisticQuoteStatusUpdate={handleOptimisticQuoteStatusUpdate}
           onConvertToInvoice={handleConvertToInvoice}

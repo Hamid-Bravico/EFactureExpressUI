@@ -10,6 +10,7 @@ import {
   getInvoiceActionPermissions, 
   canSelectForBulkOperation,
   canDeleteInvoice,
+  canModifyInvoice,
   InvoiceStatus
 } from '../utils/invoice.permissions';
 import { UserRole } from '../../../utils/shared.permissions';
@@ -441,8 +442,8 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
 
   // Helper functions for Edit/Delete buttons (similar to QuoteList pattern)
   const canEditInvoice = useCallback((invoice: any) => {
-    return invoice.status === 0; // Only draft invoices can be edited
-  }, []);
+    return canModifyInvoice(userRole, invoice.status as InvoiceStatus);
+  }, [userRole]);
 
   const canDeleteInvoiceLocal = useCallback((invoice: any) => {
     return canDeleteInvoice(userRole, invoice.status);
@@ -686,18 +687,20 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                     {t('invoice.bulk.submit')}
                   </button>
                 )}
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={disabled}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
-                    disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                  }`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {t('invoice.bulk.delete')}
-                </button>
+                {(userRole === 'Admin' || userRole === 'Manager') && (
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={disabled}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
+                      disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {t('invoice.bulk.delete')}
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedInvoices(new Set())}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"

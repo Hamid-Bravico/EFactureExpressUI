@@ -7,7 +7,7 @@ import ErrorModal from '../../../components/ErrorModal';
 import { UserRole } from '../../../utils/shared.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
 import { CreditNote, NewCreditNote } from '../types/creditNote.types';
-import { canDeleteCreditNote, canSelectForBulkOperation, CreditNoteStatus } from '../utils/creditNote.permissions';
+import { canDeleteCreditNote, CreditNoteStatus } from '../utils/creditNote.permissions';
 import CreditNoteStatusBadge from './CreditNoteStatusBadge';
 
 interface CreditNoteListResponse {
@@ -71,8 +71,6 @@ interface CreditNoteListProps {
   disabled?: boolean;
   importLoading: boolean;
   onImportCSV: (file: File) => Promise<void>;
-  onBulkDelete?: (ids: number[]) => Promise<void>;
-  onBulkSubmit?: (ids: number[]) => Promise<void>;
   onUpdateCreditNoteStatus?: (id: number, status: number, dgiSubmissionId?: string, dgiRejectionReason?: string) => void;
 }
 
@@ -97,8 +95,6 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
   disabled = false,
   importLoading,
   onImportCSV,
-  onBulkDelete,
-  onBulkSubmit,
   onUpdateCreditNoteStatus
 }) => {
   const { t, i18n } = useTranslation();
@@ -107,14 +103,8 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
   const [sortField, setSortField] = useState<'date' | 'creditNoteNumber' | 'customer' | 'total' | 'status' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedCreditNotes, setSelectedCreditNotes] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [, setShowBulkActions] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState<{
-    type: 'submit' | 'delete';
-    count: number;
-  } | null>(null);
   const [showCreditNoteForm, setShowCreditNoteForm] = useState(false);
   const [editingCreditNote, setEditingCreditNote] = useState<CreditNote | undefined>();
   const [rejectionReasonModal, setRejectionReasonModal] = useState<{
@@ -148,39 +138,9 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
     onRefreshCreditNotes();
   }, [onRefreshCreditNotes]);
 
-  // Memoized computed values for better performance
-  const selectableCreditNotes = useMemo(() => {
-    if (!data?.creditNotes) return [];
-    return data.creditNotes.filter(creditNote => 
-      canSelectForBulkOperation(userRole, creditNote.status as CreditNoteStatus, 'delete') ||
-      canSelectForBulkOperation(userRole, creditNote.status as CreditNoteStatus, 'submit')
-    );
-  }, [data?.creditNotes, userRole]);
 
-  const allSelectable = useMemo(() => {
-    return data?.creditNotes ? selectedCreditNotes.size === selectableCreditNotes.length : false;
-  }, [data?.creditNotes, selectedCreditNotes.size, selectableCreditNotes.length]);
 
-  // Keyboard navigation support
-  React.useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      // Close dropdowns on Escape
-      if (event.key === 'Escape') {
-        setShowConfirmDialog(null);
-      }
-      
-      // Select all with Ctrl+A
-      if (event.ctrlKey && event.key === 'a') {
-        event.preventDefault();
-        if (data?.creditNotes && selectableCreditNotes.length > 0) {
-          setSelectedCreditNotes(new Set(selectableCreditNotes.map(inv => inv.id)));
-        }
-      }
-    }
-    
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [data?.creditNotes, selectableCreditNotes]);
+
 
   // Update handleSort to only allow valid sortField values
   const handleSort = useCallback((field: string) => {
@@ -240,102 +200,13 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
     onRefreshCreditNotes(filters, sortParams, { page: 1, pageSize: newPageSize });
   }, [filters, sortField, sortDirection, onRefreshCreditNotes]);
 
-  const handleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!data?.creditNotes) return;
-    
-    if (e.target.checked) {
-      setSelectedCreditNotes(new Set(selectableCreditNotes.map(inv => inv.id)));
-    } else {
-      setSelectedCreditNotes(new Set());
-    }
-  }, [data?.creditNotes, selectableCreditNotes]);
 
-  const handleSelectCreditNote = useCallback((id: number, status: number) => {
-    const creditNoteStatus = status as CreditNoteStatus;
-    
-    // Check if creditNote can be selected for any bulk operation
-    const canSelectForDelete = canSelectForBulkOperation(userRole, creditNoteStatus, 'delete');
-    const canSelectForSubmit = canSelectForBulkOperation(userRole, creditNoteStatus, 'submit');
-    
-    if (canSelectForDelete || canSelectForSubmit) {
-      setSelectedCreditNotes(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(id)) {
-          newSet.delete(id);
-        } else {
-          newSet.add(id);
-        }
-        return newSet;
-      });
-    }
-  }, [userRole]);
 
-  const handleBulkSubmit = useCallback(async () => {
-    if (!data?.creditNotes) return;
-    // Only allow bulk submit for creditNotes that can be submitted based on permissions
-    const submitIds = Array.from(selectedCreditNotes).filter(id => {
-      const inv = data.creditNotes.find(i => i.id === id);
-      return inv && canSelectForBulkOperation(userRole, inv.status as CreditNoteStatus, 'submit');
-    });
-    if (submitIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'submit',
-      count: submitIds.length
-    });
-  }, [selectedCreditNotes, data?.creditNotes, userRole]);
 
-  const handleBulkDelete = useCallback(async () => {
-    if (!data?.creditNotes) return;
-    // Allow bulk delete for creditNotes that can be deleted based on permissions
-    const deleteIds = Array.from(selectedCreditNotes).filter(id => {
-      const inv = data.creditNotes.find(i => i.id === id);
-      return inv && canSelectForBulkOperation(userRole, inv.status as CreditNoteStatus, 'delete');
-    });
-    if (deleteIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'delete',
-      count: deleteIds.length
-    });
-  }, [selectedCreditNotes, data?.creditNotes, userRole]);
 
-  const confirmBulkAction = useCallback(async () => {
-    if (!showConfirmDialog || !data?.creditNotes) return;
 
-    setShowConfirmDialog(null);
 
-    try {
-      if (showConfirmDialog.type === 'submit') {
-        // Only submit creditNotes that can be submitted based on permissions
-        const submitIds = Array.from(selectedCreditNotes).filter(id => {
-          const inv = data.creditNotes.find(i => i.id === id);
-          return inv && canSelectForBulkOperation(userRole, inv.status as CreditNoteStatus, 'submit');
-        });
-        
-        if (onBulkSubmit && submitIds.length > 0) {
-          await onBulkSubmit(submitIds);
-        }
-      } else {
-        // Delete creditNotes that can be deleted based on permissions
-        const deleteIds = Array.from(selectedCreditNotes).filter(id => {
-          const inv = data.creditNotes.find(i => i.id === id);
-          return inv && canSelectForBulkOperation(userRole, inv.status as CreditNoteStatus, 'delete');
-        });
-        
-        if (onBulkDelete && deleteIds.length > 0) {
-          await onBulkDelete(deleteIds);
-        }
-      }
-      setSelectedCreditNotes(new Set());
-      setShowBulkActions(false);
-    } catch (error) {
-      toast.error(
-        t('errors.bulkActionFailed', { 
-          action: showConfirmDialog.type === 'submit' ? t('creditNote.actions.submit') : t('creditNote.actions.delete'),
-          error: error instanceof Error ? error.message : t('errors.unknown')
-        })
-      );
-    }
-  }, [showConfirmDialog, selectedCreditNotes, data?.creditNotes, onBulkSubmit, onBulkDelete, userRole, t]);
+
 
   const handleEditCreditNote = useCallback(async (creditNote: any) => {
     try {
@@ -365,7 +236,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
           unitPrice: line.unitPrice || 0,
           total: line.total || 0,
           creditNoteId: creditNote.id,
-          taxRate: line.taxRate || 20, // Use actual tax rate from server
+          taxRate: line.taxRate ?? 20, // Use actual tax rate from server
           catalogItemId: line.catalogItemId || null
         })),
         createdAt: creditNote.createdAt || new Date().toISOString(),
@@ -626,63 +497,8 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
         )}
       </div>
 
-            {/* Floating Bulk Actions Bar */}
-      {selectedCreditNotes.size > 0 && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-30 animate-fade-in-scale">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-6 py-4 backdrop-blur-sm bg-white/95">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
-                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  {t('creditNote.bulk.selected', { count: selectedCreditNotes.size })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {(userRole === 'Admin' || userRole === 'Manager') && (
-                  <button
-                    onClick={handleBulkSubmit}
-                    disabled={disabled}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${
-                      disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    {t('creditNote.bulk.submit')}
-                  </button>
-                )}
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={disabled}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
-                    disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                  }`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {t('creditNote.bulk.delete')}
-                </button>
-                <button
-                  onClick={() => setSelectedCreditNotes(new Set())}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  title={t('creditNote.bulk.clearSelection')}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  {t('common.clear')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
+
 
       {!data?.creditNotes || data.creditNotes.length === 0 ? (
         <div className="text-center py-16">
@@ -706,14 +522,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
                 <tr>
-                  <th scope="col" className="relative px-4 py-3">
-                    <input
-                      type="checkbox"
-                      className="absolute left-2 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                      checked={allSelectable}
-                      onChange={handleSelectAll}
-                    />
-                  </th>
+
                   <th 
                     scope="col" 
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
@@ -796,19 +605,6 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
                       className="hover:bg-blue-50/40 cursor-pointer transition-all duration-300 group"
                       onClick={() => setSelectedCreditNote(selectedCreditNote === creditNote.id ? null : creditNote.id)}
                     >
-                      <td className="px-4 py-2 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-r"></div>
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                          checked={selectedCreditNotes.has(creditNote.id)}
-                          onChange={() => handleSelectCreditNote(creditNote.id, creditNote.status)}
-                          disabled={
-                            !canSelectForBulkOperation(userRole, creditNote.status as CreditNoteStatus, 'delete') &&
-                            !canSelectForBulkOperation(userRole, creditNote.status as CreditNoteStatus, 'submit')
-                          }
-                        />
-                      </td>
                       <td className="px-4 py-2 whitespace-nowrap">
                         <div 
                           className={`text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center ${creditNote.createdBy ? 'cursor-help relative group/tooltip' : ''}`}
@@ -907,7 +703,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
                     </tr>
                     {selectedCreditNote === creditNote.id && (
                       <tr>
-                        <td colSpan={7} className="px-6 py-4 bg-gray-50">
+                        <td colSpan={6} className="px-6 py-4 bg-gray-50">
                           <CreditNoteDetail
                             creditNote={{
                               id: creditNote.id,
@@ -975,54 +771,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
         />
       )}
 
-      {/* Confirmation Dialog */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
-            <div className="flex items-center mb-4">
-              <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 ${
-                showConfirmDialog.type === 'submit' ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                {showConfirmDialog.type === 'submit' ? (
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                )}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {t('creditNote.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('creditNote.actions.submit') : t('creditNote.actions.delete') })}
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-              {t(showConfirmDialog.type === 'submit' ? 'creditNote.bulk.confirm.submit' : 'creditNote.bulk.confirm.delete', { 
-                count: showConfirmDialog.count,
-              })}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowConfirmDialog(null)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={confirmBulkAction}
-                className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 ${
-                  showConfirmDialog.type === 'submit'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                {showConfirmDialog.type === 'submit' ? t('creditNote.actions.submit') : t('creditNote.actions.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
 
 

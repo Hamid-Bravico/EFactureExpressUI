@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { secureApiClient } from '../../../config/api';
 import { USER_ENDPOINTS } from '../api/user.endpoints';
 import { User, NewUser, UpdateUser } from '../types/user.types';
-import { ApiResponse } from '../../auth/types/auth.types';
 import { decodeJWT } from '../../../utils/jwt';
 import { tokenManager } from '../../../utils/tokenManager';
 
@@ -16,6 +16,7 @@ interface UsersProps {
 
 const Users = React.memo(({ token }: UsersProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,16 +94,26 @@ const Users = React.memo(({ token }: UsersProps) => {
 
   useEffect(() => {
     if (token) {
-      fetchUsers();
       // Get current user's role from token
       const decoded = decodeJWT(token);
       if (decoded && decoded.role) {
         setCurrentUserRole(decoded.role);
+        
+        // Redirect Clerk users to home page - they don't have access to Users
+        if (decoded.role === 'Clerk') {
+          navigate('/', { replace: true });
+          return;
+        }
       } else {
         setCurrentUserRole('');
       }
+      
+      // Only fetch users if user has access
+      if (decoded?.role !== 'Clerk') {
+        fetchUsers();
+      }
     }
-  }, [token, fetchUsers]);
+  }, [token, fetchUsers, navigate]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -11,9 +11,12 @@ import { toast } from 'react-hot-toast';
 import { ApiResponse } from '../../auth/types/auth.types';
 import { decodeJWT } from '../../../utils/jwt';
 import { tokenManager } from '../../../utils/tokenManager';
+import { canImportCSV } from '../utils/creditNote.permissions';
+import { useStatsContext } from '../../stats/context/StatsContext';
 
 const CreditNoteManagement = () => {
   const { t } = useTranslation();
+  const { incrementSidebarCount } = useStatsContext();
 
   const [token] = useState<string | null>(() => {
     const storedToken = tokenManager.getToken();
@@ -292,6 +295,9 @@ const CreditNoteManagement = () => {
       optimisticallyRemoveCreditNote(tempCreditNote.id);
       optimisticallyAddCreditNote(data);
       silentlyAddCreditNoteToList(data);
+      
+      // Update sidebar count
+      incrementSidebarCount('creditNotesCount', 1);
     } catch (error: any) {
       // Handle error with title and body structure
       let errorTitle = t('creditNote.form.errors.submissionFailed');
@@ -370,8 +376,6 @@ const CreditNoteManagement = () => {
       
       // Apply optimistic update
       optimisticallyUpdateCreditNote(updatedCreditNote);
-
-      console.log('creditNote', creditNote);
 
       const res = await secureApiClient.put(CREDITNOTE_ENDPOINTS.UPDATE(creditNote.id), creditNote);
       
@@ -525,6 +529,9 @@ const CreditNoteManagement = () => {
         const currentPageSize = creditNoteListData!.pagination.pageSize;
         await fetchCreditNotes(lastCreditNoteFiltersRef.current, lastCreditNoteSortRef.current, { page: currentPage, pageSize: currentPageSize });
       }
+      
+      // Update sidebar count
+      incrementSidebarCount('creditNotesCount', -1);
       
       toast.success(responseData.message || t('creditNote.messages.deleted'), {
         id: toastId,
@@ -688,9 +695,6 @@ const CreditNoteManagement = () => {
     }
 
     try {
-      // Optimistically update status to "Awaiting Clearance"
-      optimisticallyUpdateCreditNoteStatus(id, 2);
-
       const response = await secureApiClient.post(CREDITNOTE_ENDPOINTS.SUBMIT(id));
 
       const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
@@ -710,9 +714,6 @@ const CreditNoteManagement = () => {
           errorBody = t('errors.anErrorOccurred');
         }
         
-        // Revert optimistic update
-        optimisticallyUpdateCreditNote(originalCreditNote);
-        
         const error = new Error(errorBody);
         (error as any).title = errorTitle;
         (error as any).body = errorBody;
@@ -720,9 +721,12 @@ const CreditNoteManagement = () => {
         throw error;
       }
       
-      // Update with server response to get the DGI submission ID
+      // Update status to "Awaiting Clearance" only after successful submission
       if (responseData.data && responseData.data.dgiSubmissionId) {
         optimisticallyUpdateCreditNoteStatus(id, 2, responseData.data.dgiSubmissionId);
+      } else {
+        // If no DGI submission ID, still update the status to "Awaiting Clearance"
+        optimisticallyUpdateCreditNoteStatus(id, 2);
       }
       
       toast.success(responseData.message || t('creditNote.messages.submitted'), { 
@@ -816,6 +820,11 @@ const CreditNoteManagement = () => {
         const currentPage = creditNoteListData?.pagination?.page || 1;
         const currentPageSize = creditNoteListData?.pagination?.pageSize || 20;
         await fetchCreditNotes(undefined, undefined, { page: currentPage, pageSize: currentPageSize });
+        
+        // Update sidebar count for imported credit notes
+        if (data.data?.importedCount) {
+          incrementSidebarCount('creditNotesCount', data.data.importedCount);
+        }
       } else {
         // Validation error response (400/409) - Show in modal
         const errorMessage = data.message || t('creditNote.import.error.general');
@@ -871,218 +880,12 @@ const CreditNoteManagement = () => {
     }
   }, [t, fetchCreditNotes]);*/
 
-  const handleBulkDelete = useCallback(async (ids: number[]) => {
-    const toastId = toast.loading(t('creditNote.bulk.deleting', { count: ids.length }));
-    
-    // Store original data for rollback
-    const originalData = creditNoteListData;
-    const originalCreditNotes = creditNotes.filter(inv => ids.includes(inv.id));
-    
-    // Check if this bulk deletion will make the page incomplete
-    const willPageBeIncomplete = creditNoteListData && 
-      creditNoteListData.creditNotes.length === creditNoteListData.pagination.pageSize && 
-      ids.length > 0 && 
-      creditNoteListData.pagination.page < creditNoteListData.pagination.totalPages;
-    
-    try {
-      // Optimistically remove all creditNotes from both states
-      ids.forEach(id => optimisticallyRemoveCreditNote(id));
-      
-      // Optimistically update the server-side data
-      if (creditNoteListData) {
-        setCreditNoteListData((prev: any) => {
-          if (!prev) return prev;
-          const updatedCreditNotes = prev.creditNotes.filter((inv: any) => !ids.includes(inv.id));
-          return {
-            ...prev,
-            creditNotes: updatedCreditNotes,
-            pagination: {
-              ...prev.pagination,
-              totalItems: prev.pagination.totalItems - ids.length,
-              totalPages: Math.ceil((prev.pagination.totalItems - ids.length) / prev.pagination.pageSize)
-            }
-          };
-        });
-      }
-
-      // Perform all delete operations
-      await Promise.all(
-        ids.map(async (id) => {
-          const response = await secureApiClient.delete(CREDITNOTE_ENDPOINTS.DELETE(id));
-
-          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
-          if (!response.ok || !responseData?.succeeded) {
-            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToDeleteCreditNote'));
-          }
-        })
-      );
-      
-      // If the page will be incomplete, refresh the current page data
-      if (willPageBeIncomplete) {
-        // Silently refresh the current page to get the missing items, preserving filters/sort
-        const currentPage = creditNoteListData!.pagination.page;
-        const currentPageSize = creditNoteListData!.pagination.pageSize;
-        await fetchCreditNotes(lastCreditNoteFiltersRef.current, lastCreditNoteSortRef.current, { page: currentPage, pageSize: currentPageSize });
-      }
-      
-      toast.success(t('creditNote.messages.bulkDeleted', { count: ids.length }), { 
-        id: toastId,
-        style: {
-          background: '#f0fdf4',
-          color: '#166534',
-          border: '1px solid #bbf7d0',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          lineHeight: '1.5'
-        }
-      });
-    } catch (err: any) {
-      // Revert all optimistic updates
-      originalCreditNotes.forEach(creditNote => optimisticallyAddCreditNote(creditNote));
-      setCreditNoteListData(originalData);
-      
-      // Handle error with title and body structure
-      let errorTitle = t('errors.failedToDeleteCreditNote');
-      let errorBody = '';
-      
-      if (err.title && err.body) {
-        errorTitle = err.title;
-        errorBody = err.body;
-      } else if (err.title) {
-        errorTitle = err.title;
-      } else if (err.message) {
-        if (typeof err.message === 'object') {
-          if (err.message.value) {
-            errorTitle = err.message.value;
-          } else if (err.message.message) {
-            errorTitle = err.message.message;
-          } else {
-            errorTitle = JSON.stringify(err.message);
-          }
-        } else if (typeof err.message === 'string') {
-          errorTitle = err.message;
-        }
-      }
-      
-      // Create a more polished error message
-      const errorMessage = errorBody 
-        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
-        : errorTitle;
-      
-      toast.error(errorMessage, { 
-        id: toastId,
-        duration: 5000,
-        style: {
-          background: '#fef2f2',
-          color: '#991b1b',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          whiteSpace: 'pre-line'
-        }
-      });
-    }
-  }, [creditNotes, creditNoteListData, t, optimisticallyRemoveCreditNote, optimisticallyAddCreditNote, fetchCreditNotes]);
-
-  const handleBulkSubmit = useCallback(async (ids: number[]) => {
-    const toastId = toast.loading(t('creditNote.bulk.submitting', { count: ids.length }));
-    
-    // Store original creditNotes for rollback
-    const originalCreditNotes = creditNotes.filter(inv => ids.includes(inv.id));
-    
-    try {
-      // Optimistically update all creditNotes to "Awaiting Clearance"
-      ids.forEach(id => optimisticallyUpdateCreditNoteStatus(id, 2));
-
-      // Perform all submit operations
-      const results = await Promise.all(
-        ids.map(async (id) => {
-          const response = await secureApiClient.post(CREDITNOTE_ENDPOINTS.SUBMIT(id));
-
-          const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
-          if (!response.ok || !responseData?.succeeded) {
-            throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToSubmitCreditNote'));
-          }
-
-          return responseData.data || {};
-        })
-      );
-      
-      // Update with server responses to get DGI submission IDs
-      results.forEach((result, index) => {
-        if (result.dgiSubmissionId) {
-          optimisticallyUpdateCreditNoteStatus(ids[index], 2, result.dgiSubmissionId);
-        }
-      });
-      
-      toast.success(t('creditNote.messages.bulkSubmitted', { count: ids.length }), { 
-        id: toastId,
-        style: {
-          background: '#f0fdf4',
-          color: '#166534',
-          border: '1px solid #bbf7d0',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          lineHeight: '1.5'
-        }
-      });
-    } catch (err: any) {
-      // Revert all optimistic updates
-      originalCreditNotes.forEach(creditNote => optimisticallyUpdateCreditNote(creditNote));
-      
-      // Handle error with title and body structure
-      let errorTitle = t('errors.failedToSubmitCreditNote');
-      let errorBody = '';
-      
-      if (err.title && err.body) {
-        errorTitle = err.title;
-        errorBody = err.body;
-      } else if (err.title) {
-        errorTitle = err.title;
-      } else if (err.message) {
-        if (typeof err.message === 'object') {
-          if (err.message.value) {
-            errorTitle = err.message.value;
-          } else if (err.message.message) {
-            errorTitle = err.message.message;
-          } else {
-            errorTitle = JSON.stringify(err.message);
-          }
-        } else if (typeof err.message === 'string') {
-          errorTitle = err.message;
-        }
-      }
-      
-      // Create a more polished error message
-      const errorMessage = errorBody 
-        ? `${errorTitle}\n\n${errorBody.split('\n').map(line => `• ${line}`).join('\n')}`
-        : errorTitle;
-      
-      toast.error(errorMessage, { 
-        id: toastId,
-        duration: 5000,
-        style: {
-          background: '#fef2f2',
-          color: '#991b1b',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          whiteSpace: 'pre-line'
-        }
-      });
-    }
-  }, [creditNotes, t, optimisticallyUpdateCreditNoteStatus, optimisticallyUpdateCreditNote]);
-
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <ImportCreditNoteCSV onImport={handleImportCreditNoteCSV} loading={creditNoteImportLoading} />
+        {canImportCSV(decoded?.role || 'Clerk') && (
+          <ImportCreditNoteCSV onImport={handleImportCreditNoteCSV} loading={creditNoteImportLoading} />
+        )}
         <button
           onClick={() => setShowCreditNoteForm(true)}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors ${
@@ -1108,8 +911,6 @@ const CreditNoteManagement = () => {
           disabled={creditNoteImportLoading}
           importLoading={creditNoteImportLoading}
           onImportCSV={handleImportCreditNoteCSV}
-          onBulkDelete={handleBulkDelete}
-          onBulkSubmit={handleBulkSubmit}
           onUpdateCreditNoteStatus={optimisticallyUpdateCreditNoteStatus}
         />
       </div>

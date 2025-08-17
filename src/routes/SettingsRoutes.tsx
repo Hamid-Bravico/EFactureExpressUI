@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 export default function SettingsPage({ token }: { token: string | null }) {
   const { t } = useTranslation();
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['Admin']}>
       <ErrorBoundary
         fallback={
           <ErrorPage

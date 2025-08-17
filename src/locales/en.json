@@ -141,6 +141,8 @@
     "defaultTaxRateDesc": "Default tax rate for new documents",
     "currencySymbol": "Currency Symbol",
     "currencySymbolDesc": "Currency symbol displayed on documents",
+    "managerApprovalLimit": "Manager Approval Limit",
+    "managerApprovalLimitDesc": "Maximum invoice amount a Manager can sign (default: 20000)",
     "defaults": {
       "invoicePrefix": "Default: FACT",
       "quotePrefix": "Default: DEV", 
@@ -651,8 +653,8 @@
       "title": "Quote Management",
       "selectedCount": "{{count}} quote selected",
       "selectedCount_plural": "{{count}} quotes selected",
-      "bulkSubmit": "Submit Selected",
       "bulkDelete": "Delete Selected",
+      "bulkDeleteSuccess": "{{count}} quotes deleted successfully",
       "expired": "Expired"
     },
     "actions": {

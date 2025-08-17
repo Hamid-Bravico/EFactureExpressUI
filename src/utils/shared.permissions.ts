@@ -16,7 +16,7 @@ export const hasHigherOrEqualRole = (userRole: UserRole, requiredRole: UserRole)
   return getRoleLevel(userRole) >= getRoleLevel(requiredRole);
 };
 
-// Global capabilities (all roles)
+// Global capabilities (Admin and Manager only)
 export const canImportCSV = (userRole: UserRole): boolean => {
-  return ['Admin', 'Manager', 'Clerk'].includes(userRole);
+  return ['Admin', 'Manager'].includes(userRole);
 };

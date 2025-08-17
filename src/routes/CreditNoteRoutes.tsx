@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 export default function CreditNotePage({ token }: { token: string | null }) {
   const { t } = useTranslation();
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['Admin', 'Manager']}>
       <ErrorBoundary
         fallback={
           <ErrorPage

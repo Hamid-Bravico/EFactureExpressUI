@@ -12,21 +12,16 @@ export const CREDITNOTE_STATUS = {
   REJECTED: 4
 } as const;
 
-// Global capabilities
-export const canCreateCreditNote = (userRole: UserRole): boolean => {
-  return ['Admin', 'Manager', 'Clerk'].includes(userRole);
-};
-
-// Core permission functions
-export const canModifyCreditNote = (userRole: UserRole, creditNoteStatus: CreditNoteStatus): boolean => {
-  // Edit allowed only for Draft creditNotes for all roles
-  return creditNoteStatus === CREDITNOTE_STATUS.DRAFT;
-};
-
-export const canDeleteCreditNote = (userRole: UserRole, creditNoteStatus: CreditNoteStatus): boolean => {
-  // Delete allowed only for Draft creditNotes for all roles
-  return creditNoteStatus === CREDITNOTE_STATUS.DRAFT;
-};
+export const canAccessCreditNotes = (userRole: UserRole): boolean => ['Admin', 'Manager'].includes(userRole);
+export const canCreateCreditNote = (userRole: UserRole): boolean => ['Admin', 'Manager'].includes(userRole);
+export const canModifyCreditNote = (userRole: UserRole, creditNoteStatus: CreditNoteStatus): boolean => ['Admin', 'Manager'].includes(userRole) && creditNoteStatus === CREDITNOTE_STATUS.DRAFT;
+export const canDeleteCreditNote = (userRole: UserRole, creditNoteStatus: CreditNoteStatus): boolean => userRole === 'Admin' && creditNoteStatus === CREDITNOTE_STATUS.DRAFT;
+export const canGetDataToSign = (userRole: UserRole): boolean => ['Admin', 'Manager'].includes(userRole);
+export const canSetAsReady = (userRole: UserRole): boolean => ['Admin', 'Manager'].includes(userRole);
+export const canRevertToDraft = (userRole: UserRole): boolean => userRole === 'Admin';
+export const canSubmitToDGI = (userRole: UserRole): boolean => userRole === 'Admin';
+export const canCheckDGIStatus = (userRole: UserRole): boolean => ['Admin', 'Manager'].includes(userRole);
+export const canImportCSV = (userRole: UserRole): boolean => userRole === 'Admin';
 
 export const canChangeCreditNoteStatus = (userRole: UserRole, creditNoteStatus: CreditNoteStatus): boolean => {
   switch (userRole) {
