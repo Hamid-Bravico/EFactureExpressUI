@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { APP_CONFIG } from '../config/app';
 import { useStatsContext } from '../domains/stats/context/StatsContext';
+import { canAccessCreditNotes } from '../domains/creditNotes/utils/creditNote.permissions';
+import { UserRole } from '../utils/shared.permissions';
 
 interface SidebarProps {
   userRole: string;
@@ -82,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
       label: t('common.creditNotes'),
       icon: Receipt,
       badge: stats.sidebarCounts?.creditNotesCount?.toString() || '0',
-      permission: true
+      permission: canAccessCreditNotes(userRole as UserRole)
     },
 
   ];
