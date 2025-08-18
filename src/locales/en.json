@@ -369,6 +369,9 @@
       "taxRate": "Tax Rate (%)",
       "selectCustomer": "Select Customer",
       "addFromCatalog": "Add from Catalog",
+      "paymentTerms": "Payment Terms",
+      "paymentDue": "Payment Due",
+      "days": "days",
       "catalogModal": {
         "title": "Add from Catalog",
         "search": "Search...",
@@ -604,6 +607,9 @@
       "termsAndConditionsPlaceholder": "Enter payment terms, project timelines, or other conditions of the offer...",
       "privateNotesPlaceholder": "Add private reminders or comments (not visible on client PDF)...",
       "addFromCatalog": "Add from Catalog",
+      "suggestedExpiry": "Suggested expiry",
+      "days": "days",
+      "apply": "Apply",
       "catalogModal": {
         "title": "Add from Catalog",
         "search": "Search...",

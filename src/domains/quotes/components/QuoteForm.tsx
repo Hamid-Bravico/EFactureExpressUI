@@ -8,6 +8,7 @@ import {
   QUOTE_STATUS
 } from '../utils/quote.permissions';
 import { Catalog } from '../../catalog/types/catalog.types';
+import { settingsService } from '../../settings/api/settings.service';
 
 interface QuoteFormProps {
   onSubmit: (quote: NewQuote, customerName?: string) => Promise<void>;
@@ -54,6 +55,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
   const [catalogItems, setCatalogItems] = useState<Catalog[]>([]);
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogSelected, setCatalogSelected] = useState<{ [id: number]: boolean }>({});
+  const [quoteValidityDays, setQuoteValidityDays] = useState<number>(30);
 
   useEffect(() => {
     secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/customers`)
@@ -66,6 +68,12 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
     })
     .then(setCustomers)
     .catch(() => setCustomers([]));
+  }, []);
+
+  useEffect(() => {
+    settingsService.getByKey('rules.quote.validity.days')
+      .then(value => setQuoteValidityDays(Number(value) || 30))
+      .catch(() => setQuoteValidityDays(30));
   }, []);
 
   useEffect(() => {
@@ -88,6 +96,12 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
       setPrivateNotes(quote.privateNotes || "");
     }
   }, [quote]);
+
+  const calculateExpiryDate = (issueDate: string, validityDays: number) => {
+    const date = new Date(issueDate);
+    date.setDate(date.getDate() + validityDays);
+    return date.toISOString().split('T')[0];
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -510,6 +524,19 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
                 }`}
                 disabled={disabled || isSubmitting}
               />
+              {issueDate && (
+                <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                  <span>{t('quote.form.suggestedExpiry')}: {calculateExpiryDate(issueDate, quoteValidityDays)} ({quoteValidityDays} {t('quote.form.days')})</span>
+                  <button
+                    type="button"
+                    onClick={() => setExpiryDate(calculateExpiryDate(issueDate, quoteValidityDays))}
+                    className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors duration-200"
+                    disabled={disabled || isSubmitting}
+                  >
+                    {t('quote.form.apply')}
+                  </button>
+                </div>
+              )}
               {(errors.expiryDate || getQuoteErrorMessage('expiryDate')) && (
                 <div className="text-red-500 text-xs mt-1">
                   {errors.expiryDate || getQuoteErrorMessage('expiryDate')}

@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { secureApiClient } from '../../../config/api';
 import { Catalog } from '../../catalog/types/catalog.types';
+import { settingsService } from '../../settings/api/settings.service';
 
 interface InvoiceFormProps {
   onSubmit: (invoice: NewInvoice, customerName?: string) => Promise<void>;
@@ -47,6 +48,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const [catalogItems, setCatalogItems] = useState<Catalog[]>([]);
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogSelected, setCatalogSelected] = useState<{ [id: number]: boolean }>({});
+  const [paymentTerms, setPaymentTerms] = useState<number>(30);
 
   useEffect(() => {
     secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/customers`)
@@ -59,6 +61,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     })
     .then(setCustomers)
     .catch(() => setCustomers([]));
+  }, []);
+
+  useEffect(() => {
+    settingsService.getByKey('pdf.payment.terms')
+      .then(value => setPaymentTerms(Number(value) || 30))
+      .catch(() => setPaymentTerms(30));
   }, []);
 
   useEffect(() => {
@@ -96,6 +104,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     else if (Object.keys(lineErrors).length > 0) newErrors.lines = lineErrors;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const calculateDueDate = (issueDate: string, terms: number) => {
+    const date = new Date(issueDate);
+    date.setDate(date.getDate() + terms);
+    return date.toISOString().split('T')[0];
   };
 
   const updateLine = (index: number, field: keyof NewLine | 'taxRate', value: string) => {
@@ -389,6 +403,18 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               {(errors.customerId || getInvoiceErrorMessage('customerId')) && (
                 <div className="text-red-500 text-xs mt-1">{errors.customerId || getInvoiceErrorMessage('customerId')}</div>
               )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.paymentTerms')}</label>
+              <div className="px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm">
+                {t('invoice.form.paymentDue')}: {calculateDueDate(date, paymentTerms)}
+                <span className="text-gray-500 ml-2">
+                  ({paymentTerms} {t('invoice.form.days')})
+                </span>
+              </div>
             </div>
           </div>
 

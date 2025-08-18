@@ -369,6 +369,9 @@
       "taxRate": "Taux de TVA (%)",
       "selectCustomer": "Sélectionner un client",
       "addFromCatalog": "Ajouter depuis le catalogue",
+      "paymentTerms": "Conditions de paiement",
+      "paymentDue": "Échéance de paiement",
+      "days": "jours",
       "catalogModal": {
         "title": "Ajouter depuis le catalogue",
         "search": "Rechercher...",
@@ -604,6 +607,9 @@
       "termsAndConditionsPlaceholder": "Saisissez les conditions de paiement, les délais du projet ou autres conditions de l'offre...",
       "privateNotesPlaceholder": "Ajoutez des rappels privés ou commentaires (non visibles sur le PDF client)...",
       "addFromCatalog": "Ajouter depuis le catalogue",
+      "suggestedExpiry": "Expiration suggérée",
+      "days": "jours",
+      "apply": "Appliquer",
       "catalogModal": {
         "title": "Ajouter depuis le catalogue",
         "search": "Rechercher...",
