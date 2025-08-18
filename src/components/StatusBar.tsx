@@ -358,7 +358,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900">{notification.title}</p>
                               <p className="text-sm text-gray-600 mt-0.5">{notification.message}</p>
-                              <p className="text-xs text-gray-400 mt-1" title={new Date(notification.createdAt).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}>{timeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-400 mt-1" title={`${new Date(notification.createdAt).toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')} - ${notification.createdBy || 'Unknown'}`}>{timeAgo(notification.createdAt)}</p>
                             </div>
                             {!notification.isRead && (
                               <button

@@ -125,7 +125,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
                       <div className="flex items-center gap-3 mt-2">
                         <p 
                           className="text-xs text-gray-400"
-                          title={formatNotificationTime(notification.createdAt, i18n.language === 'fr' ? 'fr-FR' : 'en-US')}
+                          title={`${formatNotificationTime(notification.createdAt, i18n.language === 'fr' ? 'fr-FR' : 'en-US')} - ${notification.createdBy || 'Unknown'}`}
                         >
                           {timeAgo(notification.createdAt)}
                         </p>
