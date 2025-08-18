@@ -99,8 +99,15 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
 
       setQuotes(transformed);
     } catch (e: any) {
-      setError(e.message || t('errors.anErrorOccurred'));
-      toast.error(e.message || t('errors.failedToFetchQuotes'));
+      let errorMessage = e.message || t('errors.anErrorOccurred');
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      setError(errorMessage);
+      // Don't show toast for initial load - only show error in state
     } finally {
       setLoading(false);
     }
@@ -1110,22 +1117,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
     }
   }, [token, t, fetchQuotes]);
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-red-600 mb-2">{t('common.error')}</h3>
-          <p className="text-gray-600">{error}</p>
-          <button
-            onClick={() => fetchQuotes()}
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-          >
-            {t('common.retry')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div>
@@ -1150,6 +1142,7 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         <QuoteList
           data={quotes}
           loading={loading}
+          error={error}
           onDelete={handleDeleteQuote}
           onDownloadPdf={handleDownloadPdf}
           onSubmit={handleSubmitQuote}

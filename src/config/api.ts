@@ -147,6 +147,12 @@ export class SecureApiClient {
       return response;
     } catch (error) {
       console.error('API request failed:', error);
+      
+      // Handle browser's "Failed to fetch" error - let components handle translation
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('NETWORK_ERROR');
+      }
+      
       throw error;
     }
   }

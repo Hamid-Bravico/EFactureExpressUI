@@ -37,9 +37,23 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     setError('');
     try {
       const res = await secureApiClient.get(CUSTOMER_ENDPOINTS.LIST);
-      if (!res.ok) throw new Error(t('errors.failedToFetchCustomers'));
       
-      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+      // Handle network errors and API unavailability
+      if (!res.ok) {
+        if (res.status === 0 || res.status >= 500) {
+          throw new Error(t('errors.networkError'));
+        }
+        if (res.status === 401) {
+          throw new Error(t('errors.unauthorized'));
+        }
+        throw new Error(t('errors.failedToFetchCustomers'));
+      }
+      
+      const responseData = await res.json().catch(() => ({ 
+        succeeded: false, 
+        message: t('errors.invalidResponse') 
+      }));
+      
       if (!responseData?.succeeded) {
         throw new Error(responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetchCustomers'));
       }
@@ -50,7 +64,15 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
         : (Array.isArray(apiData) ? apiData : []);
       setCustomers(items);
     } catch (e: any) {
-      setError(e.message || t('errors.anErrorOccurred'));
+      let errorMessage = e.message || t('errors.anErrorOccurred');
+      
+      // Handle browser's "Failed to fetch" error
+      if (e.message === 'Failed to fetch' || e.message === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      setError(errorMessage);
+      // Don't show toast on initial load - only show error in the UI
     } finally {
       setLoading(false);
     }
@@ -102,19 +124,57 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
       const url = editingCustomer
         ? CUSTOMER_ENDPOINTS.UPDATE(editingCustomer.id)
         : CUSTOMER_ENDPOINTS.CREATE;
-      const res = await (method === 'PUT'
-        ? secureApiClient.put(url, sanitizedForm)
-        : secureApiClient.post(url, sanitizedForm)
-      );
+      
+      let res: Response;
+      try {
+        res = await (method === 'PUT'
+          ? secureApiClient.put(url, sanitizedForm)
+          : secureApiClient.post(url, sanitizedForm)
+        );
+      } catch (networkError: any) {
+        const errorMessage = networkError.message === 'NETWORK_ERROR' ? t('errors.networkError') : networkError.message;
+        toast.error(errorMessage, {
+          id: toastId,
+          duration: 5000,
+          style: {
+            background: '#fef2f2',
+            color: '#991b1b',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }
+        });
+        return;
+      }
 
       let responseData: any = null;
       try {
         responseData = await res.json();
       } catch {
-        responseData = { succeeded: false, message: t('errors.anErrorOccurred') };
+        responseData = { succeeded: false, message: t('errors.invalidResponse') };
       }
 
       if (!res.ok || !responseData?.succeeded) {
+        // Handle network/server errors
+        if (res.status === 0 || res.status >= 500) {
+          toast.error(t('errors.networkError'), {
+            id: toastId,
+            duration: 5000,
+            style: {
+              background: '#fef2f2',
+              color: '#991b1b',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }
+          });
+          return;
+        }
+
         // Backend validation errors: object keyed by fields or array
         if (responseData?.errors) {
           if (!Array.isArray(responseData.errors) && typeof responseData.errors === 'object') {
@@ -204,12 +264,48 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
     if (!window.confirm(t('customers.confirm.delete'))) return;
     const toastId = toast.loading(t('common.processing'));
     try {
-      const res = await secureApiClient.delete(CUSTOMER_ENDPOINTS.DELETE(id));
+      let res: Response;
+      try {
+        res = await secureApiClient.delete(CUSTOMER_ENDPOINTS.DELETE(id));
+      } catch (networkError: any) {
+        const errorMessage = networkError.message === 'NETWORK_ERROR' ? t('errors.networkError') : networkError.message;
+        toast.error(errorMessage, {
+          id: toastId,
+          duration: 5000,
+          style: {
+            background: '#fef2f2',
+            color: '#991b1b',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }
+        });
+        return;
+      }
 
-      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
-      console.log(responseData);
-      //if(!responseData.test) return ;
+      const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.invalidResponse') }));
+      
       if (!res.ok || !responseData?.succeeded) {
+        // Handle network/server errors
+        if (res.status === 0 || res.status >= 500) {
+          toast.error(t('errors.networkError'), {
+            id: toastId,
+            duration: 5000,
+            style: {
+              background: '#fef2f2',
+              color: '#991b1b',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }
+          });
+          return;
+        }
+
         let title = responseData?.message || responseData?.title || t('customers.messages.deleteFailed');
         const details = Array.isArray(responseData?.errors)
           ? responseData.errors
@@ -250,7 +346,14 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
       incrementSidebarCount('customersCount', -1);
       refreshSidebarCountsSilently();
     } catch (e: any) {
-      toast.error(e.message || t('errors.anErrorOccurred'), { id: toastId });
+      let errorMessage = e.message || t('errors.anErrorOccurred');
+      
+      // Handle network error
+      if (e.message === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      toast.error(errorMessage, { id: toastId });
     }
   };
 
@@ -298,17 +401,26 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       ) : error ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-50 mr-4">
-              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-16">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 max-w-md mx-auto">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mx-auto mb-6">
+              <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{t('errors.title')}</h3>
-              <p className="text-red-600">{error}</p>
-            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('errors.failedToFetchCustomers')}</h3>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              {t('errors.tryRefreshing')}
+            </p>
+            <button
+              onClick={fetchCustomers}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {t('common.retry')}
+            </button>
           </div>
         </div>
       ) : (

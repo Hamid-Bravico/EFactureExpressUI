@@ -116,7 +116,14 @@ const StatusBar: React.FC<StatusBarProps> = ({
           }
           setNotifications(data.data?.items || []);
         } catch (err: any) {
-          setNotificationsError(err.message || 'Error fetching notifications');
+          let errorMessage = err.message || 'Error fetching notifications';
+          
+          // Handle network error
+          if (errorMessage === 'NETWORK_ERROR') {
+            errorMessage = t('errors.networkError');
+          }
+          
+          setNotificationsError(errorMessage);
         } finally {
           setNotificationsLoading(false);
         }

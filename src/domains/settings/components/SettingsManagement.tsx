@@ -15,7 +15,7 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
-  const [, setError] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<SettingsMap>({});
 
   const initialState = useMemo(() => ({
@@ -32,13 +32,20 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setError('');
+    setError(null);
     try {
       const data = await settingsService.getAll();
       setSettings({ ...initialState, ...data });
     } catch (e: any) {
-      setError(e.message || t('settings.messages.loadFailed'));
-      toast.error(e.message || t('settings.messages.loadFailed'));
+      let errorMessage = e.message || t('settings.messages.loadFailed');
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      setError(errorMessage);
+      // Don't show toast for initial load - only show error in state
     } finally {
       setLoading(false);
     }
@@ -70,7 +77,14 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
       setSettings(prev => ({ ...prev, ...updated }));
       toast.success(t('settings.messages.updateSuccess'));
     } catch (e: any) {
-      toast.error(t('settings.messages.updateFailed') || e.message);
+      let errorMessage = e.message || t('settings.messages.updateFailed');
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -81,6 +95,34 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
       <div className="flex items-center justify-center min-h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <span className="ml-2 text-gray-600">{t('common.loading')}</span>
+      </div>
+    );
+  }
+
+  // Error state handling
+  if (error || (!Object.keys(settings).length && !loading)) {
+    return (
+      <div className="text-center py-16">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 max-w-md mx-auto">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mx-auto mb-6">
+            <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">{error || t('settings.messages.loadFailed')}</h3>
+          <p className="text-gray-600 leading-relaxed mb-6">
+            {t('errors.tryRefreshing')}
+          </p>
+          <button
+            onClick={fetchData}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {t('common.retry')}
+          </button>
+        </div>
       </div>
     );
   }

@@ -16,10 +16,12 @@ export default function DashboardManagement({ token }: DashboardManagementProps)
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [dashboardFilters, setDashboardFilters] = useState<DashboardFilters>({});
   const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch dashboard stats
   const fetchDashboardStats = useCallback(async (filters?: DashboardFilters) => {
     setDashboardLoading(true);
+    setError(null);
     try {
       const queryParams = new URLSearchParams();
       if (filters) {
@@ -36,7 +38,15 @@ export default function DashboardManagement({ token }: DashboardManagementProps)
       }
       setDashboardStats(responseData.data || null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred');
+      let errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      setError(errorMessage);
+      // Don't show toast for initial load - only show error in state
     } finally {
       setDashboardLoading(false);
     }
@@ -58,6 +68,7 @@ export default function DashboardManagement({ token }: DashboardManagementProps)
     <Dashboard
       stats={dashboardStats}
       loading={dashboardLoading}
+      error={error}
       filters={dashboardFilters}
       onRefresh={() => fetchDashboardStats(dashboardFilters)}
       onFiltersChange={handleDashboardFiltersChange}

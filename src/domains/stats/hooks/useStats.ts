@@ -3,8 +3,10 @@ import { statsService } from '../api/stats.service';
 import { NavbarStats, SidebarCounts, OverdueStats, StatsState, StatsPeriod } from '../types/stats.types';
 import { toast } from 'react-hot-toast';
 import { isDateWithinSelectedPeriod } from '../utils/stats.utils';
+import { useTranslation } from 'react-i18next';
 
 export const useStats = (token: string | null, userRole: string) => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<StatsState>({
     navbarStats: null,
     overdueStats: null,
@@ -40,13 +42,19 @@ export const useStats = (token: string | null, userRole: string) => {
         loading: { ...prev.loading, navbar: false }
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch navbar stats';
+      let errorMessage = error instanceof Error ? error.message : 'Failed to fetch navbar stats';
+      
+      // Handle browser's "Failed to fetch" error
+      if (errorMessage === 'Failed to fetch') {
+        errorMessage = t('errors.networkError');
+      }
+      
       setStats(prev => ({
         ...prev,
         loading: { ...prev.loading, navbar: false },
         error: { ...prev.error, navbar: errorMessage }
       }));
-      toast.error(errorMessage);
+      // Don't show toast for automatic stats fetching - only show error in state
     }
   }, [token, userRole]);
 
@@ -67,13 +75,19 @@ export const useStats = (token: string | null, userRole: string) => {
         loading: { ...prev.loading, overdue: false }
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch overdue stats';
+      let errorMessage = error instanceof Error ? error.message : 'Failed to fetch overdue stats';
+      
+      // Handle browser's "Failed to fetch" error
+      if (errorMessage === 'Failed to fetch') {
+        errorMessage = t('errors.networkError');
+      }
+      
       setStats(prev => ({
         ...prev,
         loading: { ...prev.loading, overdue: false },
         error: { ...prev.error, overdue: errorMessage }
       }));
-      toast.error(errorMessage);
+      // Don't show toast for automatic stats fetching - only show error in state
     }
   }, [token]);
 
@@ -94,13 +108,19 @@ export const useStats = (token: string | null, userRole: string) => {
         loading: { ...prev.loading, sidebar: false }
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch sidebar counts';
+      let errorMessage = error instanceof Error ? error.message : 'Failed to fetch sidebar counts';
+      
+      // Handle browser's "Failed to fetch" error
+      if (errorMessage === 'Failed to fetch') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
       setStats(prev => ({
         ...prev,
         loading: { ...prev.loading, sidebar: false },
         error: { ...prev.error, sidebar: errorMessage }
       }));
-      toast.error(errorMessage);
+      // Don't show toast for automatic stats fetching - only show error in state
     }
   }, [token]);
 
@@ -124,13 +144,19 @@ export const useStats = (token: string | null, userRole: string) => {
           loading: { navbar: false, overdue: false, sidebar: false }
         }));
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch sidebar counts';
+        let errorMessage = error instanceof Error ? error.message : 'Failed to fetch sidebar counts';
+        
+        // Handle browser's "Failed to fetch" error
+        if (errorMessage === 'Failed to fetch') {
+          errorMessage = t('errors.networkError');
+        }
+        
         setStats(prev => ({
           ...prev,
           loading: { navbar: false, overdue: false, sidebar: false },
           error: { navbar: null, overdue: null, sidebar: errorMessage }
         }));
-        toast.error(errorMessage);
+        // Don't show toast for automatic stats fetching - only show error in state
       }
       return;
     }
@@ -152,13 +178,19 @@ export const useStats = (token: string | null, userRole: string) => {
         loading: { navbar: false, overdue: false, sidebar: false }
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stats';
+      let errorMessage = error instanceof Error ? error.message : 'Failed to fetch stats';
+      
+      // Handle browser's "Failed to fetch" error
+      if (errorMessage === 'Failed to fetch') {
+        errorMessage = t('errors.networkError');
+      }
+      
       setStats(prev => ({
         ...prev,
         loading: { navbar: false, overdue: false, sidebar: false },
         error: { navbar: errorMessage, overdue: errorMessage, sidebar: errorMessage }
       }));
-      toast.error(errorMessage);
+      // Don't show toast for automatic stats fetching - only show error in state
     }
   }, [token, userRole]);
 

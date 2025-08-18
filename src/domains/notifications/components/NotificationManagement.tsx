@@ -42,7 +42,14 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({ token }
       setNotifications(response.items);
       setPagination(response.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch notifications');
+      let errorMessage = err instanceof Error ? err.message : 'Failed to fetch notifications';
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      setError(errorMessage);
       console.error('Failed to fetch notifications:', err);
     } finally {
       setLoading(false);
@@ -108,15 +115,29 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({ token }
         t={t}
       />
 
+      {/* Error state handling */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-800 text-sm">{error}</p>
-          <button
-            onClick={() => fetchNotifications()}
-            className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
-          >
-            {t('common.retry') || 'Try again'}
-          </button>
+        <div className="text-center py-16">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 max-w-md mx-auto">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mx-auto mb-6">
+              <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">{error}</h3>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              {t('errors.tryRefreshing')}
+            </p>
+            <button
+              onClick={() => fetchNotifications()}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {t('common.retry')}
+            </button>
+          </div>
         </div>
       )}
 

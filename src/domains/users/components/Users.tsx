@@ -19,7 +19,7 @@ const Users = React.memo(({ token }: UsersProps) => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
@@ -69,7 +69,7 @@ const Users = React.memo(({ token }: UsersProps) => {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    setError('');
+    setError(null);
     try {
       const response = await secureApiClient.get(USER_ENDPOINTS.LIST);
 
@@ -86,7 +86,15 @@ const Users = React.memo(({ token }: UsersProps) => {
       
       setUsers(responseData.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.anErrorOccurred'));
+      let errorMessage = err instanceof Error ? err.message : t('errors.anErrorOccurred');
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      setError(errorMessage);
+      // Don't show toast for initial load - only show error in state
     } finally {
       setLoading(false);
     }
@@ -278,8 +286,32 @@ const Users = React.memo(({ token }: UsersProps) => {
     return <div className="text-center py-4">{t('common.loading')}</div>;
   }
 
-  if (error) {
-    return <div className="text-center py-4 text-red-600">{error}</div>;
+  // Error state handling
+  if (error || (!users.length && !loading)) {
+    return (
+      <div className="text-center py-16">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 max-w-md mx-auto">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mx-auto mb-6">
+            <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">{error || t('users.messages.loadFailed')}</h3>
+          <p className="text-gray-600 leading-relaxed mb-6">
+            {t('errors.tryRefreshing')}
+          </p>
+          <button
+            onClick={fetchUsers}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {t('common.retry')}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

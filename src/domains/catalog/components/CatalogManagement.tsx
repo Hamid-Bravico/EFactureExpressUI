@@ -19,7 +19,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
   const { t } = useTranslation();
   const [catalogs, setCatalogs] = useState<CatalogListResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [errorModal, setErrorModal] = useState<{
     isOpen: boolean;
@@ -38,7 +38,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
 
   const fetchCatalogs = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
     setLoading(true);
-    setError('');
+    setError(null);
     try {
       const params = new URLSearchParams();
       
@@ -74,8 +74,12 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       
       setCatalogs(responseData.data);
     } catch (e: any) {
-      setError(e.message || t('errors.anErrorOccurred'));
-      toast.error(e.message || t('catalog.messages.fetchFailed'));
+      let errorMessage = (e && e.message) ? e.message : t('errors.anErrorOccurred');
+      if (errorMessage === 'NETWORK_ERROR' || errorMessage === 'Failed to fetch') {
+        errorMessage = t('errors.networkError');
+      }
+      setError(errorMessage);
+      // No toast on initial/background fetch – show error in UI card
     } finally {
       setLoading(false);
     }
@@ -186,6 +190,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         }));
       }
     } catch (error: any) {
+      if (error?.message === 'NETWORK_ERROR') {
+        toast.error(t('errors.networkError'));
+        throw error;
+      }
       // Handle error with title and body structure
       let errorTitle = t('catalog.form.errors.submissionFailed');
       let errorBody = '';
@@ -322,6 +330,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         }
       });
     } catch (error: any) {
+      if (error?.message === 'NETWORK_ERROR') {
+        toast.error(t('errors.networkError'));
+        throw error;
+      }
       // Align update error styling with create/delete
       let errorTitle = t('catalog.form.errors.submissionFailed');
       let errorBody = '';
@@ -469,6 +481,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         }
       });
     } catch (error: any) {
+      if (error?.message === 'NETWORK_ERROR') {
+        toast.error(t('errors.networkError'), { id: toastId });
+        return;
+      }
       // Handle error with title and body structure
       let errorTitle = t('catalog.messages.deleteFailed');
       let errorBody = '';
@@ -616,7 +632,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
       // Revert all optimistic updates
       setCatalogs(originalData);
       
-      const errorMessage = err instanceof Error ? err.message : t('catalog.messages.bulkDeleteError');
+      let errorMessage = err instanceof Error ? err.message : t('catalog.messages.bulkDeleteError');
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
       toast.error(errorMessage, { id: toastId });
     }
   }, [token, t, catalogs]);
@@ -686,7 +705,10 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         });
       }
     } catch (err: any) {
-      const errorMessage = err instanceof Error ? err.message : t('catalog.import.error.general');
+      let errorMessage = err instanceof Error ? err.message : t('catalog.import.error.general');
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
       toast.dismiss(toastId);
 
       setErrorModal({
@@ -704,22 +726,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
     }
   }, [token, t, fetchCatalogs]);
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-red-600 mb-2">{t('common.error')}</h3>
-          <p className="text-gray-600">{error}</p>
-          <button
-            onClick={() => fetchCatalogs(undefined, undefined, { page: 1, pageSize: 10 })}
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-          >
-            {t('common.retry')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Error is now displayed via CatalogList's error card
 
   return (
     <div>
@@ -742,6 +749,7 @@ const CatalogManagement = React.memo(({ token }: CatalogManagementProps) => {
         <CatalogList
           data={catalogs}
           loading={loading}
+          error={error}
           onDelete={handleDeleteCatalog}
           onBulkDelete={handleBulkDelete}
           onCreateCatalog={handleCreateCatalog}

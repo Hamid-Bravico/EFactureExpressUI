@@ -68,6 +68,7 @@ interface InvoiceListResponse {
 interface InvoiceListProps {
   data: InvoiceListResponse | null;
   loading: boolean;
+  error?: string | null;
   onDelete: (id: number) => void;
   onDownloadPdf: (id: number) => void;
   onSubmit: (id: number) => void;
@@ -94,6 +95,7 @@ interface Filters {
 const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   data,
   loading,
+  error,
   onDelete,
   onDownloadPdf,
   onSubmit,
@@ -485,7 +487,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   }
 
   // Error state handling
-  if (!data && !loading) {
+  if (error || (!data && !loading)) {
     return (
       <div className="text-center py-16">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 max-w-md mx-auto">
@@ -494,7 +496,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">{t('errors.failedToLoadInvoices')}</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">{error || t('errors.failedToLoadInvoices')}</h3>
           <p className="text-gray-600 leading-relaxed mb-6">
             {t('errors.tryRefreshing')}
           </p>

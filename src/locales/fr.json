@@ -227,6 +227,7 @@
     "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter."
   },
   "errors": {
+    "title": "Erreur",
     "anErrorOccurred": "Une erreur est survenue",
     "applicationError": "Erreur d'application",
     "somethingWentWrong": "Une erreur est survenue. Veuillez réessayer.",
@@ -257,7 +258,7 @@
     "failedToFetchInvoice": "Échec de la récupération des détails de la facture",
     "updateCompanyFailed": "Échec de la mise à jour des informations de l'entreprise",
     "identifiantFiscalTooLong": "L'identifiant fiscal ne peut pas dépasser 8 caractères.",
-    "failedToFetchCustomers": "Échec de la récupération des clients",
+    "failedToFetchCustomers": "Échec du chargement des clients",
     "sectionError": "Une erreur s'est produite dans cette section.",
     "failedToFetchUsers": "Échec de la récupération des utilisateurs",
     "failedToFetchQuotes": "Échec de la récupération des devis",
@@ -294,6 +295,9 @@
       "allStatuses": "Tous les statuts",
       "apply": "Appliquer les filtres",
       "clear": "Effacer les filtres"
+    },
+    "messages": {
+      "loadFailed": "Échec du chargement des données du tableau de bord"
     }
   },
   "invoice": {
@@ -613,6 +617,9 @@
         "submissionFailed": "Échec de la soumission du devis. Veuillez réessayer."
       }
     },
+    "messages": {
+      "loadFailed": "Échec du chargement des devis"
+    },
     "filters": {
       "title": "Filtres",
       "show": "Afficher les filtres",
@@ -849,6 +856,9 @@
       "selectOriginalInvoice": "Sélectionner la facture d'origine",
       "originalInvoice": "Facture d'origine",
       "noInvoicesFound": "Aucune facture trouvée pour ce client"
+    },
+    "messages": {
+      "loadFailed": "Échec du chargement des avoirs"
     },
     "filters": {
       "title": "Filtres",
@@ -1198,7 +1208,8 @@
         "passwordUpdated": "Mot de passe mis à jour avec succès.",
         "createFailed": "Échec de la création de l'utilisateur",
         "updateFailed": "Échec de la mise à jour de l'utilisateur",
-        "deleteFailed": "Échec de la suppression de l'utilisateur"
+        "deleteFailed": "Échec de la suppression de l'utilisateur",
+        "loadFailed": "Échec du chargement des utilisateurs"
     },
     "errors": {
       "cannotUpdateAdmin": "Les administrateurs ne peuvent pas être modifiés",
@@ -1257,6 +1268,10 @@
     },
     "confirm": {
       "delete": "Êtes-vous sûr de vouloir supprimer ce client ?"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "delete": "Supprimer"
     }
   },
   "roles": {

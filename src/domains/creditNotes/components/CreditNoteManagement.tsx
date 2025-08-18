@@ -39,6 +39,7 @@ const CreditNoteManagement = () => {
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
   const [creditNoteListData, setCreditNoteListData] = useState<any>(null);
   const [creditNoteLoading, setCreditNoteLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [creditNoteImportLoading] = useState(false);
   const [showCreditNoteForm, setShowCreditNoteForm] = useState(false);
   const [, setImportLoading] = useState(false);
@@ -141,6 +142,7 @@ const CreditNoteManagement = () => {
   // ─── FETCH LIST ────────────────────────────────────────────────────────────
   const fetchCreditNotes = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
     setCreditNoteLoading(true);
+    setError(null);
     try {
       // Persist last used filters and sort for later silent refreshes
       lastCreditNoteFiltersRef.current = filters;
@@ -194,7 +196,15 @@ const CreditNoteManagement = () => {
       // Keep the old creditNotes state for backward compatibility
       setCreditNotes(transformed.creditNotes);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred');
+      let errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = t('errors.networkError');
+      }
+      
+      setError(errorMessage);
+      // Don't show toast for initial load - only show error in state
     } finally {
       setCreditNoteLoading(false);
     }
@@ -902,6 +912,7 @@ const CreditNoteManagement = () => {
         <CreditNoteList
           data={creditNoteListData}
           loading={creditNoteLoading}
+          error={error}
           onDelete={handleDeleteCreditNote}
           onDownloadPdf={handleDownloadPdf}
           onSubmit={handleSubmitCreditNote}

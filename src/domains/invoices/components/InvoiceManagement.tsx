@@ -33,6 +33,7 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoiceListData, setInvoiceListData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [errorModal, setErrorModal] = useState<{
@@ -143,6 +144,7 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
   // ─── FETCH LIST ────────────────────────────────────────────────────────────
   const fetchInvoices = useCallback(async (filters?: any, sort?: any, pagination?: any) => {
     setLoading(true);
+    setError(null);
     try {
       // Persist last used filters and sort for later silent refreshes
       lastInvoiceFiltersRef.current = filters;
@@ -196,7 +198,15 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
       // Keep the old invoices state for backward compatibility
       setInvoices(transformed.invoices);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred');
+      let errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      
+      // Handle network error
+      if (errorMessage === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      setError(errorMessage);
+      console.error('Failed to fetch invoices:', err);
     } finally {
       setLoading(false);
     }
@@ -1098,6 +1108,7 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
         <InvoiceList
           data={invoiceListData}
           loading={loading}
+          error={error}
           onDelete={handleDeleteInvoice}
           onDownloadPdf={handleDownloadPdf}
           onSubmit={handleSubmitInvoice}
