@@ -6,7 +6,11 @@ export type SettingKey =
   | 'finance.default.tax.rate'
   | 'finance.currency.symbol'
   | 'finance.decimal.places'
-  | 'display.items.per.page';
+  | 'display.items.per.page'
+  | 'finance.manager.approval.limit'
+  | 'pdf.payment.terms'
+  | 'rules.allow.future.dates'
+  | 'rules.quote.validity.days';
 
 export interface SettingsMap {
   [key: string]: string | number | boolean | null;

@@ -143,6 +143,14 @@
     "currencySymbolDesc": "Currency symbol displayed on documents",
     "managerApprovalLimit": "Manager Approval Limit",
     "managerApprovalLimitDesc": "Maximum invoice amount a Manager can sign (default: 20000)",
+    "pdfBusinessRules": "PDF and Business Rules",
+    "pdfBusinessRulesDesc": "Configure PDF generation and business validation rules",
+    "defaultPaymentTerms": "Default Payment Terms (days)",
+    "defaultPaymentTermsDesc": "Default payment deadline for invoices in days (e.g., 30 = due in 30 days)",
+    "allowFutureDates": "Allow Future Dates",
+    "allowFutureDatesDesc": "Whether to allow future dates in documents",
+    "defaultQuoteValidity": "Default Quote Validity (days)",
+    "defaultQuoteValidityDesc": "Default validity period for quotes in days (e.g., 30 = valid for 30 days)",
     "defaults": {
       "invoicePrefix": "Default: FACT",
       "quotePrefix": "Default: DEV", 
@@ -171,6 +179,10 @@
       "20": "20 items",
       "50": "50 items",
       "100": "100 items"
+    },
+    "allowFutureDatesOptions": {
+      "true": "Allow",
+      "false": "Disallow"
     },
     "messages": {
       "updateSuccess": "Settings updated successfully",
@@ -617,9 +629,6 @@
         "saveFailed": "Failed to save quote. Please try again."
       }
     },
-    "messages": {
-      "loadFailed": "Failed to load quotes"
-    },
     "filters": {
       "title": "Filters",
       "show": "Show Filters",
@@ -730,17 +739,17 @@
       "deleteWarning": "This action cannot be undone. The quote will be permanently deleted."
     },
     "messages": {
-        "created": "Quote created successfully",
-        "updated": "Quote updated successfully",
-        "deleted": "{{count}} quotes deleted successfully",
-        "submitted": "{{count}} quotes submitted successfully",
-        "statusUpdateSuccess": "Quote status updated successfully",
-        "statusUpdateError": "Failed to update quote status",
-        "convertToInvoiceSuccess": "Quote converted to invoice successfully. Invoice number: {{invoiceNumber}}",
-        "convertToInvoiceError": "Failed to convert quote to invoice",
-        "downloadError": "Failed to download PDF",
-        "downloadSuccess": "PDF downloaded successfully",
-        "loadFailed": "Failed to load quotes"
+      "created": "Quote created successfully",
+      "updated": "Quote updated successfully",
+      "deleted": "{{count}} quotes deleted successfully",
+      "submitted": "{{count}} quotes submitted successfully",
+      "statusUpdateSuccess": "Quote status updated successfully",
+      "statusUpdateError": "Failed to update quote status",
+      "convertToInvoiceSuccess": "Quote converted to invoice successfully. Invoice number: {{invoiceNumber}}",
+      "convertToInvoiceError": "Failed to convert quote to invoice",
+      "downloadError": "Failed to download PDF",
+      "downloadSuccess": "PDF downloaded successfully",
+      "loadFailed": "Failed to load quotes"
     },
     "import": {
         "title": "Import Quotes",
@@ -1116,9 +1125,6 @@
       },
       "noInvoicesFound": "No invoices found for this customer"
     },
-    "messages": {
-      "loadFailed": "Failed to load credit notes"
-    },
     "filters": {
       "title": "Filters",
       "show": "Show Filters",
@@ -1231,7 +1237,8 @@
       "submitFailed": "Failed to submit credit note",
       "updateFailed": "Cannot update credit note: Missing credit note ID",
       "fetchDetailsFailed": "Failed to fetch credit note details",
-      "bulkActionFailed": "Failed to {{action}} credit notes: {{error}}"
+      "bulkActionFailed": "Failed to {{action}} credit notes: {{error}}",
+      "loadFailed": "Failed to load credit notes"
     },
     "errors": {
       "helperAppRequired": "Web Crypto API not supported. Please install the EFacture Express Signing Helper.",

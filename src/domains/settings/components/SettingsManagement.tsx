@@ -27,7 +27,10 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
     'finance.currency.symbol': 'MAD',
     'finance.decimal.places': 2,
     'display.items.per.page': 10,
-    'finance.manager.approval.limit': 20000
+    'finance.manager.approval.limit': 20000,
+    'pdf.payment.terms': 30,
+    'rules.allow.future.dates': 'false',
+    'rules.quote.validity.days': 30
   }) as SettingsMap, []);
 
   const fetchData = useCallback(async () => {
@@ -71,7 +74,10 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
         { key: 'finance.currency.symbol', value: String(settings['finance.currency.symbol'] || 'MAD').trim() },
         { key: 'finance.decimal.places', value: Number(settings['finance.decimal.places'] || 2) },
         { key: 'display.items.per.page', value: Number(settings['display.items.per.page'] || 10) },
-        { key: 'finance.manager.approval.limit', value: Number(settings['finance.manager.approval.limit'] || 20000) }
+        { key: 'finance.manager.approval.limit', value: Number(settings['finance.manager.approval.limit'] || 20000) },
+        { key: 'pdf.payment.terms', value: Number(settings['pdf.payment.terms'] || 30) },
+        { key: 'rules.allow.future.dates', value: String(settings['rules.allow.future.dates'] || 'false') },
+        { key: 'rules.quote.validity.days', value: Number(settings['rules.quote.validity.days'] || 30) }
       ];
       const updated = await settingsService.updateMany(payload);
       setSettings(prev => ({ ...prev, ...updated }));
@@ -309,6 +315,54 @@ export default function SettingsManagement({ token }: SettingsManagementProps) {
                     placeholder="20000"
                   />
                   <p className="text-xs text-gray-500 mt-1">{t('settings.managerApprovalLimitDesc')}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* PDF and Business Rules Section */}
+            <div className="border-t border-gray-200 pt-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">{t('settings.pdfBusinessRules')}</h3>
+              <p className="text-sm text-gray-600 mb-6">{t('settings.pdfBusinessRulesDesc')}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">{t('settings.defaultPaymentTerms')}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={Number(settings['pdf.payment.terms'] ?? 30)}
+                    onChange={(e) => handleChange('pdf.payment.terms', Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="30"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">{t('settings.defaultPaymentTermsDesc')}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">{t('settings.allowFutureDates')}</label>
+                  <select
+                    value={String(settings['rules.allow.future.dates'] ?? 'false')}
+                    onChange={(e) => handleChange('rules.allow.future.dates', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="false">{t('settings.allowFutureDatesOptions.false')}</option>
+                    <option value="true">{t('settings.allowFutureDatesOptions.true')}</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">{t('settings.allowFutureDatesDesc')}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">{t('settings.defaultQuoteValidity')}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={Number(settings['rules.quote.validity.days'] ?? 30)}
+                    onChange={(e) => handleChange('rules.quote.validity.days', Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="30"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">{t('settings.defaultQuoteValidityDesc')}</p>
                 </div>
               </div>
             </div>

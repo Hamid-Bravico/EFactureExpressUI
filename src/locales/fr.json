@@ -143,6 +143,14 @@
     "currencySymbolDesc": "Symbole de devise affiché sur les documents",
     "managerApprovalLimit": "Limite d'approbation du manager",
     "managerApprovalLimitDesc": "Montant maximum des factures qu'un Manager peut signer (défaut : 20000)",
+    "pdfBusinessRules": "PDF et Règles métier",
+    "pdfBusinessRulesDesc": "Configurer la génération PDF et les règles de validation métier",
+    "defaultPaymentTerms": "Délai de paiement par défaut (jours)",
+    "defaultPaymentTermsDesc": "Délai de paiement par défaut pour les factures en jours (ex: 30 = dû dans 30 jours)",
+    "allowFutureDates": "Autoriser les dates futures",
+    "allowFutureDatesDesc": "Autoriser ou non les dates futures dans les documents",
+    "defaultQuoteValidity": "Validité par défaut des devis (jours)",
+    "defaultQuoteValidityDesc": "Période de validité par défaut pour les devis en jours (ex: 30 = valide 30 jours)",
     "defaults": {
       "invoicePrefix": "Défaut : FACT",
       "quotePrefix": "Défaut : DEV",
@@ -171,6 +179,10 @@
       "20": "20 éléments",
       "50": "50 éléments",
       "100": "100 éléments"
+    },
+    "allowFutureDatesOptions": {
+      "true": "Autoriser",
+      "false": "Interdire"
     },
     "messages": {
       "updateSuccess": "Paramètres mis à jour avec succès",
@@ -211,17 +223,17 @@
     "noIdentifiantFiscal": "Aucun identifiant fiscal fourni",
     "noCompanyName": "Aucun nom d'entreprise fourni",
     "validation": {
-              "iceRequired": "L'ICE est requis.",
-        "iceMustBe15Digits": "L'ICE doit contenir exactement 15 chiffres.",
-        "identifiantFiscalMustBe8Chars": "L'Identifiant Fiscal doit contenir exactement 8 caractères.",
+      "iceRequired": "L'ICE est requis.",
+      "iceMustBe15Digits": "L'ICE doit contenir exactement 15 chiffres.",
+      "identifiantFiscalMustBe8Chars": "L'Identifiant Fiscal doit contenir exactement 8 caractères.",
       "passwordRequired": "Le mot de passe est requis.",
       "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères.",
       "passwordUppercase": "Le mot de passe doit contenir au moins une lettre majuscule.",
       "passwordLowercase": "Le mot de passe doit contenir au moins une lettre minuscule.",
-              "passwordDigit": "Le mot de passe doit contenir au moins un chiffre.",
-        "passwordSpecial": "Le mot de passe doit contenir au moins un caractère non alphanumérique.",
-        "confirmPasswordRequired": "Veuillez confirmer votre mot de passe.",
-        "passwordsDoNotMatch": "Les mots de passe ne correspondent pas."
+      "passwordDigit": "Le mot de passe doit contenir au moins un chiffre.",
+      "passwordSpecial": "Le mot de passe doit contenir au moins un caractère non alphanumérique.",
+      "confirmPasswordRequired": "Veuillez confirmer votre mot de passe.",
+      "passwordsDoNotMatch": "Les mots de passe ne correspondent pas."
     },
     "tokenRefreshed": "Session actualisée avec succès",
     "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter."
@@ -617,9 +629,6 @@
         "submissionFailed": "Échec de la soumission du devis. Veuillez réessayer."
       }
     },
-    "messages": {
-      "loadFailed": "Échec du chargement des devis"
-    },
     "filters": {
       "title": "Filtres",
       "show": "Afficher les filtres",
@@ -730,17 +739,17 @@
       "deleteWarning": "Cette action ne peut pas être annulée. Le devis sera définitivement supprimé."
     },
     "messages": {
-        "created": "Devis créé avec succès",
-        "updated": "Devis mis à jour avec succès",
-        "deleted": "{{count}} devis supprimés avec succès",
-        "submitted": "{{count}} devis soumis avec succès",
-        "statusUpdateSuccess": "Statut du devis mis à jour avec succès",
-        "statusUpdateError": "Échec de la mise à jour du statut du devis",
-        "convertToInvoiceSuccess": "Devis converti en facture avec succès. Numéro de facture : {{invoiceNumber}}",
-        "convertToInvoiceError": "Échec de la conversion du devis en facture",
-        "downloadError": "Échec du téléchargement du PDF",
-        "downloadSuccess": "PDF téléchargé avec succès",
-        "loadFailed": "Échec du chargement des devis"
+      "created": "Devis créé avec succès",
+      "updated": "Devis mis à jour avec succès",
+      "deleted": "{{count}} devis supprimés avec succès",
+      "submitted": "{{count}} devis soumis avec succès",
+      "statusUpdateSuccess": "Statut du devis mis à jour avec succès",
+      "statusUpdateError": "Échec de la mise à jour du statut du devis",
+      "convertToInvoiceSuccess": "Devis converti en facture avec succès. Numéro de facture : {{invoiceNumber}}",
+      "convertToInvoiceError": "Échec de la conversion du devis en facture",
+      "downloadError": "Échec du téléchargement du PDF",
+      "downloadSuccess": "PDF téléchargé avec succès",
+      "loadFailed": "Échec du chargement des devis"
     },
     "import": {
         "title": "Importer des devis",
@@ -857,9 +866,6 @@
       "originalInvoice": "Facture d'origine",
       "noInvoicesFound": "Aucune facture trouvée pour ce client"
     },
-    "messages": {
-      "loadFailed": "Échec du chargement des avoirs"
-    },
     "filters": {
       "title": "Filtres",
       "show": "Afficher les filtres",
@@ -972,7 +978,8 @@
       "submitFailed": "Échec de la soumission de l'avoir",
       "updateFailed": "Impossible de mettre à jour l'avoir : ID manquant",
       "fetchDetailsFailed": "Échec de la récupération des détails de l'avoir",
-      "bulkActionFailed": "Échec de {{action}} des avoirs : {{error}}"
+      "bulkActionFailed": "Échec de {{action}} des avoirs : {{error}}",
+      "loadFailed": "Échec du chargement des avoirs"
     },
     "errors": {
       "helperAppRequired": "L'API Web Crypto n'est pas prise en charge. Veuillez installer l'Assistant de signature EFacture Express.",
