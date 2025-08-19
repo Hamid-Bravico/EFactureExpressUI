@@ -62,6 +62,7 @@ export type DebtorStatus = "critical" | "warning" | "attention" | "normal";
 export interface DashboardTopDebtor {
   customerId: number;
   customerName: string;
+  customerEmail: string;
   amountDue: number;
   daysLate: number;
   status: DebtorStatus;

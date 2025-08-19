@@ -11,9 +11,13 @@ import AgedReceivables from './AgedReceivables';
 import UrgentActions from './UrgentActions';
 import TopDebtorsTable from './TopDebtorsTable';
 import MonthlyRevenueChart from './MonthlyRevenueChart';
+import { Company } from '../../../types/common';
 
+interface DashboardProps {
+  company: Company | null;
+}
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<DashboardProps> = ({ company }) => {
   const { t } = useTranslation();
   const [data, setData] = useState<DashboardSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,7 +141,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Top Debtors Table */}
-          <TopDebtorsTable debtors={data.topDebtors} />
+          <TopDebtorsTable debtors={data.topDebtors} company={company} />
 
 
         </div>

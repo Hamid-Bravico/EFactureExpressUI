@@ -1,12 +1,11 @@
-import React from "react";
 import Dashboard from "./Dashboard";
+import { Company } from "../../../types/common";
 
 interface DashboardManagementProps {
   token: string | null;
+  company: Company | null;
 }
 
-export default function DashboardManagement({ token }: DashboardManagementProps) {
-  // The new Dashboard component is self-contained and handles its own data fetching
-  // We just need to render it here
-  return <Dashboard />;
+export default function DashboardManagement({ token, company }: DashboardManagementProps) {
+  return <Dashboard company={company} />;
 }

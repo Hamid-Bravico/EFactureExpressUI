@@ -1,12 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { DashboardTopDebtor } from '../types/dashboard.types';
+import { Company } from '../../../types/common';
 
 interface TopDebtorsTableProps {
   debtors: DashboardTopDebtor[];
+  company: Company | null;
 }
 
-const TopDebtorsTable: React.FC<TopDebtorsTableProps> = ({ debtors }) => {
+const TopDebtorsTable: React.FC<TopDebtorsTableProps> = ({ debtors, company }) => {
   const { t, i18n } = useTranslation();
   const formatAmount = (amount: number) => {
     return `${amount.toLocaleString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')} MAD`;
@@ -40,6 +42,23 @@ const TopDebtorsTable: React.FC<TopDebtorsTableProps> = ({ debtors }) => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const generateEmailContent = (debtor: DashboardTopDebtor) => {
+    const subject = t('dashboard.topDebtors.emailSubject')
+      .replace('[Customer Name]', debtor.customerName)
+      .replace('[Amount Due]', formatAmount(debtor.amountDue))
+      .replace('[Your Company Name]', company?.name || 'Company');
+
+    const body = t('dashboard.topDebtors.emailBody')
+      .replace('[Customer Name]', debtor.customerName)
+      .replace('[Amount Due]', formatAmount(debtor.amountDue))
+      .replace('[Your Company Name]', company?.name || 'Company');
+
+    return {
+      subject: encodeURIComponent(subject),
+      body: encodeURIComponent(body)
+    };
   };
 
   // Add null check for debtors
@@ -110,9 +129,13 @@ const TopDebtorsTable: React.FC<TopDebtorsTableProps> = ({ debtors }) => {
                   </span>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <button className="text-sm text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 shadow-sm">
+                  <a
+                    href={`mailto:${debtor.customerEmail}?subject=${generateEmailContent(debtor).subject}&body=${generateEmailContent(debtor).body}`}
+                    className="inline-flex items-center justify-center text-sm text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 shadow-sm cursor-pointer"
+                    title={t('dashboard.topDebtors.remind')}
+                  >
                     {t('dashboard.topDebtors.remind')}
-                  </button>
+                  </a>
                 </td>
               </tr>
             ))}
