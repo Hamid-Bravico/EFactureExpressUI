@@ -1,5 +1,7 @@
 import Dashboard from "./Dashboard";
 import { Company } from "../../../types/common";
+import { useUserInfo } from "../../../utils/useUserInfo";
+import { UserRole } from "../../../utils/shared.permissions";
 
 interface DashboardManagementProps {
   token: string | null;
@@ -7,5 +9,7 @@ interface DashboardManagementProps {
 }
 
 export default function DashboardManagement({ token, company }: DashboardManagementProps) {
-  return <Dashboard company={company} />;
+  const { userRole } = useUserInfo(token);
+  
+  return <Dashboard company={company} userRole={userRole as UserRole} />;
 }

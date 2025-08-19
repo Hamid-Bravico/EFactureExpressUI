@@ -12,17 +12,21 @@ import UrgentActions from './UrgentActions';
 import TopDebtorsTable from './TopDebtorsTable';
 import MonthlyRevenueChart from './MonthlyRevenueChart';
 import { Company } from '../../../types/common';
+import { UserRole } from '../../../utils/shared.permissions';
 
 interface DashboardProps {
   company: Company | null;
+  userRole?: UserRole;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ company }) => {
+const Dashboard: React.FC<DashboardProps> = ({ company, userRole }) => {
   const { t } = useTranslation();
   const [data, setData] = useState<DashboardSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>('this_month');
+
+  const isClerk = userRole === 'Clerk';
 
   const fetchDashboardData = async () => {
     try {
@@ -119,30 +123,67 @@ const Dashboard: React.FC<DashboardProps> = ({ company }) => {
         </div>
 
         <div className="space-y-5">
-          {/* Alert Banners */}
+          {/* Alert Banners - Always visible */}
           <AlertBanners alerts={data.alerts} />
 
-          {/* KPI Cards Section */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.sections.keyIndicators')}</h2>
-            <KpiCards kpiCards={data.kpiCards} period={data.period} />
-          </div>
+          {/* Awaiting DGI Indicator - Only visible for Clerk users */}
+          {isClerk && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.sections.awaitingDgi')}</h2>
+              <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                      {data.kpiCards?.awaitingDgi?.label || t('dashboard.kpiCards.awaitingDgi')}
+                    </div>
+                    <div className="text-3xl font-bold text-yellow-600 mt-1">
+                      {data.kpiCards?.awaitingDgi?.count || 0}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {t('dashboard.kpiCards.invoices')}
+                    </div>
+                  </div>
+                  <div className="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Aged Receivables Section */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.sections.receivablesAnalysis')}</h2>
-            <AgedReceivables agedReceivables={data.agedReceivables} period={data.period} />
-          </div>
+          {/* KPI Cards Section - Hidden for Clerk users */}
+          {!isClerk && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.sections.keyIndicators')}</h2>
+              <KpiCards kpiCards={data.kpiCards} period={data.period} />
+            </div>
+          )}
 
-          {/* Two-Column Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <UrgentActions actions={data.urgentActions} />
-            <MonthlyRevenueChart chartData={data.monthlyRevenueChart} />
-          </div>
+          {/* Aged Receivables Section - Hidden for Clerk users */}
+          {!isClerk && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.sections.receivablesAnalysis')}</h2>
+              <AgedReceivables agedReceivables={data.agedReceivables} period={data.period} />
+            </div>
+          )}
 
-          {/* Top Debtors Table */}
+          {/* Two-Column Layout - Conditional based on role */}
+          {!isClerk ? (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              <UrgentActions actions={data.urgentActions} />
+              <MonthlyRevenueChart chartData={data.monthlyRevenueChart} />
+            </div>
+          ) : (
+            /* For Clerk: Only Urgent Actions in full width */
+            <div>
+              <UrgentActions actions={data.urgentActions} />
+            </div>
+          )}
+
+          {/* Top Debtors Table - Always visible */}
           <TopDebtorsTable debtors={data.topDebtors} company={company} />
-
 
         </div>
       </div>

@@ -315,6 +315,7 @@
     },
     "sections": {
       "keyIndicators": "Indicateurs clés",
+      "awaitingDgi": "En Attente DGI",
       "receivablesAnalysis": "Analyse des créances",
       "urgentActions": "Actions urgentes",
       "monthlyRevenue": "Revenus mensuels",
