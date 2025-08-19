@@ -108,8 +108,6 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
         message: t('errors.anErrorOccurred') 
       }));
 
-      console.log(responseData);
-
       if (!response.ok || !responseData?.succeeded) {
         const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('errors.updateCompanyFailed');
         throw new Error(errorMessage);

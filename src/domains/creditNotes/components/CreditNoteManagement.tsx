@@ -802,8 +802,6 @@ const CreditNoteManagement = () => {
       }
 
       const data = await response.json();
-
-      console.log('response', data);
       
       if (response.ok && data.succeeded) {
         // Success response (200 OK)
@@ -843,7 +841,6 @@ const CreditNoteManagement = () => {
         
         // Dismiss the loading toast before showing the modal
         toast.dismiss(toastId);
-        console.log('details', details);
         setErrorModal({
           isOpen: true,
           title: t('creditNote.import.error.title'),

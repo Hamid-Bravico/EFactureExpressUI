@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       const response = await dashboardEndpoints.getSummary(selectedPeriod);
-      console.log(response);
+      
       if (response.succeeded) {
         setData(response.data);
       } else {
