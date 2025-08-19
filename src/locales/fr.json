@@ -1304,6 +1304,8 @@
     "resetOwnPassword": "Réinitialiser mon mot de passe",
     "newPassword": "Nouveau mot de passe",
     "passwordRequirements": "Le mot de passe doit contenir au moins 8 caractères",
+    "noUsersFound": "Aucun utilisateur trouvé",
+    "noUsersDescription": "Aucun utilisateur n'est actuellement disponible. Vous pouvez ajouter de nouveaux utilisateurs en utilisant le bouton ci-dessus.",
     "passwordValidation": {
       "required": "Le mot de passe est requis.",
       "minLength": "Le mot de passe doit contenir au moins 8 caractères.",

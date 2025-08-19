@@ -127,7 +127,7 @@ const Dashboard: React.FC = () => {
           {/* Aged Receivables Section */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.sections.receivablesAnalysis')}</h2>
-            <AgedReceivables agedReceivables={data.agedReceivables} period={data.period} collectionRate={67} />
+            <AgedReceivables agedReceivables={data.agedReceivables} period={data.period} />
           </div>
 
           {/* Two-Column Layout */}

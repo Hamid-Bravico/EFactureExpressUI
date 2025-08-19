@@ -43,6 +43,7 @@ export interface DashboardAgedReceivables {
   days0_30: DashboardAgedBucket;
   days31_60: DashboardAgedBucket;
   days_Over_60: DashboardAgedBucket;
+  collectionRate: number;
 }
 
 export type UrgentActionType = "DGI_REJECTION" | "LATE_PAYMENT" | "OLD_DRAFT";

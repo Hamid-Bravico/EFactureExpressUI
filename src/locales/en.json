@@ -1058,6 +1058,8 @@
     "resetOwnPassword": "Reset Own Password",
     "newPassword": "New Password",
     "passwordRequirements": "Password must be at least 8 characters long",
+    "noUsersFound": "No Users Found",
+    "noUsersDescription": "No users are currently available. You can add new users using the button above.",
     "passwordValidation": {
       "required": "Password is required.",
       "minLength": "Password must be at least 8 characters long.",

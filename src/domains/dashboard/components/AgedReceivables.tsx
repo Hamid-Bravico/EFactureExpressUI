@@ -5,13 +5,11 @@ import { DashboardAgedReceivables, DashboardPeriodInfo } from '../types/dashboar
 interface AgedReceivablesProps {
   agedReceivables: DashboardAgedReceivables;
   period: DashboardPeriodInfo;
-  collectionRate?: number;
 }
 
 const AgedReceivables: React.FC<AgedReceivablesProps> = ({ 
   agedReceivables, 
-  period, 
-  collectionRate = 67 
+  period
 }) => {
   const { t, i18n } = useTranslation();
   const formatAmount = (amount: number) => {
@@ -54,7 +52,7 @@ const AgedReceivables: React.FC<AgedReceivablesProps> = ({
     },
     {
       title: t('dashboard.agedReceivables.collectionRate'),
-      value: `${collectionRate}%`,
+      value: `${agedReceivables.collectionRate || 0}%`,
       subtitle: period?.display || t('dashboard.periods.thisMonth')
     }
   ];
