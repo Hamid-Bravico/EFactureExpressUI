@@ -15,4 +15,5 @@ export const INVOICE_ENDPOINTS = {
   SET_READY: (id: number) => `${API_BASE_URL}/invoices/${id}/set-ready`,
   DATA_TO_SIGN: (id: number) => `${API_BASE_URL}/invoices/${id}/data-to-sign`,
   BY_CUSTOMER: (customerId: number) => `${API_BASE_URL}/invoices/byCustomer/${customerId}`,
+  RECORD_PAYMENT: (id: number) => `${API_BASE_URL}/invoices/${id}/payments`,
 };

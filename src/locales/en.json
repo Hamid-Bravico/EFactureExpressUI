@@ -395,6 +395,23 @@
         "saveFailed": "Failed to save invoice. Please try again."
       }
     },
+    "payment": {
+      "recordPayment": "Record Payment",
+      "recording": "Recording...",
+      "paymentAmount": "Payment Amount (MAD)",
+      "currentAmountPaid": "Current Amount Paid",
+      "totalAmount": "Total Amount",
+      "remainingAmount": "Remaining Amount",
+      "enterPaymentAmount": "Enter payment amount",
+      "maximum": "Maximum",
+      "paymentRecorded": "Payment recorded successfully",
+      "failedToRecord": "Failed to record payment",
+      "invalidAmount": "Please enter a valid payment amount",
+      "amountExceedsRemaining": "Payment amount cannot exceed the remaining amount to pay",
+      "confirmTitle": "Confirm Payment",
+      "confirmMessage": "Are you sure you want to record a payment of {{amount}} MAD? This action cannot be undone.",
+      "confirmWarning": "Warning: Once recorded, this payment cannot be modified or reduced later."
+    },
     "filters": {
       "title": "Filters",
       "show": "Show Filters",
@@ -471,7 +488,8 @@
       "warnings": "Warnings",
       "taxRate": "Tax Rate",
       "createdBy": "Created By",
-      "createdAt": "Created At"
+      "createdAt": "Created At",
+      "paymentProgress": "Payment Progress"
     },
     "tooltip": {
       "createdBy": "Created on {{date}} by {{name}}"

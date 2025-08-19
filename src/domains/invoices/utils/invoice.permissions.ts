@@ -70,6 +70,11 @@ export const canSetReady = (userRole: UserRole): boolean => {
   return ['Admin', 'Manager'].includes(userRole);
 };
 
+export const canRecordPayment = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
+  // Only Admin and Manager can record payments, and only on Validated invoices
+  return (userRole === 'Admin' || userRole === 'Manager') && invoiceStatus === INVOICE_STATUS.VALIDATED;
+};
+
 export const canAccessRejectionReason = (userRole: UserRole, invoiceStatus: InvoiceStatus): boolean => {
   // All roles can view rejection reason for rejected invoices
   return invoiceStatus === INVOICE_STATUS.REJECTED;
@@ -141,6 +146,7 @@ export const getInvoiceActionPermissions = (userRole: UserRole, invoiceStatus: I
     canChangeStatus: canChangeInvoiceStatus(userRole, invoiceStatus),
     canCheckDGIStatus: canPerformDGIStatusCheck(userRole, invoiceStatus),
     canViewRejectionReason: canAccessRejectionReason(userRole, invoiceStatus),
+    canRecordPayment: canRecordPayment(userRole, invoiceStatus),
     validStatusTransitions: getValidStatusTransitions(userRole, invoiceStatus)
   };
 };

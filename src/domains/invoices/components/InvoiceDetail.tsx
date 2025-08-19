@@ -5,7 +5,6 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
 import { secureApiClient } from '../../../config/api';
-import { API_BASE_URL } from '../../../config/constants';
 import { INVOICE_ENDPOINTS } from '../api/invoice.endpoints';
 import { 
   getInvoiceActionPermissions, 
@@ -1041,6 +1040,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
               {invoice.dgiSubmissionId && (
                 <div><span className="font-medium">{t('invoice.details.dgiSubmissionId')}:</span> {invoice.dgiSubmissionId}</div>
               )}
+              {invoice.status === 3 && (
+                <div><span className="font-medium">{t('invoice.details.paymentProgress')}:</span> {Math.round(((invoice.amountPaid || 0) / invoice.total) * 100)}%</div>
+              )}
             </div>
           </div>
           <div>
@@ -1057,7 +1059,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             </div>
           </div>
         </div>
-        
         <div className="overflow-x-auto mb-4">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
@@ -1121,6 +1122,8 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           </div>
         </div>
       </div>
+
+
 
       {/* Rejection Reason Modal */}
       {rejectionModal && (

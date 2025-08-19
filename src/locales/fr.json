@@ -395,6 +395,23 @@
         "saveFailed": "Échec de l'enregistrement de la facture. Veuillez réessayer."
       }
     },
+    "payment": {
+      "recordPayment": "Enregistrer le paiement",
+      "recording": "Enregistrement...",
+      "paymentAmount": "Montant du paiement (MAD)",
+      "currentAmountPaid": "Montant payé actuel",
+      "totalAmount": "Montant total",
+      "remainingAmount": "Montant restant",
+      "enterPaymentAmount": "Entrez le montant du paiement",
+      "maximum": "Maximum",
+      "paymentRecorded": "Paiement enregistré avec succès",
+      "failedToRecord": "Échec de l'enregistrement du paiement",
+      "invalidAmount": "Veuillez entrer un montant de paiement valide",
+      "amountExceedsRemaining": "Le montant du paiement ne peut pas dépasser le montant restant à payer",
+      "confirmTitle": "Confirmer le paiement",
+      "confirmMessage": "Êtes-vous sûr de vouloir enregistrer un paiement de {{amount}} ? Cette action ne peut pas être annulée.",
+      "confirmWarning": "Attention : Une fois enregistré, ce paiement ne peut plus être modifié ou réduit."
+    },
     "filters": {
       "title": "Filtres",
       "show": "Afficher les filtres",
@@ -471,7 +488,8 @@
       "warnings": "Avertissements",
       "taxRate": "Taux de TVA",
       "createdBy": "Créé par",
-      "createdAt": "Créé le"
+      "createdAt": "Créé le",
+      "paymentProgress": "Progression du paiement"
     },
     "tooltip": {
       "createdBy": "Créé le {{date}} par {{name}}"

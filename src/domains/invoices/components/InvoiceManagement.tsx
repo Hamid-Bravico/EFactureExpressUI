@@ -234,6 +234,7 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
         subTotal: 0, // Will be calculated by backend
         vat: 0, // Will be calculated by backend
         total: 0, // Will be calculated by backend
+        amountPaid: 0,
         status: 0, // Default draft status
         lines: newInvoice.lines.map(line => ({
           id: Date.now() + Math.random(), // Temporary ID

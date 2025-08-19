@@ -25,6 +25,7 @@ export interface Invoice {
   subTotal: number;
   vat: number;
   total: number;
+  amountPaid: number;
   lines: InvoiceLine[];
   status: number; // 0 = Draft, 1 = Ready, 2 = AwaitingClearance, 3 = Validated, 4 = Rejected
   createdAt: string;

@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Invoice, NewInvoice } from '../types/invoice.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
 import InvoiceDetail from './InvoiceDetail';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
+import PaymentStatusBadge from './PaymentStatusBadge';
 import ErrorModal from '../../../components/ErrorModal';
 import { 
-  getInvoiceActionPermissions, 
   canSelectForBulkOperation,
   canDeleteInvoice,
   canModifyInvoice,
@@ -15,6 +15,8 @@ import {
 } from '../utils/invoice.permissions';
 import { UserRole } from '../../../utils/shared.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
+import { secureApiClient } from '../../../config/api';
+import { INVOICE_ENDPOINTS } from '../api/invoice.endpoints';
 
 interface InvoiceListResponse {
   invoices: Array<{
@@ -39,6 +41,7 @@ interface InvoiceListResponse {
     createdAt: string;
     subTotal: number;
     vat: number;
+    amountPaid: number;
     lines: Array<{
       id?: number;
       description: string;
@@ -132,6 +135,10 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     isOpen: false,
     reason: ''
   });
+  const [paymentModal, setPaymentModal] = useState<{ invoiceId: number; currentAmount: number; total: number } | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+  const [paymentConfirmation, setPaymentConfirmation] = useState<{ amount: number; invoiceId: number } | null>(null);
 
 
 
@@ -380,6 +387,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
         subTotal: invoice.subTotal || 0,
         vat: invoice.vat || 0,
         total: invoice.total || 0,
+        amountPaid: invoice.amountPaid || 0,
         status: invoice.status || 0,
         lines: (invoice.lines || []).map((line: any, index: number) => ({
           id: line.id || index, // Use line ID if available, otherwise use index
@@ -429,11 +437,11 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     }
   }, [onDelete, t]);
 
-  const handleSubmit = useCallback((id: number) => {
+  /*const handleSubmit = useCallback((id: number) => {
     if (window.confirm(t('invoice.confirm.submit'))) {
       onSubmit(id);
     }
-  }, [onSubmit, t]);
+  }, [onSubmit, t]);*/
 
   const handleShowRejectionReason = useCallback((reason: string) => {
     setRejectionReasonModal({
@@ -450,6 +458,66 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   const canDeleteInvoiceLocal = useCallback((invoice: any) => {
     return canDeleteInvoice(userRole, invoice.status);
   }, [userRole]);
+
+  const handleRecordPayment = useCallback((invoice: any) => {
+    setPaymentModal({
+      invoiceId: invoice.id,
+      currentAmount: invoice.amountPaid || 0,
+      total: invoice.total
+    });
+    setPaymentAmount('');
+  }, []);
+
+  const handleSubmitPayment = useCallback(() => {
+    if (!paymentModal) return;
+    
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error(t('invoice.payment.invalidAmount'));
+      return;
+    }
+
+    const remainingAmount = paymentModal.total - paymentModal.currentAmount;
+    if (amount > remainingAmount) {
+      toast.error(t('invoice.payment.amountExceedsRemaining'));
+      return;
+    }
+
+    // Show confirmation dialog
+    setPaymentConfirmation({
+      amount,
+      invoiceId: paymentModal.invoiceId
+    });
+  }, [paymentModal, paymentAmount]);
+
+  const handleConfirmPayment = useCallback(async () => {
+    if (!paymentConfirmation) return;
+
+    setIsRecordingPayment(true);
+    try {
+      const response = await secureApiClient.post(INVOICE_ENDPOINTS.RECORD_PAYMENT(paymentConfirmation.invoiceId), {
+        Amount: paymentConfirmation.amount
+      });
+
+      const responseData = await response.json();
+      if (!response.ok || !responseData?.succeeded) {
+        throw new Error(responseData?.message || t('invoice.payment.failedToRecord'));
+      }
+
+      toast.success(responseData?.message || t('invoice.payment.paymentRecorded'));
+      setPaymentModal(null);
+      setPaymentAmount('');
+      setPaymentConfirmation(null);
+      
+      // Refresh the invoice data with current pagination state
+      const sortParams = sortField ? { sortField, sortDirection } : undefined;
+      onRefreshInvoices(filters, sortParams, { page: currentPage, pageSize });
+    } catch (error: any) {
+      toast.error(error.message || t('invoice.payment.failedToRecord'));
+    } finally {
+      setIsRecordingPayment(false);
+    }
+  }, [paymentConfirmation, onRefreshInvoices]);
 
 
 
@@ -888,10 +956,19 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-right">
                         <div className="text-sm font-semibold text-gray-900 flex items-center justify-end">
-                          <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                          </svg>
-                          {formatCurrency(invoice.total)}
+                          {invoice.status === 3 ? (
+                            <PaymentStatusBadge 
+                              amountPaid={invoice.amountPaid || 0}
+                              total={invoice.total}
+                            />
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                              </svg>
+                              {formatCurrency(invoice.total)}
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -937,6 +1014,22 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                               </svg>
                             </button>
                           )}
+
+                          {invoice.status === 3 && (userRole === 'Admin' || userRole === 'Manager') && (invoice.amountPaid || 0) < invoice.total && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRecordPayment(invoice);
+                              }}
+                              className="text-green-600 hover:text-green-700 disabled:opacity-50 transition-all duration-200 p-0 rounded-lg hover:bg-green-50 hover:scale-110 hover:shadow-sm border border-transparent hover:border-green-200"
+                              disabled={disabled}
+                              title={t('invoice.payment.recordPayment')}
+                            >
+                              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -960,6 +1053,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                               subTotal: invoice.subTotal,
                               vat: invoice.vat,
                               total: invoice.total,
+                              amountPaid: invoice.amountPaid,
                               lines: invoice.lines.map((line: any) => ({
                                 id: line.id || 0,
                                 description: line.description,
@@ -1184,6 +1278,130 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                 </nav>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Payment Confirmation Modal */}
+      {paymentConfirmation && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-[60] animate-fade-in">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
+            <div className="flex items-center mb-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 mr-4">
+                <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                {t('invoice.payment.confirmTitle')}
+              </h3>
+            </div>
+            <div className="mb-6">
+              <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                {t('invoice.payment.confirmMessage', { amount: formatCurrency(paymentConfirmation.amount) })}
+              </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-800">
+                      {t('invoice.payment.confirmWarning')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setPaymentConfirmation(null)}
+                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleConfirmPayment}
+                disabled={isRecordingPayment}
+                className="px-4 py-2.5 text-sm font-medium text-white bg-yellow-600 border border-yellow-600 rounded-lg shadow-sm hover:bg-yellow-700 hover:border-yellow-700 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRecordingPayment ? t('invoice.payment.recording') : t('invoice.payment.recordPayment')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {paymentModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
+            <div className="flex items-center mb-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mr-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                {t('invoice.payment.recordPayment')}
+              </h3>
+            </div>
+            <div className="mb-6 space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 text-sm">{t('invoice.payment.totalAmount')}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(paymentModal.total)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 text-sm">{t('invoice.payment.currentAmountPaid')}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(paymentModal.currentAmount)}</span>
+                </div>
+                <div className="border-t pt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 font-medium text-sm">{t('invoice.payment.remainingAmount')}</span>
+                    <span className="font-bold text-lg text-blue-600">{formatCurrency(paymentModal.total - paymentModal.currentAmount)}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('invoice.payment.paymentAmount')}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={paymentModal.total}
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 border-gray-300"
+                  placeholder={t('invoice.payment.enterPaymentAmount')}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {t('invoice.payment.maximum')}: {formatCurrency(paymentModal.total)}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setPaymentModal(null);
+                  setPaymentAmount('');
+                }}
+                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleSubmitPayment}
+                disabled={isRecordingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0}
+                className="px-4 py-2.5 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg shadow-sm hover:bg-green-700 hover:border-green-700 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRecordingPayment ? t('invoice.payment.recording') : t('invoice.payment.recordPayment')}
+              </button>
+            </div>
           </div>
         </div>
       )}
