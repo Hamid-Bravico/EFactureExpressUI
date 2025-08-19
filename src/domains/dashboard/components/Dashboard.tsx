@@ -80,7 +80,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-7xl mx-auto pt-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100">

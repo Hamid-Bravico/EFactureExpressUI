@@ -85,7 +85,7 @@ const Layout: React.FC<LayoutProps> = ({
           ${token ? (isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'ml-64')) : ''}
         `}
       >
-        <div className="p-4">
+        <div className="p-4 pt-10">
           {children}
         </div>
       </main>
