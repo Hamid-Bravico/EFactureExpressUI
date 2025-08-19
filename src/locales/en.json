@@ -298,6 +298,85 @@
     "topCustomersByAmount": "Top Customers by Amount",
     "monthlyAmount": "Monthly Amount",
     "customerAmount": "Customer Amount",
+    "header": {
+      "title": "EFacture Express",
+      "subtitle": "Dashboard",
+      "period": "Period:",
+      "refresh": "Refresh"
+    },
+    "periods": {
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisQuarter": "This quarter",
+      "thisYear": "This year",
+      "last30Days": "Last 30 days",
+      "last90Days": "Last 90 days"
+    },
+    "sections": {
+      "keyIndicators": "Key Indicators",
+      "receivablesAnalysis": "Receivables Analysis",
+      "urgentActions": "Urgent Actions",
+      "monthlyRevenue": "Monthly Revenue",
+      "topDebtors": "Top Debtors"
+    },
+    "urgentActions": {
+      "title": "Urgent Actions",
+      "noActions": "No urgent actions",
+      "allUpToDate": "Everything is up to date"
+    },
+    "monthlyRevenue": {
+      "title": "Monthly Evolution",
+      "noData": "No data available",
+      "revenue": "Revenue"
+    },
+    "topDebtors": {
+      "title": "Top 5 Debtors",
+      "noDebtors": "No debtors",
+      "customer": "CUSTOMER",
+      "amount": "AMOUNT",
+      "delay": "DELAY",
+      "status": "STATUS",
+      "action": "ACTION",
+      "days": "days",
+      "remind": "Remind",
+      "statusLabels": {
+        "critical": "Critical",
+        "warning": "Warning",
+        "attention": "Attention",
+        "normal": "In Progress"
+      }
+    },
+    "kpiCards": {
+      "revenue": "REVENUE",
+      "unpaid": "UNPAID",
+      "awaitingDgi": "AWAITING DGI",
+      "vatToPay": "VAT TO PAY",
+      "collected": "COLLECTED",
+      "totalOverdue": "Total overdue",
+      "invoices": "Invoices",
+      "dueDate": "Due date"
+    },
+    "agedReceivables": {
+      "days0_30": "0-30 days",
+      "days31_60": "31-60 days",
+      "daysOver60": ">60 days",
+      "collectionRate": "Collection rate",
+      "invoices": "invoices"
+    },
+    "alertBanners": {
+      "dgiRejected": "{{count}} DGI rejected invoices",
+      "overdueClients": "{{count}} clients >60 days overdue",
+      "vatDeclarationDue": "VAT to declare in {{count}} days"
+    },
+    "loading": {
+      "title": "Loading dashboard...",
+      "subtitle": "Please wait"
+    },
+    "error": {
+      "title": "Loading Error",
+      "retry": "Retry"
+    },
     "filters": {
       "title": "Filters",
       "active": "Active",

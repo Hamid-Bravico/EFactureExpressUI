@@ -298,6 +298,85 @@
     "topCustomersByAmount": "Meilleurs clients par montant",
     "monthlyAmount": "Montant mensuel",
     "customerAmount": "Montant par client",
+    "header": {
+      "title": "EFacture Express",
+      "subtitle": "Tableau de bord",
+      "period": "Période :",
+      "refresh": "Actualiser"
+    },
+    "periods": {
+      "thisWeek": "Cette semaine",
+      "thisMonth": "Ce mois",
+      "lastMonth": "Mois dernier",
+      "thisQuarter": "Ce trimestre",
+      "thisYear": "Cette année",
+      "last30Days": "30 derniers jours",
+      "last90Days": "90 derniers jours"
+    },
+    "sections": {
+      "keyIndicators": "Indicateurs clés",
+      "receivablesAnalysis": "Analyse des créances",
+      "urgentActions": "Actions urgentes",
+      "monthlyRevenue": "Revenus mensuels",
+      "topDebtors": "Principaux débiteurs"
+    },
+    "urgentActions": {
+      "title": "Actions Urgentes",
+      "noActions": "Aucune action urgente",
+      "allUpToDate": "Tout est à jour"
+    },
+    "monthlyRevenue": {
+      "title": "Évolution Mensuelle",
+      "noData": "Aucune donnée disponible",
+      "revenue": "Chiffre d'affaires"
+    },
+    "topDebtors": {
+      "title": "Top 5 Débiteurs",
+      "noDebtors": "Aucun débiteur",
+      "customer": "CLIENT",
+      "amount": "MONTANT",
+      "delay": "RETARD",
+      "status": "STATUT",
+      "action": "ACTION",
+      "days": "jours",
+      "remind": "Relancer",
+      "statusLabels": {
+        "critical": "Critique",
+        "warning": "Attention",
+        "attention": "Attention",
+        "normal": "En cours"
+      }
+    },
+    "kpiCards": {
+      "revenue": "CHIFFRE D'AFFAIRES",
+      "unpaid": "IMPAYÉS",
+      "awaitingDgi": "EN ATTENTE DGI",
+      "vatToPay": "TVA À PAYER",
+      "collected": "ENCAISSÉ",
+      "totalOverdue": "Total en retard",
+      "invoices": "Factures",
+      "dueDate": "Échéance"
+    },
+    "agedReceivables": {
+      "days0_30": "0-30 jours",
+      "days31_60": "31-60 jours",
+      "daysOver60": ">60 jours",
+      "collectionRate": "Taux encaissement",
+      "invoices": "factures"
+    },
+    "alertBanners": {
+      "dgiRejected": "{{count}} factures rejetées DGI",
+      "overdueClients": "{{count}} clients >60j retard",
+      "vatDeclarationDue": "TVA à déclarer dans {{count}} jours"
+    },
+    "loading": {
+      "title": "Chargement du tableau de bord...",
+      "subtitle": "Veuillez patienter"
+    },
+    "error": {
+      "title": "Erreur de chargement",
+      "retry": "Réessayer"
+    },
     "filters": {
       "title": "Filtres",
       "active": "Actif",

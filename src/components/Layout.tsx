@@ -81,11 +81,11 @@ const Layout: React.FC<LayoutProps> = ({
       
       <main 
         className={`
-          transition-all duration-300 pt-16
+          transition-all duration-300 pt-6
           ${token ? (isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'ml-64')) : ''}
         `}
       >
-        <div className="p-6">
+        <div className="p-4">
           {children}
         </div>
       </main>

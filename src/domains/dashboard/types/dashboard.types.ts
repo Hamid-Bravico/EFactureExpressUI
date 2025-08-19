@@ -1,57 +1,93 @@
-// Dashboard-specific aggregated data types
-// These types define the shape of data that Dashboard needs without importing from other domains
+export type DashboardPeriod = 
+  | "this_week" 
+  | "this_month" 
+  | "last_month" 
+  | "this_quarter" 
+  | "this_year" 
+  | "last_30_days" 
+  | "last_90_days";
 
-export interface DashboardInvoiceData {
-  id: number;
-  invoiceNumber: string;
-  date: string;
+export interface DashboardPeriodInfo {
+  display: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface DashboardAlerts {
+  dgiRejectedCount: number;
+  overdueClients60PlusDays: number;
+  vatDeclarationDueDays: number;
+}
+
+export interface DashboardKpiCard {
+  amount?: number;
+  count?: number;
+  dueDate?: string;
+  label: string;
+}
+
+export interface DashboardKpiCards {
+  revenue: DashboardKpiCard;
+  unpaid: DashboardKpiCard;
+  awaitingDgi: DashboardKpiCard;
+  vatToPay: DashboardKpiCard;
+  collected: DashboardKpiCard;
+}
+
+export interface DashboardAgedBucket {
+  amount: number;
+  invoiceCount: number;
+}
+
+export interface DashboardAgedReceivables {
+  days0_30: DashboardAgedBucket;
+  days31_60: DashboardAgedBucket;
+  days_Over_60: DashboardAgedBucket;
+}
+
+export type UrgentActionType = "DGI_REJECTION" | "LATE_PAYMENT" | "OLD_DRAFT";
+export type ActionSeverity = "error" | "warning" | "info";
+
+export interface DashboardUrgentAction {
+  id: string;
+  type: UrgentActionType;
+  severity: ActionSeverity;
+  description: string;
+  amount?: number;
+}
+
+export type DebtorStatus = "critical" | "warning" | "attention" | "normal";
+
+export interface DashboardTopDebtor {
+  customerId: number;
   customerName: string;
-  total: number;
-  status: number;
-  createdBy: string;
+  amountDue: number;
+  daysLate: number;
+  status: DebtorStatus;
 }
 
-export interface DashboardQuoteData {
-  id: number;
-  quoteNumber: string;
-  issueDate: string;
-  customerName: string;
-  total: number;
-  status: string;
-  createdBy: string;
+export interface DashboardChartDataPoint {
+  month: string;
+  revenue: number;
 }
 
-export interface DashboardCustomerData {
-  id: number;
-  name: string;
-  email?: string;
-  phoneNumber?: string;
+export interface DashboardMonthlyRevenueChart {
+  currency: string;
+  series: DashboardChartDataPoint[];
 }
 
-export interface DashboardUserData {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  isActive: boolean;
+export interface DashboardSummaryData {
+  period: DashboardPeriodInfo;
+  alerts: DashboardAlerts;
+  kpiCards: DashboardKpiCards;
+  agedReceivables: DashboardAgedReceivables;
+  urgentActions: DashboardUrgentAction[];
+  topDebtors: DashboardTopDebtor[];
+  monthlyRevenueChart: DashboardMonthlyRevenueChart;
 }
 
-export interface DashboardStats {
-  totalInvoices: number;
-  totalQuotes: number;
-  totalCustomers: number;
-  totalUsers: number;
-  recentInvoices: DashboardInvoiceData[];
-  recentQuotes: DashboardQuoteData[];
-}
-
-export interface DashboardFilters {
-  dateFrom?: string;
-  dateTo?: string;
-  status?: number;
-}
-
-export interface DashboardFilterProps {
-  filters: DashboardFilters;
-  onFiltersChange: (filters: DashboardFilters) => void;
+export interface DashboardSummaryResponse {
+  succeeded: boolean;
+  message: string;
+  data: DashboardSummaryData;
 }
