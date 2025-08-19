@@ -70,11 +70,11 @@ const UrgentActions: React.FC<UrgentActionsProps> = ({ actions }) => {
 
       <div className="p-4">
         <div className="space-y-2">
-          {actions.map((action) => {
+          {actions.map((action, index) => {
             const styles = getSeverityStyles(action.severity);
             return (
               <div 
-                key={action.id} 
+                key={`${action.id}-${index}`} 
                 className={`${styles.bgColor} border-l-4 ${styles.borderColor} rounded-lg p-3 flex items-center justify-between`}
               >
                 <div className="flex items-center gap-2">
