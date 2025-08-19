@@ -328,7 +328,8 @@
     "monthlyRevenue": {
       "title": "Évolution Mensuelle",
       "noData": "Aucune donnée disponible",
-      "revenue": "Chiffre d'affaires"
+      "revenue": "Chiffre d'affaires",
+      "collected": "Encaissé"
     },
     "topDebtors": {
       "title": "Top 5 Débiteurs",

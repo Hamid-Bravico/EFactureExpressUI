@@ -70,6 +70,20 @@ const MonthlyRevenueChart: React.FC<MonthlyRevenueChartProps> = ({ chartData }) 
         pointRadius: 6,
         pointHoverRadius: 8,
       },
+      {
+        label: t('dashboard.monthlyRevenue.collected'),
+        data: chartData.series.map(item => item.collected),
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        borderWidth: 3,
+        fill: false,
+        tension: 0.4,
+        pointBackgroundColor: 'rgb(34, 197, 94)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+      },
     ],
   };
 
@@ -82,7 +96,15 @@ const MonthlyRevenueChart: React.FC<MonthlyRevenueChartProps> = ({ chartData }) 
     },
     plugins: {
       legend: {
-        display: false,
+        display: true,
+        position: 'top' as const,
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: {
+            size: 12,
+          },
+        },
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -163,7 +185,7 @@ const MonthlyRevenueChart: React.FC<MonthlyRevenueChartProps> = ({ chartData }) 
         <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.monthlyRevenue.title')}</h3>
         <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">{chartData.currency}</span>
       </div>
-      <div className="p-6">
+      <div className="pb-6 pl-6 pr-6 pt-0">
         <div className="h-56">
           <Line data={data} options={options} />
         </div>

@@ -69,6 +69,7 @@ export interface DashboardTopDebtor {
 export interface DashboardChartDataPoint {
   month: string;
   revenue: number;
+  collected: number;
 }
 
 export interface DashboardMonthlyRevenueChart {

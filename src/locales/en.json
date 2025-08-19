@@ -328,7 +328,8 @@
     "monthlyRevenue": {
       "title": "Monthly Evolution",
       "noData": "No data available",
-      "revenue": "Revenue"
+      "revenue": "Revenue",
+      "collected": "Collected"
     },
     "topDebtors": {
       "title": "Top 5 Debtors",
