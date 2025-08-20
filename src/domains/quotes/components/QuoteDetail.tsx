@@ -9,6 +9,7 @@ import { QUOTE_ENDPOINTS } from '../api/quote.endpoints';
 import { canConvertQuoteToInvoice, canTransitionQuoteToStatus, QuoteStatus } from '../utils/quote.permissions';
 import { decodeJWT } from '../../../utils/jwt';
 import { tokenManager } from '../../../utils/tokenManager';
+import PDFPreviewModal from './PDFPreviewModal';
 
 interface QuoteDetailProps {
   quote: Quote;
@@ -29,6 +30,11 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [refreshingStatusId, setRefreshingStatusId] = useState<number | null>(null);
+  const [pdfPreviewModal, setPdfPreviewModal] = useState<{ isOpen: boolean; pdfUrl: string; title: string }>({
+    isOpen: false,
+    pdfUrl: '',
+    title: ''
+  });
 
   // Extract user role from token
   const userRole = useMemo(() => {
@@ -215,8 +221,91 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
     }
   }, [quote.id, onDownloadPdf, t, token]);
 
+  const handlePreviewPdf = useCallback(async () => {
+    const toastId = toast.loading(t('quote.previewingPDF'));
+    try {
+      const response = await secureApiClient.get(QUOTE_ENDPOINTS.PDF_PREVIEW(quote.id));
+      
+      if (!response.ok) {
+        const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+        let errorTitle = t('quote.errors.failedToPreviewPDF');
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
 
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
+      }
 
+      const blob = await response.blob();
+      const pdfUrl = URL.createObjectURL(blob);
+      
+      setPdfPreviewModal({
+        isOpen: true,
+        pdfUrl,
+        title: t('quote.messages.preview.title', { quoteNumber: quote.quoteNumber })
+      });
+      
+      toast.success(t('quote.messages.preview.success'), { 
+        id: toastId,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (err: any) {
+      let errorTitle = t('quote.errors.failedToPreviewPDF');
+      let errorBody = '';
+      
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else {
+        errorBody = err.message || t('errors.anErrorOccurred');
+      }
+      
+      toast.error(errorBody, { 
+        id: toastId,
+        style: {
+          background: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
+    }
+  }, [t, quote.id, quote.quoteNumber]);
+
+  const closePdfPreview = useCallback(() => {
+    if (pdfPreviewModal.pdfUrl) {
+      URL.revokeObjectURL(pdfPreviewModal.pdfUrl);
+    }
+    setPdfPreviewModal({ isOpen: false, pdfUrl: '', title: '' });
+  }, [pdfPreviewModal.pdfUrl]);
 
   // Calculate totals from lines
   const calculatedSubTotal = quote.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
@@ -243,15 +332,13 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
                      {t('quote.actions.markAsSent')}
                    </button>
                  )}
-                 {onDownloadPdf && (
-                   <button
-                     onClick={handleDownloadPdf}
-                     disabled={disabled}
-                     className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
-                     {t('quote.actions.download')}
-                   </button>
-                 )}
+                 <button
+                   onClick={handlePreviewPdf}
+                   disabled={disabled}
+                   className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                   {t('quote.actions.preview')}
+                 </button>
                </>
              )}
 
@@ -276,15 +363,13 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
                      {t('quote.actions.markAsRejected')}
                    </button>
                  )}
-                 {onDownloadPdf && (
-                   <button
-                     onClick={handleDownloadPdf}
-                     disabled={disabled}
-                     className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
-                     {t('quote.actions.download')}
-                   </button>
-                 )}
+                 <button
+                   onClick={handlePreviewPdf}
+                   disabled={disabled}
+                   className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                   {t('quote.actions.preview')}
+                 </button>
                </>
              )}
 
@@ -300,37 +385,35 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
                       {t('quote.actions.convertToInvoice')}
                    </button>
                  )}
-                 {onDownloadPdf && (
-                   <button
-                     onClick={handleDownloadPdf}
-                     disabled={disabled}
-                     className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
-                     {t('quote.actions.download')}
-                   </button>
-                 )}
+                 <button
+                   onClick={handlePreviewPdf}
+                   disabled={disabled}
+                   className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                   {t('quote.actions.preview')}
+                 </button>
                </>
              )}
 
              {/* Rejected Status */}
-             {quote.status === 'Rejected' && onDownloadPdf && (
+             {quote.status === 'Rejected' && (
                <button
-                 onClick={handleDownloadPdf}
+                 onClick={handlePreviewPdf}
                  disabled={disabled}
-                 className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                >
-                 {t('quote.actions.download')}
+                 {t('quote.actions.preview')}
                </button>
              )}
 
              {/* Converted Status */}
-             {quote.status === 'Converted' && onDownloadPdf && (
+             {quote.status === 'Converted' && (
                <button
-                 onClick={handleDownloadPdf}
+                 onClick={handlePreviewPdf}
                  disabled={disabled}
-                 className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                 className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                >
-                 {t('quote.actions.download')}
+                 {t('quote.actions.preview')}
                </button>
              )}
            </div>
@@ -435,6 +518,13 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
         </div>
       </div>
 
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={pdfPreviewModal.isOpen}
+        onClose={closePdfPreview}
+        pdfUrl={pdfPreviewModal.pdfUrl}
+        title={pdfPreviewModal.title}
+      />
 
     </div>
   );

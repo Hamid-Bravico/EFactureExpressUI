@@ -792,6 +792,7 @@
       "edit": "Modifier le devis",
       "submit": "Soumettre à la DGI",
       "download": "Télécharger le PDF",
+      "preview": "Aperçu PDF",
       "delete": "Supprimer le devis",
       "downloadJson": "Télécharger JSON",
       "refreshStatus": "Actualiser le statut",
@@ -853,6 +854,10 @@
       "confirmDelete": "Confirmer la suppression du devis",
       "deleteWarning": "Cette action ne peut pas être annulée. Le devis sera définitivement supprimé."
     },
+    "previewingPDF": "Chargement de l'aperçu PDF...",
+    "errors": {
+      "failedToPreviewPDF": "Échec du chargement de l'aperçu PDF"
+    },
     "messages": {
       "created": "Devis créé avec succès",
       "updated": "Devis mis à jour avec succès",
@@ -864,6 +869,10 @@
       "convertToInvoiceError": "Échec de la conversion du devis en facture",
       "downloadError": "Échec du téléchargement du PDF",
       "downloadSuccess": "PDF téléchargé avec succès",
+      "preview": {
+        "success": "Aperçu PDF chargé avec succès",
+        "title": "Aperçu de devis - {{quoteNumber}}"
+      },
       "loadFailed": "Échec du chargement des devis"
     },
     "import": {

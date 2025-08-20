@@ -6,6 +6,7 @@ export const QUOTE_ENDPOINTS = {
   UPDATE: (id: number) => `${API_BASE_URL}/quotes/${id}`,
   DELETE: (id: number) => `${API_BASE_URL}/quotes/${id}`,
   PDF: (id: number) => `${API_BASE_URL}/quotes/${id}/pdf-url`,
+  PDF_PREVIEW: (id: number) => `${API_BASE_URL}/quotes/${id}/pdf-preview`,
   DOWNLOAD_PDF: (id: number) => `${API_BASE_URL}/quotes/${id}/pdf-url`,
   IMPORT_CSV: `${API_BASE_URL}/quotes/import-csv`,
   SUBMIT: (id: number) => `${API_BASE_URL}/quotes/${id}/submit`,

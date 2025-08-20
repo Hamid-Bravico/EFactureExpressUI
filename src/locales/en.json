@@ -792,6 +792,7 @@
       "edit": "Edit Quote",
       "submit": "Submit to DGI",
       "download": "Download PDF",
+      "preview": "Preview PDF",
       "delete": "Delete Quote",
       "downloadJson": "Download JSON",
       "refreshStatus": "Refresh Status",
@@ -853,6 +854,10 @@
       "confirmDelete": "Confirm Delete Quote",
       "deleteWarning": "This action cannot be undone. The quote will be permanently deleted."
     },
+    "previewingPDF": "Loading PDF preview...",
+    "errors": {
+      "failedToPreviewPDF": "Failed to load PDF preview"
+    },
     "messages": {
       "created": "Quote created successfully",
       "updated": "Quote updated successfully",
@@ -864,6 +869,10 @@
       "convertToInvoiceError": "Failed to convert quote to invoice",
       "downloadError": "Failed to download PDF",
       "downloadSuccess": "PDF downloaded successfully",
+      "preview": {
+        "success": "PDF preview loaded successfully",
+        "title": "Quote Preview - {{quoteNumber}}"
+      },
       "loadFailed": "Failed to load quotes"
     },
     "import": {
