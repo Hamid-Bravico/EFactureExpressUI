@@ -15,6 +15,7 @@ import {
 } from '../utils/invoice.permissions';
 import { UserRole } from '../../../utils/shared.permissions';
 import { tokenManager } from '../../../utils/tokenManager';
+import PDFPreviewModal from './PDFPreviewModal';
 
 interface InvoiceDetailProps {
   invoice: Invoice;
@@ -40,6 +41,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   const [fetchingJsonId, setFetchingJsonId] = useState<number | null>(null);
   const [rejectionModal, setRejectionModal] = useState<{ invoiceId: number; reason: string } | null>(null);
   const [helperAppStatus, setHelperAppStatus] = useState<'checking' | 'connected' | 'disconnected' | 'not-applicable'>('checking');
+  const [pdfPreviewModal, setPdfPreviewModal] = useState<{ isOpen: boolean; pdfUrl: string; title: string }>({
+    isOpen: false,
+    pdfUrl: '',
+    title: ''
+  });
 
   const userRole = tokenManager.getUserRole() as UserRole || 'Clerk';
 
@@ -321,6 +327,92 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       onDelete(id);
     }
   }, [onDelete, t]);
+
+  const handlePreviewPdf = useCallback(async (invoiceId: number) => {
+    const toastId = toast.loading(t('invoice.previewingPDF'));
+    try {
+      const response = await secureApiClient.get(INVOICE_ENDPOINTS.PDF_PREVIEW(invoiceId));
+      
+      if (!response.ok) {
+        const responseData = await response.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
+        let errorTitle = t('invoice.errors.failedToPreviewPDF');
+        let errorBody = '';
+        
+        if (responseData?.errors) {
+          if (Array.isArray(responseData.errors)) {
+            errorBody = responseData.errors.join('\n');
+          } else if (typeof responseData.errors === 'object') {
+            errorBody = Object.values(responseData.errors).flat().join('\n');
+          }
+        }
+        
+        if (responseData?.message) {
+          errorTitle = responseData.message;
+        } else if (responseData?.title) {
+          errorTitle = responseData.title;
+        }
+
+        const error = new Error(errorBody || errorTitle);
+        (error as any).title = errorTitle;
+        (error as any).body = errorBody;
+        (error as any).errors = responseData?.errors;
+        throw error;
+      }
+
+      const blob = await response.blob();
+      const pdfUrl = URL.createObjectURL(blob);
+      
+      setPdfPreviewModal({
+        isOpen: true,
+        pdfUrl,
+        title: t('invoice.messages.preview.title', { invoiceNumber: invoice.invoiceNumber })
+      });
+      
+      toast.success(t('invoice.messages.preview.success'), { 
+        id: toastId,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5'
+        }
+      });
+    } catch (err: any) {
+      let errorTitle = t('invoice.errors.failedToPreviewPDF');
+      let errorBody = '';
+      
+      if (err.title && err.body) {
+        errorTitle = err.title;
+        errorBody = err.body;
+      } else {
+        errorBody = err.message || t('errors.anErrorOccurred');
+      }
+      
+      toast.error(errorBody, { 
+        id: toastId,
+        style: {
+          background: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-line'
+        }
+      });
+    }
+  }, [t, invoice.invoiceNumber]);
+
+  const closePdfPreview = useCallback(() => {
+    if (pdfPreviewModal.pdfUrl) {
+      URL.revokeObjectURL(pdfPreviewModal.pdfUrl);
+    }
+    setPdfPreviewModal({ isOpen: false, pdfUrl: '', title: '' });
+  }, [pdfPreviewModal.pdfUrl]);
 
   const handleStatusChange = useCallback(async (invoiceId: number, newStatus: number) => {
     setRefreshingStatusId(invoiceId);
@@ -817,28 +909,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     </div>
                   )}
                  <button
-                   onClick={() => onDownloadPdf(invoice.id)}
+                   onClick={() => handlePreviewPdf(invoice.id)}
                    disabled={disabled}
-                   className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                  >
-                   {t('invoice.actions.download')}
-                 </button>
-                 <button
-                   onClick={() => handleDownloadJson(invoice.id)}
-                   disabled={disabled || fetchingJsonId === invoice.id}
-                   className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {fetchingJsonId === invoice.id ? (
-                     <div className="flex items-center">
-                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                       </svg>
-                       {t('invoice.actions.downloading')}
-                     </div>
-                   ) : (
-                     t('invoice.actions.downloadJson')
-                   )}
+                   {t('invoice.actions.preview')}
                  </button>
                </>
              )}
@@ -865,28 +940,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                    </button>
                  )}
                  <button
-                   onClick={() => onDownloadPdf(invoice.id)}
+                   onClick={() => handlePreviewPdf(invoice.id)}
                    disabled={disabled}
                    className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                  >
-                   {t('invoice.actions.download')}
-                 </button>
-                 <button
-                   onClick={() => handleDownloadJson(invoice.id)}
-                   disabled={disabled || fetchingJsonId === invoice.id}
-                   className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {fetchingJsonId === invoice.id ? (
-                     <div className="flex items-center">
-                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                       </svg>
-                       {t('invoice.actions.downloading')}
-                     </div>
-                   ) : (
-                     t('invoice.actions.downloadJson')
-                   )}
+                   {t('invoice.actions.preview')}
                  </button>
                </>
              )}
@@ -912,28 +970,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                    )}
                  </button>
                  <button
-                   onClick={() => onDownloadPdf(invoice.id)}
+                   onClick={() => handlePreviewPdf(invoice.id)}
                    disabled={disabled}
                    className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                  >
-                   {t('invoice.actions.download')}
-                 </button>
-                 <button
-                   onClick={() => handleDownloadJson(invoice.id)}
-                   disabled={disabled || fetchingJsonId === invoice.id}
-                   className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {fetchingJsonId === invoice.id ? (
-                     <div className="flex items-center">
-                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                       </svg>
-                       {t('invoice.actions.downloading')}
-                     </div>
-                   ) : (
-                     t('invoice.actions.downloadJson')
-                   )}
+                   {t('invoice.actions.preview')}
                  </button>
                </>
              )}
@@ -981,28 +1022,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                    </button>
                  )}
                  <button
-                   onClick={() => onDownloadPdf(invoice.id)}
+                   onClick={() => handlePreviewPdf(invoice.id)}
                    disabled={disabled}
-                   className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                   className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                  >
-                   {t('invoice.actions.download')}
-                 </button>
-                 <button
-                   onClick={() => handleDownloadJson(invoice.id)}
-                   disabled={disabled || fetchingJsonId === invoice.id}
-                   className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {fetchingJsonId === invoice.id ? (
-                     <div className="flex items-center">
-                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                       </svg>
-                       {t('invoice.actions.downloading')}
-                     </div>
-                   ) : (
-                     t('invoice.actions.downloadJson')
-                   )}
+                   {t('invoice.actions.preview')}
                  </button>
                </>
              )}
@@ -1124,6 +1148,14 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       </div>
 
 
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={pdfPreviewModal.isOpen}
+        onClose={closePdfPreview}
+        pdfUrl={pdfPreviewModal.pdfUrl}
+        title={pdfPreviewModal.title}
+      />
 
       {/* Rejection Reason Modal */}
       {rejectionModal && (

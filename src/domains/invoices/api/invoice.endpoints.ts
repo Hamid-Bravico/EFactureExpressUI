@@ -6,6 +6,7 @@ export const INVOICE_ENDPOINTS = {
   UPDATE: (id: number) => `${API_BASE_URL}/invoices/${id}`,
   DELETE: (id: number) => `${API_BASE_URL}/invoices/${id}`,
   PDF: (id: number) => `${API_BASE_URL}/invoices/${id}/pdf-url`,
+  PDF_PREVIEW: (id: number) => `${API_BASE_URL}/invoices/${id}/pdf-preview`,
   JSON: (id: number) => `${API_BASE_URL}/invoices/${id}/json-url`,
   IMPORT: `${API_BASE_URL}/invoices/import-csv`,
   SUBMIT: (id: number) => `${API_BASE_URL}/invoices/${id}/dgi-submit`,

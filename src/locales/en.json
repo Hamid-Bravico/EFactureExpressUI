@@ -70,6 +70,7 @@
       "importCSV": "Import CSV",
       "importingCSV": "Importing CSV file..."
     },
+    "downloadingPDF": "Downloading PDF...",
     "creditNotes": "Credit Notes",
     "december2024": "December 2024",
     "overdueInvoices": "overdue invoices",
@@ -408,6 +409,7 @@
     "deleting": "Deleting invoice...",
     "submitting": "Submitting invoice...",
     "downloadingPDF": "Downloading PDF...",
+    "previewingPDF": "Loading PDF preview...",
     "status": {
       "draft": "Draft",
       "pending": "Ready",
@@ -540,6 +542,7 @@
       "makeReady": "Make Ready",
       "backToDraft": "Back to Draft",
       "download": "Download PDF",
+      "preview": "Preview PDF",
       "delete": "Delete Invoice",
       "downloadJson": "Download JSON",
       "refreshStatus": "Refresh Status",
@@ -601,6 +604,10 @@
         "bulkDeleted": "{{count}} invoices deleted successfully.",
         "bulkSubmitted": "{{count}} invoices submitted successfully.",
         "pdfReady": "PDF is ready for download.",
+        "preview": {
+          "success": "PDF preview loaded successfully",
+          "title": "Invoice Preview - {{invoiceNumber}}"
+        },
         "statusUpdateSuccess": "Invoice status updated successfully",
         "statusUpdateError": "Failed to update invoice status",
         "fetchFailed": "Failed to fetch invoices",
@@ -611,6 +618,7 @@
         "bulkActionFailed": "Failed to {{action}} invoices: {{error}}"
     },
     "errors": {
+        "failedToPreviewPDF": "Failed to load PDF preview",
         "helperAppRequired": "Web Crypto API not supported. Please install the EFacture Express Signing Helper.",
         "noCertificate": "No digital certificate found. A valid certificate must be installed on your computer to sign invoices. Please visit our Help Section for instructions.",
         "signatureCreationFailed": "Could not create the signature. The selected certificate may be expired or invalid. Please select another certificate or contact support.",
