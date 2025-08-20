@@ -1170,6 +1170,7 @@
     "deleting": "Deleting credit note...",
     "submitting": "Submitting credit note...",
     "downloadingPDF": "Downloading PDF...",
+    "previewingPDF": "Loading PDF preview...",
     "status": {
       "draft": "Draft",
       "pending": "Ready",
@@ -1287,6 +1288,7 @@
       "makeReady": "Make Ready",
       "backToDraft": "Back to Draft",
       "download": "Download PDF",
+      "preview": "Preview PDF",
       "delete": "Delete Credit Note",
       "downloadJson": "Download JSON",
       "refreshStatus": "Refresh Status",
@@ -1346,8 +1348,12 @@
       "submitted": "Credit note submitted successfully.",
       "bulkDeleted": "{{count}} credit notes deleted successfully.",
       "bulkSubmitted": "{{count}} credit notes submitted successfully.",
-      "pdfReady": "PDF is ready for download.",
-      "statusUpdateSuccess": "Credit note status updated successfully",
+              "pdfReady": "PDF is ready for download.",
+        "preview": {
+          "success": "PDF preview loaded successfully",
+          "title": "Credit Note Preview - {{creditNoteNumber}}"
+        },
+        "statusUpdateSuccess": "Credit note status updated successfully",
       "statusUpdateError": "Failed to update credit note status",
       "fetchFailed": "Failed to fetch credit notes",
       "deleteFailed": "Failed to delete credit note",
@@ -1357,8 +1363,9 @@
       "bulkActionFailed": "Failed to {{action}} credit notes: {{error}}",
       "loadFailed": "Failed to load credit notes"
     },
-    "errors": {
-      "helperAppRequired": "Web Crypto API not supported. Please install the EFacture Express Signing Helper.",
+        "errors": {
+        "failedToPreviewPDF": "Failed to load PDF preview",
+        "helperAppRequired": "Web Crypto API not supported. Please install the EFacture Express Signing Helper.",
       "noCertificate": "No digital certificate found. A valid certificate must be installed on your computer to sign credit notes. Please visit our Help Section for instructions.",
       "signatureCreationFailed": "Could not create the signature. The selected certificate may be expired or invalid. Please select another certificate or contact support.",
       "signatureVerificationFailed": "The server could not verify your signature. Please refresh the page to ensure you are signing the latest version of the credit note and try again. If the problem persists, please contact support.",

@@ -6,6 +6,7 @@ export const CREDITNOTE_ENDPOINTS = {
   UPDATE: (id: number) => `${API_BASE_URL}/creditNotes/${id}`,
   DELETE: (id: number) => `${API_BASE_URL}/creditNotes/${id}`,
   PDF: (id: number) => `${API_BASE_URL}/creditNotes/${id}/pdf-url`,
+  PDF_PREVIEW: (id: number) => `${API_BASE_URL}/creditNotes/${id}/pdf-preview`,
   JSON: (id: number) => `${API_BASE_URL}/creditNotes/${id}/json-url`,
   IMPORT: `${API_BASE_URL}/creditNotes/import-csv`,
   SUBMIT: (id: number) => `${API_BASE_URL}/creditNotes/${id}/dgi-submit`,
