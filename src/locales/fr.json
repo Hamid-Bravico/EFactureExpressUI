@@ -6,6 +6,8 @@
     "retry": "Réessayer",
     "cancel": "Annuler",
     "save": "Enregistrer",
+    "copied": "copié dans le presse-papiers",
+    "copyFailed": "Échec de la copie",
     "delete": "Supprimer",
     "edit": "Modifier",
     "submit": "Soumettre",
@@ -36,10 +38,11 @@
     "saveChanges": "Enregistrer les modifications",
     "create": "Créer",
     "refresh": "Actualiser",
-    "copy": "Copier",
-    "copied": "Copié !",
-    "clear": "Effacer",
-    "notAvailable": "N/A",
+          "copy": "Copier",
+      "yes": "Oui",
+      "no": "Non",
+      "clear": "Effacer",
+      "notAvailable": "N/A",
     "unknownDate": "Date inconnue",
     "errorDetails": "Détails de l'erreur",
     "dashboard": "Tableau de bord",
@@ -249,6 +252,15 @@
     },
     "tokenRefreshed": "Session actualisée avec succès",
     "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter.",
+    "emailUnverified": {
+      "title": "Vérification de l'E-mail Requise",
+      "message": "Veuillez vérifier votre e-mail et cliquer sur le lien de vérification pour activer votre compte.",
+      "whatToDo": "Que faire ensuite ?",
+      "step1": "Vérifiez votre boîte de réception",
+      "step2": "Cliquez sur le lien de vérification",
+      "step3": "Revenez ici pour continuer",
+      "refresh": "J'ai vérifié mon e-mail"
+    },
     "emailConfirmed": {
       "title": "E-mail Confirmé !",
       "successMessage": "Votre e-mail a été vérifié avec succès. Vous pouvez maintenant vous connecter à votre compte.",
@@ -279,6 +291,14 @@
       "step2": "Mettre à jour les informations de votre entreprise si nécessaire",
       "step3": "Soumettre à nouveau les documents requis",
       "resubmitButton": "Soumettre à Nouveau les Documents",
+      "contactSupport": "Contacter le Support"
+    },
+    "inactive": {
+      "title": "Compte Inactif",
+      "message": "Votre compte a été désactivé. Veuillez contacter le support pour obtenir de l'aide.",
+      "reason": "Raison",
+      "emailSubject": "Demande de Réactivation de Compte",
+      "emailBody": "Bonjour,\n\nJ'ai besoin d'assistance pour réactiver mon compte.\n\nNom de l'entreprise : {{companyName}}\nID de l'entreprise : {{companyId}}\n\nVeuillez fournir un support.\n\nCordialement,",
       "contactSupport": "Contacter le Support"
     }
   },
@@ -319,7 +339,71 @@
     "failedToFetchUsers": "Échec de la récupération des utilisateurs",
     "failedToFetchQuotes": "Échec de la récupération des devis",
     "failedToFetch": "Échec de la récupération. Veuillez vérifier votre connexion et réessayer.",
-    "failedToFetchJSON": "Échec de la récupération du JSON. Assurez-vous que le mode de conformité est activé."
+    "failedToFetchJSON": "Échec de la récupération du JSON. Assurez-vous que le mode de conformité est activé.",
+    "invalidRole": "Rôle d'utilisateur invalide"
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Gestion des Vérifications d'Entreprises",
+      "noPending": "Aucune Vérification en Attente",
+      "noPendingDesc": "Toutes les entreprises ont été traitées."
+    },
+    "ui": {
+      "panelSubtitle": "Panneau d'administration du système",
+      "roleBadge": "Administrateur Système",
+      "overviewTitle": "Aperçu des vérifications",
+      "overviewSubtitle": "Gérez les demandes de vérification des entreprises",
+              "pendingVerifications": "Vérifications en attente",
+        "allCompanies": "Toutes les entreprises"
+    },
+    "status": {
+      "pending": "En attente",
+      "needsCorrection": "Nécessite une correction",
+      "approved": "Approuvées"
+    },
+    "company": {
+      "address": "Adresse",
+      "business": "Informations Commerciales",
+      "taxNumber": "Numéro de TVA",
+      "registrationNumber": "Numéro d'Enregistrement",
+      "documents": "Documents",
+      "name": "Nom de l'entreprise",
+      "userCount": "Utilisateurs",
+      "invoiceCount": "Factures",
+      "mainAdminConfirmed": "Admin Principal Confirmé"
+    },
+    "actions": {
+      "download": "Télécharger les Documents",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "deactivate": "Désactiver",
+      "reactivate": "Réactiver"
+    },
+    "reject": {
+      "title": "Rejeter la vérification",
+      "message": "Veuillez fournir une raison pour rejeter cette vérification.",
+      "placeholder": "Entrez la raison de rejet..."
+    },
+    "deactivate": {
+      "title": "Désactiver l'entreprise",
+      "message": "Veuillez fournir une raison pour désactiver cette entreprise.",
+      "placeholder": "Entrez la raison de désactivation..."
+    },
+    "messages": {
+      "approveSuccess": "Vérification d'entreprise approuvée avec succès",
+      "rejectSuccess": "Vérification d'entreprise rejetée avec succès",
+      "deactivateSuccess": "Entreprise désactivée avec succès",
+      "reactivateSuccess": "Entreprise réactivée avec succès"
+    },
+    "errors": {
+      "fetchFailed": "Échec de la récupération des vérifications en attente",
+      "networkError": "Erreur réseau survenue",
+      "approveFailed": "Échec de l'approbation de la vérification",
+      "rejectFailed": "Échec du rejet de la vérification",
+      "deactivateFailed": "Échec de la désactivation de l'entreprise",
+      "reactivateFailed": "Échec de la réactivation de l'entreprise",
+      "downloadFailed": "Échec du téléchargement des documents"
+    }
   },
   "dashboard": {
     "title": "Tableau de bord",

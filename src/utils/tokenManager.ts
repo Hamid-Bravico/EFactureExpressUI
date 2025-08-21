@@ -11,14 +11,18 @@ export interface TokenData {
 export interface RefreshTokenResponse {
   token?: string;
   refreshToken?: string;
+  csrfToken?: string;
   data?: {
     token?: string;
     refreshToken?: string;
+    csrfToken?: string;
   };
 }
 
 class TokenManager {
   private readonly TOKEN_KEY = 'auth_token';
+  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
+  private readonly CSRF_TOKEN_KEY = 'csrf_token';
   private readonly ROLE_KEY = 'user_role';
   private readonly USER_ID_KEY = 'user_id';
   private readonly COMPANY_KEY = 'company_data';
@@ -29,8 +33,16 @@ class TokenManager {
   private lastRefreshAt: number = 0;
 
   // Store token in sessionStorage
-  setToken(token: string, refreshToken?: string, skipScheduleRefresh: boolean = false): void {
+  setToken(token: string, refreshToken?: string, csrfToken?: string, skipScheduleRefresh: boolean = false): void {
     sessionStorage.setItem(this.TOKEN_KEY, token);
+    
+    if (refreshToken) {
+      sessionStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+    }
+    
+    if (csrfToken) {
+      sessionStorage.setItem(this.CSRF_TOKEN_KEY, csrfToken);
+    }
     
     // Calculate and store token expiry time
     try {
@@ -62,9 +74,13 @@ class TokenManager {
   }
 
   // Get refresh token
-  // Deprecated: refresh token is now stored in an HttpOnly cookie managed by the server
   getRefreshToken(): string | null {
-    return null;
+    return sessionStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+
+  // Get CSRF token
+  getCsrfToken(): string | null {
+    return sessionStorage.getItem(this.CSRF_TOKEN_KEY);
   }
 
   // Get user role
@@ -95,6 +111,8 @@ class TokenManager {
   // Clear all auth data
   clearAuthData(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(this.CSRF_TOKEN_KEY);
     sessionStorage.removeItem(this.ROLE_KEY);
     sessionStorage.removeItem(this.USER_ID_KEY);
     sessionStorage.removeItem(this.COMPANY_KEY);
@@ -219,7 +237,7 @@ class TokenManager {
       }
 
       // Update stored token (skip scheduling refresh to prevent infinite loop)
-      this.setToken(newAccessToken, data?.data?.refreshToken || data?.refreshToken, true);
+      this.setToken(newAccessToken, data?.data?.refreshToken || data?.refreshToken, data?.data?.csrfToken || data?.csrfToken, true);
       
       // Manually schedule the next refresh for the new token
       try {

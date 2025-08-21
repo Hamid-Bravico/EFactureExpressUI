@@ -6,6 +6,8 @@
     "retry": "Retry",
     "cancel": "Cancel",
     "save": "Save",
+    "copied": "copied to clipboard",
+    "copyFailed": "Failed to copy",
     "delete": "Delete",
     "edit": "Edit",
     "submit": "Submit",
@@ -36,10 +38,11 @@
     "saveChanges": "Save Changes",
     "create": "Create",
     "refresh": "Refresh",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "clear": "Clear",
-    "notAvailable": "N/A",
+          "copy": "Copy",
+      "yes": "Yes",
+      "no": "No",
+      "clear": "Clear",
+      "notAvailable": "N/A",
     "unknownDate": "Unknown date",
     "errorDetails": "Error Details",
     "dashboard": "Dashboard",
@@ -249,6 +252,15 @@
     },
     "tokenRefreshed": "Session refreshed successfully",
     "tokenRefreshFailed": "Session expired. Please log in again.",
+    "emailUnverified": {
+      "title": "Email Verification Required",
+      "message": "Please check your email and click the verification link to activate your account.",
+      "whatToDo": "What to do next?",
+      "step1": "Check your email inbox",
+      "step2": "Click the verification link",
+      "step3": "Return here to continue",
+      "refresh": "I've verified my email"
+    },
     "emailConfirmed": {
       "title": "Email Confirmed!",
       "successMessage": "Your email has been successfully verified. You can now sign in to your account.",
@@ -279,6 +291,14 @@
       "step2": "Update your company information if needed",
       "step3": "Resubmit required documents",
       "resubmitButton": "Resubmit Documents",
+      "contactSupport": "Contact Support"
+    },
+    "inactive": {
+      "title": "Account Inactive",
+      "message": "Your account has been deactivated. Please contact support for assistance.",
+      "reason": "Reason",
+      "emailSubject": "Account Reactivation Request",
+      "emailBody": "Hello,\n\nI need assistance with reactivating my account.\n\nCompany Name: {{companyName}}\nCompany ID: {{companyId}}\n\nPlease provide support.\n\nBest regards,",
       "contactSupport": "Contact Support"
     }
   },
@@ -319,7 +339,71 @@
     "failedToFetchUsers": "Failed to fetch users",
     "failedToFetchQuotes": "Failed to fetch quotes",
     "failedToFetch": "Failed to fetch. Please check your connection and try again.",
-    "failedToFetchJSON": "Failed to fetch JSON. Make sure Compliance Mode is enabled."
+    "failedToFetchJSON": "Failed to fetch JSON. Make sure Compliance Mode is enabled.",
+    "invalidRole": "Invalid user role"
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Company Verification Management",
+      "noPending": "No Pending Verifications",
+      "noPendingDesc": "All companies have been processed."
+    },
+    "ui": {
+      "panelSubtitle": "System Administration Panel",
+      "roleBadge": "System Administrator",
+      "overviewTitle": "Verification Overview",
+      "overviewSubtitle": "Manage company verification requests",
+              "pendingVerifications": "Pending Verifications",
+        "allCompanies": "All Companies"
+    },
+    "status": {
+      "pending": "Pending",
+      "needsCorrection": "Needs Correction",
+      "approved": "Approved"
+    },
+            "company": {
+          "address": "Address",
+          "business": "Business Info",
+          "taxNumber": "Tax Number",
+          "registrationNumber": "Registration Number",
+          "documents": "Documents",
+          "name": "Company name",
+          "userCount": "Users",
+          "invoiceCount": "Invoices",
+          "mainAdminConfirmed": "Main Admin Confirmed"
+        },
+            "actions": {
+          "download": "Download Documents",
+          "approve": "Approve",
+          "reject": "Reject",
+          "deactivate": "Deactivate",
+          "reactivate": "Reactivate"
+        },
+            "reject": {
+          "title": "Reject Verification",
+          "message": "Please provide a reason for rejecting this verification.",
+          "placeholder": "Enter rejection reason..."
+        },
+        "deactivate": {
+          "title": "Deactivate Company",
+          "message": "Please provide a reason for deactivating this company.",
+          "placeholder": "Enter deactivation reason..."
+        },
+            "messages": {
+          "approveSuccess": "Company verification approved successfully",
+          "rejectSuccess": "Company verification rejected successfully",
+          "deactivateSuccess": "Company deactivated successfully",
+          "reactivateSuccess": "Company reactivated successfully"
+        },
+    "errors": {
+      "fetchFailed": "Failed to fetch pending verifications",
+      "networkError": "Network error occurred",
+      "approveFailed": "Failed to approve verification",
+      "rejectFailed": "Failed to reject verification",
+      "deactivateFailed": "Failed to deactivate company",
+      "reactivateFailed": "Failed to reactivate company",
+      "downloadFailed": "Failed to download documents"
+    }
   },
   "dashboard": {
     "title": "Dashboard",

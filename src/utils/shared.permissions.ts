@@ -1,10 +1,11 @@
 // Shared permission utilities for role-based management
 
-export type UserRole = 'Admin' | 'Manager' | 'Clerk';
+export type UserRole = 'Admin' | 'Manager' | 'Clerk' | 'SystemAdmin';
 
 // Role hierarchy utility
 export const getRoleLevel = (role: UserRole): number => {
   switch (role) {
+    case 'SystemAdmin': return 4;
     case 'Admin': return 3;
     case 'Manager': return 2;
     case 'Clerk': return 1;

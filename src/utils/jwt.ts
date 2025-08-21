@@ -2,7 +2,7 @@
 
 export interface DecodedJWT {
   email: string | null;
-  role: 'Admin' | 'Manager' | 'Clerk' | null;
+  role: 'Admin' | 'Manager' | 'Clerk' | 'SystemAdmin' | null;
   userId: string | null;
   exp: number | null;
   'csrf-token'?: string;
@@ -42,10 +42,10 @@ export function decodeJWT(token: string): DecodedJWT | null {
     }
 
     // Extract role
-    let role: 'Admin' | 'Manager' | 'Clerk' | null = null;
+    let role: 'Admin' | 'Manager' | 'Clerk' | 'SystemAdmin' | null = null;
     for (const claim of ROLE_CLAIMS) {
       if (payload[claim]) {
-        if (['Admin', 'Manager', 'Clerk'].includes(payload[claim])) {
+        if (['Admin', 'Manager', 'Clerk', 'SystemAdmin'].includes(payload[claim])) {
           role = payload[claim];
           break;
         }

@@ -32,8 +32,18 @@ export enum VerificationStatus {
   Verified = 2
 }
 
+export enum OnboardingState {
+  EmailUnverified = 0,
+  CompanyPendingVerification = 1,
+  CompanyRejected = 2,
+  FullyVerified = 3,
+  Inactive = 4
+}
+
 export interface LoginData {
   token: string;
+  refreshToken: string;
+  csrfToken: string;
   companyDetails: {
     id: string;
     name: string;
@@ -45,6 +55,8 @@ export interface LoginData {
     verificationRejectionReason: string | null;
     taxeProfessionnelle: string;
   };
+  onboardingState: OnboardingState;
+  nextAction: string | null;
 }
 
 export interface ApiResponse<T> {
@@ -56,6 +68,8 @@ export interface ApiResponse<T> {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
+  csrfToken: string;
   user: {
     id: string;
     email: string;
@@ -72,4 +86,6 @@ export interface AuthResponse {
     address: string;
     verificationDocument: string;
   };
+  onboardingState: OnboardingState;
+  nextAction: string | null;
 }

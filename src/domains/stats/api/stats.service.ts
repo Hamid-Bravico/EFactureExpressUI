@@ -30,6 +30,8 @@ export const statsService = {
   async fetchSidebarCounts(): Promise<SidebarCounts> {
     const response = await secureApiClient.get(STATS_ENDPOINTS.SIDEBAR_COUNTS);
     const responseData: ApiResponse<SidebarCounts> = await response.json();
+
+    console.log(responseData);
     
     if (!response.ok || !responseData?.succeeded) {
       const errorMessage = responseData?.errors?.join(', ') || responseData?.message || 'Failed to fetch sidebar counts';

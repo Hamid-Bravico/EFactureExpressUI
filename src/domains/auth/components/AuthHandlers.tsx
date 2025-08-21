@@ -5,6 +5,7 @@ import { decodeJWT } from "../../../utils/jwt";
 import { AUTH_ENDPOINTS } from "../api/auth.endpoints";
 import { getJsonHeaders, getSecureHeaders } from "../../../config/api";
 import { useTranslation } from 'react-i18next';
+import { OnboardingState } from "../types/auth.types";
 
 export function useAuthHandlers() {
   const { t } = useTranslation();
@@ -18,6 +19,15 @@ export function useAuthHandlers() {
   const [company, setCompany] = useState<Company | null>(() => {
     const storedCompany = tokenManager.getCompanyData();
     return storedCompany;
+  });
+
+  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(() => {
+    const storedOnboardingState = sessionStorage.getItem('onboarding_state');
+    return storedOnboardingState ? parseInt(storedOnboardingState, 10) as OnboardingState : null;
+  });
+
+  const [nextAction, setNextAction] = useState<string | null>(() => {
+    return sessionStorage.getItem('next_action');
   });
 
   // ─── HANDLERS ─────────────────────────────────────────────────────────────
@@ -49,10 +59,38 @@ export function useAuthHandlers() {
       if (!decoded.role) {
         throw new Error(t('errors.invalidRole'));
       }
+      
+      // Store onboarding state and next action
+      if (data.onboardingState !== undefined) {
+        setOnboardingState(data.onboardingState);
+        sessionStorage.setItem('onboarding_state', data.onboardingState.toString());
+      }
+      
+      if (data.nextAction !== undefined) {
+        setNextAction(data.nextAction);
+        sessionStorage.setItem('next_action', data.nextAction || '');
+      }
+      
+      // Handle SystemAdmin role - redirect to admin dashboard
+      if (decoded.role === 'SystemAdmin') {
+        tokenManager.setToken(data.token, data.refreshToken, data.csrfToken);
+        tokenManager.setUserData(decoded.role, decoded.userId || '', data.companyDetails);
+        if (data.companyDetails) {
+          setCompany(data.companyDetails);
+        }
+        setToken(data.token);
+        return;
+      }
+      
+      // Check if role is valid for regular application access
+      if (!['Admin', 'Manager', 'Clerk'].includes(decoded.role)) {
+        throw new Error(t('errors.invalidRole'));
+      }
+      
       if (!decoded.userId) {
         throw new Error(t('errors.invalidUserId'));
       }
-      tokenManager.setToken(data.token);
+      tokenManager.setToken(data.token, data.refreshToken, data.csrfToken);
       tokenManager.setUserData(decoded.role, decoded.userId, data.companyDetails);
       if (data.companyDetails) {
         setCompany(data.companyDetails);
@@ -80,8 +118,12 @@ export function useAuthHandlers() {
     } finally {
       // Always clear auth data and reset state, regardless of request success/failure
       tokenManager.clearAuthData();
+      sessionStorage.removeItem('onboarding_state');
+      sessionStorage.removeItem('next_action');
       setToken(null);
       setCompany(null);
+      setOnboardingState(null);
+      setNextAction(null);
     }
   }, [token]);
 
@@ -90,6 +132,10 @@ export function useAuthHandlers() {
     setToken,
     company,
     setCompany,
+    onboardingState,
+    setOnboardingState,
+    nextAction,
+    setNextAction,
     handleLogin,
     handleLogout,
   };
