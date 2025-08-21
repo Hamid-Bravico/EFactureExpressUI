@@ -13,15 +13,23 @@ export interface RegisterFormData {
   companyName: string;
   ICE: string;
   identifiantFiscal: string;
+  taxeProfessionnelle: string;
   address: string;
   email: string;
   password: string;
   confirmPassword: string;
+  verificationDocument: File | null;
 }
 
 export interface LoginCredentials {
   email: string;
   password: string;
+}
+
+export enum VerificationStatus {
+  PendingVerification = 0,
+  NeedsCorrection = 1,
+  Verified = 2
 }
 
 export interface LoginData {
@@ -30,10 +38,12 @@ export interface LoginData {
     id: string;
     name: string;
     ice: string;
-    address: string | null;
+    address: string;
     identifiantFiscal: string;
-    isActive: boolean;
-    isVerified: boolean;
+    createdAt: string;
+    verificationStatus: VerificationStatus;
+    verificationRejectionReason: string | null;
+    taxeProfessionnelle: string;
   };
 }
 
@@ -58,6 +68,8 @@ export interface AuthResponse {
     ice?: string;
     identifiantFiscal?: string;
     identifiantfiscal?: string;
+    taxeProfessionnelle: string;
     address: string;
+    verificationDocument: string;
   };
 }

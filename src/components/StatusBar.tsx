@@ -111,7 +111,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
           
           const data: ApiResponse<any> = await res.json();
           if (!res.ok || !data.succeeded) {
-            const errorMsg = (data.errors && data.errors.length > 0) ? data.errors.join(', ') : (data.message || 'Failed to fetch notifications');
+            const errorMsg = (data.errors && data.errors.length > 0) ? data.errors.join(', ') : (data.message || t('errors.failedToFetch'));
             throw new Error(errorMsg);
           }
           setNotifications(data.data?.items || []);

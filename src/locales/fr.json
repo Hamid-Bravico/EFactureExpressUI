@@ -216,6 +216,10 @@
     "taxIdPlaceholder": "Entrez votre numéro de TVA",
     "identifiantFiscal": "Identifiant Fiscal",
     "identifiantFiscalPlaceholder": "Entrez votre identifiant fiscal",
+    "taxeProfessionnelle": "Taxe Professionnelle",
+    "taxeProfessionnellePlaceholder": "Entrez votre taxe professionnelle",
+    "verificationDocument": "Document de vérification",
+    "verificationDocumentHelp": "Téléchargez un document de vérification (.pdf, .jpg, .jpeg, .png, max 10MB)",
     "noAccount": "Vous n'avez pas de compte ?",
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
     "memberSince": "Membre depuis",
@@ -227,6 +231,13 @@
       "iceRequired": "L'ICE est requis.",
       "iceMustBe15Digits": "L'ICE doit contenir exactement 15 chiffres.",
       "identifiantFiscalMustBe8Chars": "L'Identifiant Fiscal doit contenir exactement 8 caractères.",
+      "identifiantFiscalRequired": "L'Identifiant Fiscal est requis.",
+      "taxeProfessionnelleRequired": "La Taxe Professionnelle est requise.",
+      "taxeProfessionnelleMaxLength": "La Taxe Professionnelle ne peut pas dépasser 20 caractères.",
+      "addressRequired": "L'adresse est requise.",
+      "verificationDocumentRequired": "Le document de vérification est requis.",
+      "verificationDocumentType": "Veuillez télécharger un fichier .pdf, .jpg, .jpeg ou .png.",
+      "verificationDocumentSize": "La taille du fichier doit être inférieure à 10MB.",
       "passwordRequired": "Le mot de passe est requis.",
       "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères.",
       "passwordUppercase": "Le mot de passe doit contenir au moins une lettre majuscule.",
@@ -237,7 +248,39 @@
       "passwordsDoNotMatch": "Les mots de passe ne correspondent pas."
     },
     "tokenRefreshed": "Session actualisée avec succès",
-    "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter."
+    "tokenRefreshFailed": "Session expirée. Veuillez vous reconnecter.",
+    "emailConfirmed": {
+      "title": "E-mail Confirmé !",
+      "successMessage": "Votre e-mail a été vérifié avec succès. Vous pouvez maintenant vous connecter à votre compte.",
+      "errorTitle": "Échec de la Vérification de l'E-mail",
+      "errorMessage": "Il y a eu un problème lors de la vérification de votre adresse e-mail. Veuillez réessayer ou contacter le support.",
+      "redirecting": "Redirection vers la connexion dans {{count}} secondes...",
+      "goToLogin": "Aller à la Connexion"
+    },
+    "pendingVerification": {
+      "title": "Votre demande est en cours d'examen",
+      "message": "Nous vérifions encore l'authenticité des données de votre entreprise et des documents téléchargés. Ce processus prend généralement 24 à 48 heures.",
+      "whatHappens": "Que se passe-t-il ensuite ?",
+      "step1": "Notre équipe examine vos documents",
+      "step2": "Nous vérifions les informations de l'entreprise",
+      "step3": "Vous recevrez une notification par e-mail"
+    },
+    "companyRejected": {
+      "title": "Vérification de l'Entreprise Rejetée",
+      "message": "La vérification de votre entreprise n'a pas réussi. Veuillez examiner les commentaires ci-dessous, mettre à jour vos informations si nécessaire, et soumettre à nouveau vos documents.",
+      "rejectionReason": "Raison du Rejet",
+      "submissionSuccess": "Documents Soumis à Nouveau avec Succès",
+      "submissionMessage": "Vos informations d'entreprise ont été mises à jour et vos documents soumis à nouveau. Votre demande est maintenant en cours d'examen.",
+      "updateSuccess": "Les informations de l'entreprise ont été mises à jour avec succès. Vos documents ont été soumis à nouveau pour examen.",
+      "emailSubject": "Demande de Support pour Vérification d'Entreprise",
+      "emailBody": "Bonjour,\n\nJ'ai besoin d'assistance pour le processus de vérification de mon entreprise.\n\nNom de l'entreprise : {{companyName}}\nID de l'entreprise : {{companyId}}\n\nVeuillez fournir un support.\n\nCordialement,",
+      "nextSteps": "Prochaines Étapes",
+      "step1": "Examiner les commentaires de rejet",
+      "step2": "Mettre à jour les informations de votre entreprise si nécessaire",
+      "step3": "Soumettre à nouveau les documents requis",
+      "resubmitButton": "Soumettre à Nouveau les Documents",
+      "contactSupport": "Contacter le Support"
+    }
   },
   "errors": {
     "title": "Erreur",
@@ -275,7 +318,8 @@
     "sectionError": "Une erreur s'est produite dans cette section.",
     "failedToFetchUsers": "Échec de la récupération des utilisateurs",
     "failedToFetchQuotes": "Échec de la récupération des devis",
-    "failedToFetch": "Échec de la récupération. Veuillez vérifier votre connexion et réessayer."
+    "failedToFetch": "Échec de la récupération. Veuillez vérifier votre connexion et réessayer.",
+    "failedToFetchJSON": "Échec de la récupération du JSON. Assurez-vous que le mode de conformité est activé."
   },
   "dashboard": {
     "title": "Tableau de bord",

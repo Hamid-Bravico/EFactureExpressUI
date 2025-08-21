@@ -37,7 +37,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
   }
 
   const handleCopy = () => {
-    const iceValue = company?.ICE || company?.ice;
+    const iceValue = company?.ice;
     if (iceValue) {
       navigator.clipboard.writeText(iceValue);
       setCopied(true);
@@ -49,7 +49,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
     setEditingField(field);
     setEditValues({
       name: company.name || '',
-      identifiantFiscal: company.identifiantFiscal || company.identifiantfiscal || '',
+      identifiantFiscal: company.identifiantFiscal || '',
       address: company.address || ''
     });
   };
@@ -230,16 +230,16 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
       label: t('auth.ice'),
       value: (
         <div className="flex items-center">
-          {(company.ICE || company.ice) ? (
-            <span className="font-semibold text-gray-900">{company.ICE || company.ice}</span>
+          {(company.ice) ? (
+            <span className="font-semibold text-gray-900">{company.ice}</span>
           ) : (
             <span className="text-gray-500 italic">{t('auth.noICE')}</span>
           )}
           <button
             onClick={handleCopy}
-            disabled={!(company.ICE || company.ice)}
+            disabled={!(company.ice)}
             className={`ml-4 px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${
-              !(company.ICE || company.ice)
+              !(company.ice)
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : copied
                 ? 'bg-green-100 text-green-700'
@@ -259,7 +259,7 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
     },
     {
       label: t('auth.identifiantFiscal'),
-      value: renderEditableField('identifiantFiscal', company.identifiantFiscal || company.identifiantfiscal || '', 'IdentifiantFiscal'),
+      value: renderEditableField('identifiantFiscal', company.identifiantFiscal || '', 'IdentifiantFiscal'),
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm2 4a1 1 0 112 0 1 1 0 01-2 0zm-1 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />

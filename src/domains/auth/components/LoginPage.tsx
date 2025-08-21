@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { APP_CONFIG } from '../../../config/app';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { LoginPageProps } from '../types/auth.types';
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onToggleLanguage, currentLanguage }) => {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    const registrationSuccess = searchParams.get('registrationSuccess');
+    const message = searchParams.get('message');
+    
+    if (registrationSuccess === 'true' && message) {
+      setSuccessMessage(decodeURIComponent(message));
+      setShowSuccess(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +60,29 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onToggleLanguage, curren
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {showSuccess && (
+            <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start flex-1">
+                  <svg className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="space-y-1">
+                    <p className="font-medium">{successMessage}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSuccess(false)}
+                  className="ml-4 text-green-600 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 rounded"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+          
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center">
               <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

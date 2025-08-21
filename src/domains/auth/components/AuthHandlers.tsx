@@ -30,7 +30,7 @@ export function useAuthHandlers() {
         body: JSON.stringify({ email: email.trim(), password: password.trim() }),
       });
       const responseData = await response.json();
-      
+      console.log(responseData);
       if (!responseData.succeeded) {
         const errorMessage = responseData.errors?.join(', ') || responseData.message || t('errors.invalidCredentials');
         throw new Error(errorMessage);
@@ -59,8 +59,8 @@ export function useAuthHandlers() {
       }
       setToken(data.token);
     } catch (error) {
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error(t('errors.failedToFetch'));
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error(t('errors.networkError'));
       }
       throw error;
     }

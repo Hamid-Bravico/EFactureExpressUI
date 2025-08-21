@@ -216,6 +216,10 @@
     "taxIdPlaceholder": "Enter your tax ID",
     "identifiantFiscal": "Identifiant Fiscal",
     "identifiantFiscalPlaceholder": "Enter your Identifiant Fiscal",
+    "taxeProfessionnelle": "Taxe Professionnelle",
+    "taxeProfessionnellePlaceholder": "Enter your Taxe Professionnelle",
+    "verificationDocument": "Verification Document",
+    "verificationDocumentHelp": "Upload a verification document (.pdf, .jpg, .jpeg, .png, max 10MB)",
     "noAccount": "Don't have an account?",
     "alreadyHaveAccount": "Already have an account?",
     "memberSince": "Member Since",
@@ -227,6 +231,13 @@
       "iceRequired": "ICE is required.",
       "iceMustBe15Digits": "ICE must contain exactly 15 digits.",
       "identifiantFiscalMustBe8Chars": "Identifiant Fiscal must be exactly 8 characters long.",
+      "identifiantFiscalRequired": "Identifiant Fiscal is required.",
+      "taxeProfessionnelleRequired": "Taxe Professionnelle is required.",
+      "taxeProfessionnelleMaxLength": "Taxe Professionnelle cannot exceed 20 characters.",
+      "addressRequired": "Address is required.",
+      "verificationDocumentRequired": "Verification document is required.",
+      "verificationDocumentType": "Please upload a .pdf, .jpg, .jpeg, or .png file.",
+      "verificationDocumentSize": "File size must be less than 10MB.",
       "passwordRequired": "Password is required.",
       "passwordMinLength": "Password must be at least 8 characters long.",
       "passwordUppercase": "Password must contain at least one uppercase letter.",
@@ -237,7 +248,39 @@
       "passwordsDoNotMatch": "Passwords do not match."
     },
     "tokenRefreshed": "Session refreshed successfully",
-    "tokenRefreshFailed": "Session expired. Please log in again."
+    "tokenRefreshFailed": "Session expired. Please log in again.",
+    "emailConfirmed": {
+      "title": "Email Confirmed!",
+      "successMessage": "Your email has been successfully verified. You can now sign in to your account.",
+      "errorTitle": "Email Verification Failed",
+      "errorMessage": "There was a problem verifying your email address. Please try again or contact support.",
+      "redirecting": "Redirecting to login in {{count}} seconds...",
+      "goToLogin": "Go to Login"
+    },
+    "pendingVerification": {
+      "title": "Your application is under review",
+      "message": "We are still verifying the authenticity of your company data and uploaded documents. This process typically takes 24-48 hours.",
+      "whatHappens": "What happens next?",
+      "step1": "Our team reviews your documents",
+      "step2": "We verify company information",
+      "step3": "You'll receive an email notification"
+    },
+    "companyRejected": {
+      "title": "Company Verification Rejected",
+      "message": "Your company verification was not successful. Please review the feedback below, update your information if needed, and resubmit your documents.",
+      "rejectionReason": "Rejection Reason",
+      "submissionSuccess": "Documents Resubmitted Successfully",
+      "submissionMessage": "Your company information has been updated and documents resubmitted. Your application is now under review again.",
+      "updateSuccess": "Company information updated successfully. Your documents have been resubmitted for review.",
+      "emailSubject": "Company Verification Support Request",
+      "emailBody": "Hello,\n\nI need assistance with my company verification process.\n\nCompany Name: {{companyName}}\nCompany ID: {{companyId}}\n\nPlease provide support.\n\nBest regards,",
+      "nextSteps": "Next Steps",
+      "step1": "Review the rejection feedback",
+      "step2": "Update your company information if needed",
+      "step3": "Resubmit required documents",
+      "resubmitButton": "Resubmit Documents",
+      "contactSupport": "Contact Support"
+    }
   },
   "errors": {
     "title": "Error",
@@ -275,7 +318,8 @@
     "sectionError": "Something went wrong in this section.",
     "failedToFetchUsers": "Failed to fetch users",
     "failedToFetchQuotes": "Failed to fetch quotes",
-    "failedToFetch": "Failed to fetch. Please check your connection and try again."
+    "failedToFetch": "Failed to fetch. Please check your connection and try again.",
+    "failedToFetchJSON": "Failed to fetch JSON. Make sure Compliance Mode is enabled."
   },
   "dashboard": {
     "title": "Dashboard",

@@ -177,7 +177,7 @@ const CreditNoteManagement = () => {
 
       const responseData: ApiResponse<any> = await response.json().catch(() => ({ succeeded: false, message: 'Failed to parse response' }));
       if (!response.ok || !responseData?.succeeded) {
-        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || 'Failed to fetch creditNotes';
+        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetch');
         throw new Error(errorMessage);
       }
 

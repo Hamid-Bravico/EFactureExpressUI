@@ -42,10 +42,10 @@ const NotificationManagement: React.FC<NotificationManagementProps> = ({ token }
       setNotifications(response.items);
       setPagination(response.pagination);
     } catch (err) {
-      let errorMessage = err instanceof Error ? err.message : 'Failed to fetch notifications';
+      let errorMessage = err instanceof Error ? err.message : t('errors.failedToFetch');
       
       // Handle network error
-      if (errorMessage === 'NETWORK_ERROR') {
+      if (errorMessage === 'NETWORK_ERROR' || errorMessage === 'Failed to fetch') {
         errorMessage = t('errors.networkError');
       }
       

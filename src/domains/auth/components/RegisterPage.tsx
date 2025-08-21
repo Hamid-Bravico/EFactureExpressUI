@@ -14,10 +14,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     companyName: '',
     ICE: '',
     identifiantFiscal: '',
+    taxeProfessionnelle: '',
     address: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    verificationDocument: null
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -34,11 +36,52 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     return errors;
   };
 
+  const validateAddress = (address: string): string[] => {
+    const errors: string[] = [];
+    if (!address) {
+      errors.push(t('auth.validation.addressRequired'));
+    }
+    return errors;
+  };
+
   const validateIdentifiantFiscal = (identifiantFiscal: string): string[] => {
     const errors: string[] = [];
-    if (identifiantFiscal && identifiantFiscal.length !== 8) {
+    if (!identifiantFiscal) {
+      errors.push(t('auth.validation.identifiantFiscalRequired'));
+    } else if (identifiantFiscal.length !== 8) {
       errors.push(t('auth.validation.identifiantFiscalMustBe8Chars'));
     }
+    return errors;
+  };
+
+  const validateTaxeProfessionnelle = (taxeProfessionnelle: string): string[] => {
+    const errors: string[] = [];
+    if (!taxeProfessionnelle) {
+      errors.push(t('auth.validation.taxeProfessionnelleRequired'));
+    } else if (taxeProfessionnelle.length > 20) {
+      errors.push(t('auth.validation.taxeProfessionnelleMaxLength'));
+    }
+    return errors;
+  };
+
+  const validateVerificationDocument = (file: File | null): string[] => {
+    const errors: string[] = [];
+    if (!file) {
+      errors.push(t('auth.validation.verificationDocumentRequired'));
+      return errors;
+    }
+    
+    const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      errors.push(t('auth.validation.verificationDocumentType'));
+    }
+    
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      errors.push(t('auth.validation.verificationDocumentSize'));
+    }
+    
     return errors;
   };
 
@@ -124,6 +167,26 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
       }
     }
 
+    if (name === 'taxeProfessionnelle') {
+      const taxeProfessionnelleErrors = validateTaxeProfessionnelle(trimmedValue);
+      if (taxeProfessionnelleErrors.length > 0) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [name]: taxeProfessionnelleErrors
+        }));
+      }
+    }
+
+    if (name === 'address') {
+      const addressErrors = validateAddress(trimmedValue);
+      if (addressErrors.length > 0) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [name]: addressErrors
+        }));
+      }
+    }
+
     if (name === 'password') {
       const passwordErrors = validatePassword(trimmedValue);
       if (passwordErrors.length > 0) {
@@ -170,13 +233,19 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     // Frontend validation
     const iceErrors = validateICE(formData.ICE);
     const identifiantFiscalErrors = validateIdentifiantFiscal(formData.identifiantFiscal);
+    const taxeProfessionnelleErrors = validateTaxeProfessionnelle(formData.taxeProfessionnelle);
+    const addressErrors = validateAddress(formData.address);
+    const verificationDocumentErrors = validateVerificationDocument(formData.verificationDocument);
     const passwordErrors = validatePassword(formData.password);
     const confirmPasswordErrors = validateConfirmPassword(formData.password, formData.confirmPassword);
     
-    if (iceErrors.length > 0 || identifiantFiscalErrors.length > 0 || passwordErrors.length > 0 || confirmPasswordErrors.length > 0) {
+    if (iceErrors.length > 0 || identifiantFiscalErrors.length > 0 || taxeProfessionnelleErrors.length > 0 || addressErrors.length > 0 || verificationDocumentErrors.length > 0 || passwordErrors.length > 0 || confirmPasswordErrors.length > 0) {
       setValidationErrors({
         ICE: iceErrors,
         identifiantFiscal: identifiantFiscalErrors,
+        taxeProfessionnelle: taxeProfessionnelleErrors,
+        address: addressErrors,
+        verificationDocument: verificationDocumentErrors,
         password: passwordErrors,
         confirmPassword: confirmPasswordErrors
       });
@@ -186,20 +255,23 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
     setLoading(true);
 
     try {
-      // Prepare request data with trimmed values
-      const requestData = {
-        companyName: formData.companyName.trim(),
-        ICE: formData.ICE.trim(),
-        identifiantFiscal: formData.identifiantFiscal.trim(),
-        address: formData.address.trim(),
-        email: formData.email.trim(),
-        password: formData.password
-      };
+      // Prepare FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append('CompanyName', formData.companyName.trim());
+      formDataToSend.append('ICE', formData.ICE.trim());
+      formDataToSend.append('IdentifiantFiscal', formData.identifiantFiscal.trim());
+      formDataToSend.append('TaxeProfessionnelle', formData.taxeProfessionnelle.trim());
+      formDataToSend.append('Address', formData.address.trim());
+      formDataToSend.append('Email', formData.email.trim());
+      formDataToSend.append('Password', formData.password);
+      
+      if (formData.verificationDocument) {
+        formDataToSend.append('VerificationDocument', formData.verificationDocument);
+      }
 
       const response = await fetch(AUTH_ENDPOINTS.REGISTER, {
         method: 'POST',
-        headers: getJsonHeaders(),
-        body: JSON.stringify(requestData)
+        body: formDataToSend
       });
 
       const responseData = await response.json();
@@ -210,11 +282,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
       }
 
       // Handle successful response
-      toast.success(responseData.message || t('auth.registrationSuccess'));
-      navigate('/login');
+      const message = responseData.message || t('auth.registrationSuccess');
+      navigate(`/login?registrationSuccess=true&message=${encodeURIComponent(message)}`);
 
     } catch (err: any) {
-      const errorMessage = err instanceof Error ? err.message : t('errors.registrationFailed');
+      let errorMessage = err instanceof Error ? err.message : t('errors.registrationFailed');
+      
+      // Handle browser's "Failed to fetch" error
+      if (errorMessage === 'Failed to fetch') {
+        errorMessage = t('errors.networkError');
+      }
       
       toast.error(
         <div className="space-y-1">
@@ -275,9 +352,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
               <div className="flex items-start">
-                <svg className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
+                                  <svg className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
                 <div className="space-y-1">
                   {error.split('\n').map((line, index) => (
                     <p key={index} className={index === 0 ? "font-medium" : "text-sm"}>{line}</p>
@@ -329,15 +406,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
             <div>
               <label htmlFor="identifiantFiscal" className="block text-sm font-medium text-gray-700">
-                {t('auth.identifiantFiscal')}
+                {t('auth.identifiantFiscal')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
-                                 <input
-                   id="identifiantFiscal"
-                   name="identifiantFiscal"
-                   type="text"
-                   value={formData.identifiantFiscal}
-                   onChange={handleChange}
+                                                 <input
+                  id="identifiantFiscal"
+                  name="identifiantFiscal"
+                  type="text"
+                  required
+                  value={formData.identifiantFiscal}
+                  onChange={handleChange}
                    className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
                      validationErrors['identifiantFiscal'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
                    }`}
@@ -348,19 +426,73 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
              </div>
 
             <div>
+              <label htmlFor="taxeProfessionnelle" className="block text-sm font-medium text-gray-700">
+                {t('auth.taxeProfessionnelle')} <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1">
+                <input
+                  id="taxeProfessionnelle"
+                  name="taxeProfessionnelle"
+                  type="text"
+                  required
+                  value={formData.taxeProfessionnelle}
+                  onChange={handleChange}
+                  className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                    validationErrors['taxeProfessionnelle'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
+                  placeholder={t('auth.taxeProfessionnellePlaceholder')}
+                />
+                {renderFieldErrors('taxeProfessionnelle')}
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                {t('auth.address')}
+                {t('auth.address')} <span className="text-red-500">*</span>
               </label>
               <div className="mt-1">
                 <input
                   id="address"
                   name="address"
                   type="text"
+                  required
                   value={formData.address}
                   onChange={handleChange}
-                  className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                  className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                    validationErrors['address'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
                   placeholder={t('auth.addressPlaceholder')}
                 />
+                {renderFieldErrors('address')}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="verificationDocument" className="block text-sm font-medium text-gray-700">
+                {t('auth.verificationDocument')} <span className="text-red-500">*</span>
+              </label>
+              <div className="mt-1">
+                <input
+                  id="verificationDocument"
+                  name="verificationDocument"
+                  type="file"
+                  required
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setFormData(prev => ({
+                      ...prev,
+                      verificationDocument: file
+                    }));
+                  }}
+                  className={`appearance-none block w-full px-4 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                    validationErrors['verificationDocument'] ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {t('auth.verificationDocumentHelp')} (.pdf, .jpg, .jpeg, .png, max 10MB)
+                </p>
+                {renderFieldErrors('verificationDocument')}
               </div>
             </div>
 

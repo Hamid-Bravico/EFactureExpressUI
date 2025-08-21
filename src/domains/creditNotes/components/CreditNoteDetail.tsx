@@ -83,7 +83,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
       const responseData = await res.json().catch(() => ({ succeeded: false, message: t('errors.anErrorOccurred') }));
       if (!res.ok || !responseData?.succeeded) {
         // Build title/body error like other operations
-        let errorTitle = 'Failed to fetch JSON. Make sure Compliance Mode is enabled.';
+        let errorTitle = t('errors.failedToFetchJSON');
         let errorBody = '';
         
         if (responseData?.errors) {
@@ -126,7 +126,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
       }
     } catch (err: any) {
       // Handle error with title and body structure
-      let errorTitle = 'Failed to fetch JSON. Make sure Compliance Mode is enabled.';
+      let errorTitle = t('errors.failedToFetchJSON');
       let errorBody = '';
       
       if (err.title && err.body) {

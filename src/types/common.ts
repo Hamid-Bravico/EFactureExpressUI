@@ -3,14 +3,15 @@ export interface PdfUrlResponse {
 }
 
 export interface Company {
-  id: number;
+  id: number | string;
   name: string;
-  ICE?: string;
   ice?: string;
   identifiantFiscal?: string;
-  identifiantfiscal?: string;
+  taxeProfessionnelle?: string;
   address: string;
   createdAt: string;
+  verificationStatus?: number;
+  verificationRejectionReason?: string | null;
 }
 
 
