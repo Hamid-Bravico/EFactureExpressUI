@@ -404,10 +404,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               <div>
                 <div className="flex items-center gap-3 mb-1">
                   <label className="block text-sm font-medium text-green-800">{t('invoice.form.date')}</label>
-                  <div className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-                    {t('invoice.form.paymentDue')}: {calculateDueDate(date, paymentTerms)}
-                    <span className="text-blue-500 ml-1">({paymentTerms}d)</span>
-                  </div>
                 </div>
                 <input
                   type="date"
@@ -430,6 +426,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                     {errors.date || getInvoiceErrorMessage('date')}
                   </div>
                 )}
+                <span className="px-2 py-1 text-xs">
+                  {t('invoice.form.paymentDue')}: {calculateDueDate(date, paymentTerms)}
+                  <span className="text-blue-500 ml-1">({paymentTerms}d)</span>
+                </span>
               </div>
               <div>
                 <label className="block text-sm font-medium text-green-800 mb-1">{t('invoice.form.customerName')}</label>
