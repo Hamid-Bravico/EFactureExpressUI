@@ -259,7 +259,9 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
           createdById: '',
           name: 'User',
           email: 'user@example.com'
-        }
+        },
+        isVatExempt: newInvoice.isVatExempt,
+        vatExemptionReason: newInvoice.vatExemptionReason
       };
 
       // Optimistically add the invoice

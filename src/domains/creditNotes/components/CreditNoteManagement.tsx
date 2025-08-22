@@ -250,7 +250,10 @@ const CreditNoteManagement = () => {
           createdById: '',
           name: userEmail.split('@')[0] || 'User',
           email: userEmail
-        }
+        },
+        originalInvoiceId: newCreditNote.OriginalInvoiceId,
+        isVatExempt: newCreditNote.isVatExempt,
+        vatExemptionReason: newCreditNote.vatExemptionReason
       };
 
       // Optimistically add the creditNote

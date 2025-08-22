@@ -18,6 +18,7 @@ interface FormErrors {
   date?: string;
   customerId?: string;
   lines?: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } };
+  vatExemptionReason?: string;
 }
 
 interface BackendErrorResponse {
@@ -49,6 +50,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogSelected, setCatalogSelected] = useState<{ [id: number]: boolean }>({});
   const [paymentTerms, setPaymentTerms] = useState<number>(30);
+  const [isVatExempt, setIsVatExempt] = useState(invoice?.isVatExempt || false);
+  const [vatExemptionReason, setVatExemptionReason] = useState(invoice?.vatExemptionReason || '');
 
   useEffect(() => {
     secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/customers`)
@@ -74,6 +77,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       const formattedDate = new Date(invoice.date).toISOString().split('T')[0];
       setDate(formattedDate);
       setCustomerId(invoice.customer?.id || null);
+      setIsVatExempt(invoice.isVatExempt || false);
+      setVatExemptionReason(invoice.vatExemptionReason || '');
 
       setLines(invoice.lines.map(line => ({
         description: line.description.trim(),
@@ -90,6 +95,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     if (!date) newErrors.date = t('invoice.form.errors.dateRequired');
     if (!customerId) newErrors.customerId = t('invoice.form.errors.customerNameRequired');
     
+    if (isVatExempt && !vatExemptionReason?.trim()) {
+      newErrors.vatExemptionReason = t('invoice.form.errors.vatExemptionReasonRequired');
+    }
+    
     const lineErrors: { [key: number]: { description?: string; quantity?: string; unitPrice?: string; taxRate?: string } } = {};
     let hasValidLine = false;
     lines.forEach((line, index) => {
@@ -97,7 +106,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       if (!line.description || !line.description.trim()) lineError.description = t('invoice.form.errors.descriptionRequired');
       if (typeof line.quantity !== 'number' || isNaN(line.quantity) || String(line.quantity).trim() === '' || line.quantity <= 0) lineError.quantity = t('invoice.form.errors.quantityPositive');
       if (typeof line.unitPrice !== 'number' || isNaN(line.unitPrice) || String(line.unitPrice).trim() === '' || line.unitPrice <= 0) lineError.unitPrice = t('invoice.form.errors.unitPricePositive');
-      if (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100) lineError.taxRate = t('invoice.form.errors.vatRateRange');
+      
+      if (!isVatExempt && (typeof line.taxRate !== 'number' || isNaN(line.taxRate) || String(line.taxRate).trim() === '' || line.taxRate < 0 || line.taxRate > 100)) {
+        lineError.taxRate = t('invoice.form.errors.vatRateRange');
+      }
+      
       if (Object.keys(lineError).length > 0) lineErrors[index] = lineError; else hasValidLine = true;
     });
     if (!hasValidLine) newErrors.lines = { 0: { description: t('invoice.form.errors.oneLineRequired') } };
@@ -143,7 +156,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const addLine = () => {
     setLines((prev) => [
       ...prev,
-      { description: "", quantity: 1, unitPrice: 0, taxRate: 20 },
+      { description: "", quantity: 1, unitPrice: 0, taxRate: isVatExempt ? 0 : 20 },
     ]);
   };
 
@@ -213,7 +226,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               description: item.Name,
               quantity: 1,
               unitPrice: item.UnitPrice,
-              taxRate: item.DefaultTaxRate,
+              taxRate: isVatExempt ? 0 : item.DefaultTaxRate,
               CatalogItemId: item.id,
             }
           : null;
@@ -228,7 +241,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       0
     );
     const vat = lines.reduce(
-      (sum, ln) => sum + ln.quantity * ln.unitPrice * (ln.taxRate ?? 20) / 100,
+      (sum, ln) => sum + ln.quantity * ln.unitPrice * (ln.taxRate) / 100,
       0
     );
     return { subTotal: +sub.toFixed(2), vat: +vat.toFixed(2), total: +(sub + vat).toFixed(2) };
@@ -279,12 +292,23 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     });
   };
 
+  const handleVatExemptionChange = (exempt: boolean) => {
+    setIsVatExempt(exempt);
+    if (!exempt) {
+      setVatExemptionReason('');
+      setErrors(prev => ({ ...prev, vatExemptionReason: undefined }));
+    }
+    
+    if (exempt) {
+      setLines(prev => prev.map(line => ({ ...line, taxRate: 0 })));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disabled || isSubmitting) return;
 
     if (!validateForm()) {
-      // Don't show generic toast - field-level errors are already displayed
       return;
     }
 
@@ -304,6 +328,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
           unitPrice: ln.unitPrice,
           taxRate: ln.taxRate,
         })),
+        isVatExempt,
+        vatExemptionReason: isVatExempt ? vatExemptionReason : undefined,
       };
 
       await onSubmit(newInvoice, selectedCustomer?.legalName);
@@ -312,7 +338,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       if (error.errors) {
         setBackendErrors(error.errors as BackendErrorResponse);
       }
-      // Don't show toasts here as they will be handled by the parent component
     } finally {
       setIsSubmitting(false);
     }
@@ -362,8 +387,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.date')}</label>
+              <div className="col-span-2">
+                <div className="flex items-center gap-3 mb-1">
+                  <label className="block text-sm text-gray-600">{t('invoice.form.date')}</label>
+                  <div className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
+                    {t('invoice.form.paymentDue')}: {calculateDueDate(date, paymentTerms)}
+                    <span className="text-blue-500 ml-1">({paymentTerms}d)</span>
+                  </div>
+                </div>
               <input
                 type="date"
                 value={date}
@@ -406,15 +437,57 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.paymentTerms')}</label>
-              <div className="px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm">
-                {t('invoice.form.paymentDue')}: {calculateDueDate(date, paymentTerms)}
-                <span className="text-gray-500 ml-2">
-                  ({paymentTerms} {t('invoice.form.days')})
-                </span>
+          <div className="mt-4">
+            <div className={`border rounded-lg p-3 transition-all duration-200 ${
+              isVatExempt ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="vatExempt"
+                  checked={isVatExempt}
+                  onChange={(e) => handleVatExemptionChange(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  disabled={disabled || isSubmitting}
+                />
+                <label htmlFor="vatExempt" className={`text-sm font-medium cursor-pointer ${
+                  isVatExempt ? 'text-blue-800' : 'text-gray-700'
+                }`}>
+                  {t('invoice.form.vatExempt')}
+                </label>
               </div>
+              
+              {isVatExempt && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-blue-600 italic">
+                    {t('invoice.form.vatExemptionHint')}
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('invoice.form.vatExemptionReason')} <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={vatExemptionReason}
+                      onChange={(e) => {
+                        setVatExemptionReason(e.target.value);
+                        if (errors.vatExemptionReason) {
+                          setErrors(prev => ({ ...prev, vatExemptionReason: undefined }));
+                        }
+                      }}
+                      className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
+                        errors.vatExemptionReason ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
+                      placeholder={t('invoice.form.vatExemptionReasonPlaceholder')}
+                      rows={3}
+                      disabled={disabled || isSubmitting}
+                      required
+                    />
+                    {errors.vatExemptionReason && (
+                      <div className="text-red-500 text-xs mt-1">{errors.vatExemptionReason}</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -521,7 +594,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                       <div className="flex-1">
                         <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.taxRate')}</label>
                         <select
-                          value={ln.taxRate ?? 20}
+                          value={ln.taxRate}
                           onChange={e => { updateLine(idx, 'taxRate', e.target.value); clearLineError(taxKey); }}
                           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
                             errors.lines?.[idx]?.taxRate || taxError

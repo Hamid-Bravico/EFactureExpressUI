@@ -1079,7 +1079,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     {formatCurrency(line.unitPrice)}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                    {line.taxRate || 20}%
+                    {line.taxRate !== undefined && line.taxRate !== null ? line.taxRate : 20}%
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-900 text-right">
                     {formatCurrency(line.quantity * line.unitPrice)}
@@ -1096,9 +1096,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
               </tr>
               <tr>
                 <td colSpan={4} className="px-4 py-2 text-sm font-medium text-gray-600 text-right">{t('invoice.details.vat')}:</td>
-                <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
-                  {formatCurrency(invoice.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice * (line.taxRate || 20) / 100), 0))}
-                </td>
+                                  <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
+                    {formatCurrency(invoice.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice * (line.taxRate / 100)), 0))}
+                  </td>
               </tr>
               <tr className="border-t border-gray-200">
                 <td colSpan={4} className="px-4 py-2 text-sm font-bold text-gray-900 text-right">{t('invoice.details.total')}:</td>

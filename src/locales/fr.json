@@ -43,6 +43,7 @@
       "no": "Non",
       "clear": "Effacer",
       "notAvailable": "N/A",
+      "notSpecified": "Non spécifié",
     "unknownDate": "Date inconnue",
     "errorDetails": "Détails de l'erreur",
     "dashboard": "Tableau de bord",
@@ -592,6 +593,12 @@
       "paymentTerms": "Conditions de paiement",
       "paymentDue": "Échéance de paiement",
       "days": "jours",
+      "vatExempt": "Exonéré de TVA",
+      "vatExemptionReason": "Motif d'exonération de TVA",
+      "vatExemptionReasonPlaceholder": "Entrez la justification légale de l'exonération de TVA (ex: 'Exonération sans droit à déduction - Article 91 du CGI')",
+      "vatExemptionNote": "Lorsque l'exonération de TVA est sélectionnée, tous les articles auront automatiquement un taux de taxe de 0% et vous devez fournir une justification légale.",
+      "vatExemptionNoteDetail": "Cela garantit la conformité avec les réglementations fiscales et fournit une documentation appropriée pour les audits.",
+      "vatExemptionHint": "Cochez cette case si votre facture est exonérée de TVA et fournissez la justification légale ci-dessous.",
       "catalogModal": {
         "title": "Ajouter depuis le catalogue",
         "search": "Rechercher...",
@@ -612,7 +619,9 @@
         "cannotRemoveLastLine": "Impossible de supprimer la dernière ligne",
         "fixErrors": "Veuillez corriger les erreurs dans le formulaire",
         "submissionError": "Une erreur s'est produite lors de la soumission du formulaire. Veuillez vérifier les champs en surbrillance.",
-        "saveFailed": "Échec de l'enregistrement de la facture. Veuillez réessayer."
+        "saveFailed": "Échec de l'enregistrement de la facture. Veuillez réessayer.",
+        "vatExemptionReasonRequired": "Le motif d'exonération de TVA est requis lorsque l'exonération de TVA est sélectionnée",
+        "vatExemptTaxRateMustBeZero": "Le taux de taxe doit être de 0% lorsque l'exonération de TVA est sélectionnée"
       }
     },
     "payment": {
@@ -1098,6 +1107,11 @@
       "taxRate": "Taux de TVA (%)",
       "selectCustomer": "Sélectionner un client",
       "addFromCatalog": "Ajouter depuis le catalogue",
+      "vatExempt": "Exonéré de TVA",
+      "vatExemptionReason": "Motif d'exonération de TVA",
+      "vatExemptionInfo": "Informations d'exonération de TVA",
+      "vatExemptionInherited": "Le statut d'exonération de TVA est hérité de la facture d'origine et ne peut pas être modifié.",
+      "inherited": "hérité",
       "catalogModal": {
         "title": "Ajouter depuis le catalogue",
         "search": "Rechercher...",

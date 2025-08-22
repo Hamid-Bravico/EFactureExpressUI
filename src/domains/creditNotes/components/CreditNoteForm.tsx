@@ -58,6 +58,8 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceDropdownOpen, setInvoiceDropdownOpen] = useState(false);
+  const [isVatExempt, setIsVatExempt] = useState(false);
+  const [vatExemptionReason, setVatExemptionReason] = useState('');
   
   const [query, setQuery] = useState('')
 
@@ -101,7 +103,11 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
   useEffect(() => {
     if (creditNote && invoices.length > 0) {
       const inv = invoices.find(i => i.id === creditNote.originalInvoiceId);
-      if (inv) setOriginalInvoice(inv);
+      if (inv) {
+        setOriginalInvoice(inv);
+        setIsVatExempt(inv.isVatExempt || false);
+        setVatExemptionReason(inv.vatExemptionReason || '');
+      }
     }
   }, [creditNote, invoices]);
 
@@ -295,7 +301,7 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
       0
     );
     const vat = lines.reduce(
-      (sum, ln) => sum + ln.quantity * ln.unitPrice * (ln.taxRate ?? 20) / 100,
+      (sum, ln) => sum + ln.quantity * ln.unitPrice * (ln.taxRate) / 100,
       0
     );
     return { subTotal: +sub.toFixed(2), vat: +vat.toFixed(2), total: +(sub + vat).toFixed(2) };
@@ -374,6 +380,8 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
           taxRate: ln.taxRate,
         })),
         OriginalInvoiceId: originalInvoice?.id!,
+        isVatExempt: originalInvoice?.isVatExempt || false,
+        vatExemptionReason: originalInvoice?.vatExemptionReason || '',
       };
 
       await onSubmit(newCreditNote, selectedCustomer?.legalName);
@@ -525,6 +533,43 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
             </div>
           </div>
 
+          {originalInvoice && (
+            <div className={`border rounded-lg p-3 transition-all duration-200 ${
+              originalInvoice.isVatExempt ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id="vatExemptInherited"
+                  checked={originalInvoice.isVatExempt}
+                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  disabled={true}
+                />
+                <label htmlFor="vatExemptInherited" className={`text-sm font-medium ${
+                  originalInvoice.isVatExempt ? 'text-blue-800' : 'text-gray-700'
+                }`}>
+                  {t('creditNote.form.vatExempt')} ({t('creditNote.form.inherited')})
+                </label>
+              </div>
+              
+              {originalInvoice.isVatExempt && (
+                <div className="ml-6 space-y-2">
+                  <p className="text-xs text-blue-600 italic">
+                    {t('creditNote.form.vatExemptionInherited')}
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('creditNote.form.vatExemptionReason')}
+                    </label>
+                    <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+                      {originalInvoice.vatExemptionReason || t('common.notSpecified')}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-800">{t('creditNote.form.linesTitle')}</h3>
@@ -628,7 +673,7 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
                       <div className="flex-1">
                         <label className="block text-sm text-gray-600 mb-1">{t('creditNote.form.taxRate')}</label>
                         <select
-                          value={ln.taxRate ?? 20}
+                          value={ln.taxRate}
                           onChange={e => { updateLine(idx, 'taxRate', e.target.value); clearLineError(taxKey); }}
                           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
                             errors.lines?.[idx]?.taxRate || taxError

@@ -43,6 +43,7 @@
       "no": "No",
       "clear": "Clear",
       "notAvailable": "N/A",
+      "notSpecified": "Not specified",
     "unknownDate": "Unknown date",
     "errorDetails": "Error Details",
     "dashboard": "Dashboard",
@@ -592,6 +593,12 @@
       "paymentTerms": "Payment Terms",
       "paymentDue": "Payment Due",
       "days": "days",
+      "vatExempt": "VAT Exempt",
+      "vatExemptionReason": "VAT Exemption Reason",
+      "vatExemptionReasonPlaceholder": "Enter the legal justification for VAT exemption (e.g., 'Exonération sans droit à déduction - Article 91 du CGI')",
+      "vatExemptionNote": "When VAT exempt is selected, all line items will automatically have 0% tax rate and you must provide a legal justification.",
+      "vatExemptionNoteDetail": "This ensures compliance with tax regulations and provides proper documentation for audits.",
+      "vatExemptionHint": "Check this box if your invoice is exempt from VAT and provide the legal justification below.",
       "catalogModal": {
         "title": "Add from Catalog",
         "search": "Search...",
@@ -612,7 +619,9 @@
         "cannotRemoveLastLine": "Cannot remove the last line",
         "fixErrors": "Please fix the errors in the form",
         "submissionError": "There was an error submitting the form. Please check the highlighted fields.",
-        "saveFailed": "Failed to save invoice. Please try again."
+        "saveFailed": "Failed to save invoice. Please try again.",
+        "vatExemptionReasonRequired": "VAT exemption reason is required when VAT exempt is selected",
+        "vatExemptTaxRateMustBeZero": "Tax rate must be 0% when VAT exempt is selected"
       }
     },
     "payment": {
@@ -1368,6 +1377,11 @@
       "taxRate": "Tax Rate (%)",
       "selectCustomer": "Select Customer",
       "addFromCatalog": "Add from Catalog",
+      "vatExempt": "VAT Exempt",
+      "vatExemptionReason": "VAT Exemption Reason",
+      "vatExemptionInfo": "VAT Exemption Information",
+      "vatExemptionInherited": "VAT exemption status is inherited from the original invoice and cannot be modified.",
+      "inherited": "inherited",
       "catalogModal": {
         "title": "Add from Catalog",
         "search": "Search...",

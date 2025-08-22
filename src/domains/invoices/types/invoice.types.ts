@@ -39,6 +39,8 @@ export interface Invoice {
   dgiSubmissionId?: string;
   dgiRejectionReason?: string;
   warnings?: string[];
+  isVatExempt: boolean;
+  vatExemptionReason?: string;
 }
 
 // For creating, we don't send `id` or `invoiceId`
@@ -54,4 +56,6 @@ export interface NewInvoice {
   date: string;
   customerId: number;
   lines: NewLine[];
+  isVatExempt: boolean;
+  vatExemptionReason?: string;
 }

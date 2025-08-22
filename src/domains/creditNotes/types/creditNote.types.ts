@@ -39,6 +39,8 @@ export interface CreditNote {
   dgiRejectionReason?: string;
   warnings?: string[];
   originalInvoiceId?: number;
+  isVatExempt: boolean;
+  vatExemptionReason?: string;
 }
 
 // For creating, we don't send `id` or `creditNoteId`
@@ -55,4 +57,6 @@ export interface NewCreditNote {
   customerId: number;
   lines: NewLine[];
   OriginalInvoiceId: number;
+  isVatExempt: boolean;
+  vatExemptionReason?: string;
 }

@@ -1101,7 +1101,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
                     {formatCurrency(line.unitPrice)}
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                    {line.taxRate || 20}%
+                    {line.taxRate}%
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-900 text-right">
                     {formatCurrency(line.quantity * line.unitPrice)}
@@ -1119,7 +1119,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
               <tr>
                 <td colSpan={4} className="px-4 py-2 text-sm font-medium text-gray-600 text-right">{t('creditNote.details.vat')}:</td>
                 <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
-                  {formatCurrency(creditNote.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice * (line.taxRate || 20) / 100), 0))}
+                  {formatCurrency(creditNote.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice * (line.taxRate) / 100), 0))}
                 </td>
               </tr>
               <tr className="border-t border-gray-200">

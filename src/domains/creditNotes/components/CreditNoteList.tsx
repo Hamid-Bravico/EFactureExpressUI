@@ -47,6 +47,9 @@ interface CreditNoteListResponse {
     dgiSubmissionId?: string;
     dgiRejectionReason?: string;
     warnings?: string[];
+    originalInvoiceId?: number;
+    isVatExempt?: boolean;
+    vatExemptionReason?: string;
   }>;
   pagination: {
     totalItems: number;
@@ -245,7 +248,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
           unitPrice: line.unitPrice || 0,
           total: line.total || 0,
           creditNoteId: creditNote.id,
-          taxRate: line.taxRate ?? 20, // Use actual tax rate from server
+          taxRate: line.taxRate, // Use actual tax rate from server
           catalogItemId: line.catalogItemId || null
         })),
         createdAt: creditNote.createdAt || new Date().toISOString(),
@@ -256,7 +259,9 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
         },
         dgiSubmissionId: creditNote.dgiSubmissionId || undefined,
         dgiRejectionReason: creditNote.dgiRejectionReason || undefined,
-        originalInvoiceId: creditNote.originalInvoiceId || creditNote.OriginalInvoiceId
+        originalInvoiceId: creditNote.originalInvoiceId || undefined,
+        isVatExempt: creditNote.isVatExempt || false,
+        vatExemptionReason: creditNote.vatExemptionReason || undefined
       };
       
       setEditingCreditNote(transformedCreditNote);
@@ -738,7 +743,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
                                 unitPrice: line.unitPrice,
                                 total: line.total,
                                 creditNoteId: creditNote.id,
-                                taxRate: line.taxRate || 20
+                                taxRate: line.taxRate
                               })),
                               status: creditNote.status,
                               createdAt: creditNote.createdAt,
@@ -748,7 +753,10 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
                                 email: ''
                               },
                               dgiSubmissionId: creditNote.dgiSubmissionId,
-                              dgiRejectionReason: creditNote.dgiRejectionReason
+                              dgiRejectionReason: creditNote.dgiRejectionReason,
+                              originalInvoiceId: creditNote.originalInvoiceId || undefined,
+                              isVatExempt: creditNote.isVatExempt || false,
+                              vatExemptionReason: creditNote.vatExemptionReason || undefined
                             }}
                             onOptimisticStatusUpdate={onUpdateCreditNoteStatus}
                             onDownloadPdf={onDownloadPdf}

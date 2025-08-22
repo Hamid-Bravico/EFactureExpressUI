@@ -55,6 +55,8 @@ interface InvoiceListResponse {
     dgiSubmissionId?: string;
     dgiRejectionReason?: string;
     warnings?: string[];
+    isVatExempt?: boolean;
+    vatExemptionReason?: string;
   }>;
   pagination: {
     totalItems: number;
@@ -269,7 +271,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
           unitPrice: line.unitPrice || 0,
           total: line.total || 0,
           invoiceId: invoice.id,
-          taxRate: line.taxRate || 20, // Use actual tax rate from server
+          taxRate: line.taxRate,
           catalogItemId: line.catalogItemId || null
         })),
         createdAt: invoice.createdAt || new Date().toISOString(),
@@ -279,7 +281,9 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
           email: ''
         },
         dgiSubmissionId: invoice.dgiSubmissionId || undefined,
-        dgiRejectionReason: invoice.dgiRejectionReason || undefined
+        dgiRejectionReason: invoice.dgiRejectionReason || undefined,
+        isVatExempt: invoice.isVatExempt || false,
+        vatExemptionReason: invoice.vatExemptionReason || undefined
       };
       
       setEditingInvoice(transformedInvoice);
@@ -856,7 +860,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                                 unitPrice: line.unitPrice,
                                 total: line.total,
                                 invoiceId: invoice.id,
-                                taxRate: line.taxRate || 20
+                                taxRate: line.taxRate
                               })),
                               status: invoice.status,
                               createdAt: invoice.createdAt,
@@ -866,7 +870,9 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                                 email: ''
                               },
                               dgiSubmissionId: invoice.dgiSubmissionId,
-                              dgiRejectionReason: invoice.dgiRejectionReason
+                              dgiRejectionReason: invoice.dgiRejectionReason,
+                              isVatExempt: invoice.isVatExempt || false,
+                              vatExemptionReason: invoice.vatExemptionReason || undefined
                             }}
                             onOptimisticStatusUpdate={onUpdateInvoiceStatus}
                             onDownloadPdf={onDownloadPdf}
