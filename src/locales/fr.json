@@ -1128,6 +1128,11 @@
       "vatExemptionInfo": "Informations d'exonération de TVA",
       "vatExemptionInherited": "Le statut d'exonération de TVA est hérité de la facture d'origine et ne peut pas être modifié.",
       "inherited": "hérité",
+      "paymentInfo": "Informations de paiement",
+      "paymentMethod": "Mode de paiement",
+      "paymentReference": "Référence de paiement",
+      "paymentReferencePlaceholder": "Entrez le numéro de chèque, ID de virement, etc.",
+      "paymentReferenceHint": "Optionnel : Référence supplémentaire pour le mode de paiement (ex: numéro de chèque, ID de virement)",
       "catalogModal": {
         "title": "Ajouter depuis le catalogue",
         "search": "Rechercher...",
@@ -1155,6 +1160,14 @@
       "selectOriginalInvoice": "Sélectionner la facture d'origine",
       "originalInvoice": "Facture d'origine",
       "noInvoicesFound": "Aucune facture trouvée pour ce client"
+    },
+    "paymentMethod": {
+      "bankTransfer": "Virement bancaire",
+      "check": "Chèque",
+      "billOfExchange": "Lettre de change/Effet de commerce",
+      "bankCard": "Carte bancaire",
+      "cash": "Espèces",
+      "unknown": "Inconnu"
     },
     "filters": {
       "title": "Filtres",
@@ -1234,7 +1247,10 @@
       "warnings": "Avertissements",
       "taxRate": "Taux de TVA",
       "createdBy": "Créé par",
-      "createdAt": "Créé le"
+      "createdAt": "Créé le",
+      "paymentInfo": "Informations de paiement",
+      "paymentMethod": "Mode de paiement",
+      "paymentReference": "Référence de paiement"
     },
     "tooltip": {
       "createdBy": "Créé le {{date}} par {{name}}"

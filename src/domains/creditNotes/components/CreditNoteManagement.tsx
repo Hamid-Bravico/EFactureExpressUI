@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { CreditNote, NewCreditNote } from '../types/creditNote.types';
+import { CreditNote, NewCreditNote, PaymentMethod } from '../types/creditNote.types';
 import CreditNoteList from './CreditNoteList';
 import CreditNoteForm from './CreditNoteForm';
 import ImportCreditNoteCSV from './ImportCSV';
@@ -267,7 +267,9 @@ const CreditNoteManagement = () => {
           invoiceNumber: 'TEMP-INV-' + newCreditNote.OriginalInvoiceId
         },
         isVatExempt: newCreditNote.isVatExempt,
-        vatExemptionReason: newCreditNote.vatExemptionReason
+        vatExemptionReason: newCreditNote.vatExemptionReason,
+        paymentMethod: newCreditNote.paymentMethod,
+        paymentReference: newCreditNote.paymentReference
       };
 
       // Optimistically add the creditNote

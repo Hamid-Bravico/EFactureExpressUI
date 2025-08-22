@@ -1398,6 +1398,11 @@
       "vatExemptionInfo": "VAT Exemption Information",
       "vatExemptionInherited": "VAT exemption status is inherited from the original invoice and cannot be modified.",
       "inherited": "inherited",
+      "paymentInfo": "Payment Information",
+      "paymentMethod": "Payment Method",
+      "paymentReference": "Payment Reference",
+      "paymentReferencePlaceholder": "Enter check number, transfer ID, etc.",
+      "paymentReferenceHint": "Optional: Additional reference for the payment method (e.g., check number, transfer ID)",
       "catalogModal": {
         "title": "Add from Catalog",
         "search": "Search...",
@@ -1423,6 +1428,14 @@
         "importFailed": "Failed to import credit notes. Please check your file and try again."
       },
       "noInvoicesFound": "No invoices found for this customer"
+    },
+    "paymentMethod": {
+      "bankTransfer": "Bank Transfer",
+      "check": "Check",
+      "billOfExchange": "Bill of Exchange",
+      "bankCard": "Bank Card",
+      "cash": "Cash",
+      "unknown": "Unknown"
     },
     "filters": {
       "title": "Filters",
@@ -1502,7 +1515,10 @@
       "warnings": "Warnings",
       "taxRate": "Tax Rate",
       "createdBy": "Created By",
-      "createdAt": "Created At"
+      "createdAt": "Created At",
+      "paymentInfo": "Payment Information",
+      "paymentMethod": "Payment Method",
+      "paymentReference": "Payment Reference"
     },
     "tooltip": {
       "createdBy": "Created on {{date}} by {{name}}"

@@ -1,3 +1,11 @@
+export enum PaymentMethod {
+  BankTransfer = 1,
+  Check = 2,
+  BillOfExchange = 3,
+  BankCard = 4,
+  Cash = 5
+}
+
 export interface CreditNoteLine {
   id: number;
   description: string;
@@ -45,6 +53,25 @@ export interface CreditNote {
   };
   isVatExempt: boolean;
   vatExemptionReason?: string;
+  paymentMethod: PaymentMethod;
+  paymentReference?: string;
+}
+
+export function getPaymentMethodLabel(method: PaymentMethod, t: (key: string) => string): string {
+  switch (method) {
+    case PaymentMethod.BankTransfer:
+      return t('creditNote.paymentMethod.bankTransfer');
+    case PaymentMethod.Check:
+      return t('creditNote.paymentMethod.check');
+    case PaymentMethod.BillOfExchange:
+      return t('creditNote.paymentMethod.billOfExchange');
+    case PaymentMethod.BankCard:
+      return t('creditNote.paymentMethod.bankCard');
+    case PaymentMethod.Cash:
+      return t('creditNote.paymentMethod.cash');
+    default:
+      return t('creditNote.paymentMethod.unknown');
+  }
 }
 
 // For creating, we don't send `id` or `creditNoteId`
@@ -63,4 +90,6 @@ export interface NewCreditNote {
   OriginalInvoiceId: number;
   isVatExempt: boolean;
   vatExemptionReason?: string;
+  paymentMethod: PaymentMethod;
+  paymentReference?: string;
 }

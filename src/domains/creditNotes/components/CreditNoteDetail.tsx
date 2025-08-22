@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { CreditNote } from '../types/creditNote.types';
+import { CreditNote, PaymentMethod, getPaymentMethodLabel } from '../types/creditNote.types';
 import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -1054,7 +1054,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
         )}
         
         {/* CreditNote Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm">
           <div>
             <h5 className="font-medium text-gray-900 mb-2">{t('creditNote.details.creditNoteInfo')}</h5>
             <div className="space-y-1 text-gray-600">
@@ -1066,6 +1066,15 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
               )}
               {creditNote.dgiSubmissionId && (
                 <div><span className="font-medium">{t('creditNote.details.dgiSubmissionId')}:</span> {creditNote.dgiSubmissionId}</div>
+              )}
+            </div>
+          </div>
+          <div>
+            <h5 className="font-medium text-gray-900 mb-2">{t('creditNote.details.paymentInfo')}</h5>
+            <div className="space-y-1 text-gray-600">
+              <div><span className="font-medium">{t('creditNote.details.paymentMethod')}:</span> {creditNote.paymentMethod ? getPaymentMethodLabel(creditNote.paymentMethod as PaymentMethod, t) : t('common.notAvailable')}</div>
+              {creditNote.paymentReference && (
+                <div><span className="font-medium">{t('creditNote.details.paymentReference')}:</span> {creditNote.paymentReference}</div>
               )}
             </div>
           </div>

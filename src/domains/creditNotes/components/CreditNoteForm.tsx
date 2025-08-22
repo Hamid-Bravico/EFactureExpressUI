@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NewCreditNote, NewLine, CreditNote } from '../types/creditNote.types';
+import { NewCreditNote, NewLine, CreditNote, PaymentMethod, getPaymentMethodLabel } from '../types/creditNote.types';
 import { Customer } from '../../customers/types/customer.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +60,8 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
   const [invoiceDropdownOpen, setInvoiceDropdownOpen] = useState(false);
   const [isVatExempt, setIsVatExempt] = useState(false);
   const [vatExemptionReason, setVatExemptionReason] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.BankTransfer);
+  const [paymentReference, setPaymentReference] = useState('');
   
   const [query, setQuery] = useState('')
 
@@ -88,6 +90,10 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
       const formattedDate = new Date(creditNote.date).toISOString().split('T')[0];
       setDate(formattedDate);
       setCustomerId(creditNote.customer?.id || null);
+      setIsVatExempt(creditNote.isVatExempt || false);
+      setVatExemptionReason(creditNote.vatExemptionReason || '');
+      setPaymentMethod(creditNote.paymentMethod || PaymentMethod.BankTransfer);
+      setPaymentReference(creditNote.paymentReference || '');
 
       setLines(creditNote.lines.map((line: CreditNoteLine) => ({
         description: line.description.trim(),
@@ -382,6 +388,8 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
         OriginalInvoiceId: originalInvoice?.id!,
         isVatExempt: originalInvoice?.isVatExempt || false,
         vatExemptionReason: originalInvoice?.vatExemptionReason || '',
+        paymentMethod,
+        paymentReference: paymentReference.trim() || undefined,
       };
 
       await onSubmit(newCreditNote, selectedCustomer?.legalName);
@@ -551,7 +559,52 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
             </div>
           </div>
 
-
+          {/* Payment Information Section */}
+          <div className="mt-4">
+            <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
+              <div className="flex items-center gap-2 mb-4">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                <h3 className="text-lg font-medium text-blue-800">{t('creditNote.form.paymentInfo')}</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-blue-800 mb-1">
+                    {t('creditNote.form.paymentMethod')} <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(Number(e.target.value) as PaymentMethod)}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    disabled={disabled || isSubmitting}
+                    required
+                  >
+                    {Object.values(PaymentMethod).filter(value => typeof value === 'number').map((method) => (
+                      <option key={method} value={method}>
+                        {getPaymentMethodLabel(method as PaymentMethod, t)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-blue-800 mb-1">
+                    {t('creditNote.form.paymentReference')}
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder={t('creditNote.form.paymentReferencePlaceholder')}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    disabled={disabled || isSubmitting}
+                    maxLength={100}
+                  />
+                  <p className="text-xs text-blue-600 mt-1">{t('creditNote.form.paymentReferenceHint')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-4">

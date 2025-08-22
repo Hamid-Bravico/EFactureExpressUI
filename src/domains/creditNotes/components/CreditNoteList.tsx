@@ -50,6 +50,8 @@ interface CreditNoteListResponse {
     originalInvoiceId?: number;
     isVatExempt?: boolean;
     vatExemptionReason?: string;
+    paymentMethod?: number;
+    paymentReference?: string;
     originalInvoice?: {
       id: number;
       invoiceNumber: string;
@@ -270,7 +272,9 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
         dgiRejectionReason: creditNote.dgiRejectionReason || undefined,
         originalInvoiceId: creditNote.originalInvoiceId || undefined,
         isVatExempt: creditNote.isVatExempt || false,
-        vatExemptionReason: creditNote.vatExemptionReason || undefined
+        vatExemptionReason: creditNote.vatExemptionReason || undefined,
+        paymentMethod: creditNote.paymentMethod || 1, // Default to BankTransfer
+        paymentReference: creditNote.paymentReference || undefined
       };
       
       setEditingCreditNote(transformedCreditNote);
@@ -766,7 +770,9 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
                               originalInvoiceId: creditNote.originalInvoiceId || undefined,
                               originalInvoice: creditNote.originalInvoice,
                               isVatExempt: creditNote.isVatExempt || false,
-                              vatExemptionReason: creditNote.vatExemptionReason || undefined
+                              vatExemptionReason: creditNote.vatExemptionReason || undefined,
+                              paymentMethod: creditNote.paymentMethod || 1, // Default to BankTransfer
+                              paymentReference: creditNote.paymentReference || undefined
                             }}
                             onOptimisticStatusUpdate={onUpdateCreditNoteStatus}
                             onDownloadPdf={onDownloadPdf}
