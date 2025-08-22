@@ -70,7 +70,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
       label: t('common.invoices'),
       icon: FileText,
       badge: stats.sidebarCounts?.invoicesCount?.toString() || '0',
-      permission: true
+      permission: true,
+      isPrimary: true
     },
     {
       path: '/quotes',
@@ -112,7 +113,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
 
   const NavItem = ({ item }: { item: typeof navigationItems[0] }) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.path;
+    const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '/dashboard');
+    const isPrimary = item.isPrimary;
 
     if (!item.permission) return null;
 
@@ -123,9 +125,14 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
         className={`
           group flex items-center gap-3 px-4 py-3 rounded-xl relative transition-all duration-300 mx-2
           focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2
+          ${isPrimary ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50' : ''}
           ${isActive 
-            ? 'bg-white text-blue-600 shadow-sm' 
-            : 'text-gray-600 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
+            ? isPrimary 
+              ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 shadow-md border-blue-300' 
+              : 'bg-white text-blue-600 shadow-sm' 
+            : isPrimary
+              ? 'text-blue-700 hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 hover:shadow-md'
+              : 'text-gray-600 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
           }
           ${isCollapsed && !isMobile ? 'justify-center px-2' : ''}
         `}
@@ -133,7 +140,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
       >
         {/* Active indicator bar */}
         <span
-          className={`absolute left-0 top-3 bottom-3 w-0.5 bg-blue-500 transition-all duration-300
+          className={`absolute left-0 top-3 bottom-3 w-0.5 transition-all duration-300
+            ${isPrimary ? 'bg-blue-600' : 'bg-blue-500'}
             ${isActive ? 'opacity-100' : 'opacity-0'}
           `}
           aria-hidden="true"
@@ -141,13 +149,16 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
         {/* Icon container */}
         <span
           className={`relative flex items-center justify-center transition-all duration-300
-            ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}
+            ${isActive 
+              ? isPrimary ? 'text-blue-700' : 'text-blue-600'
+              : isPrimary ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
+            }
             ${isCollapsed && !isMobile ? 'w-8 h-4' : ''}
           `}
         >
           <Icon
-            size={isCollapsed && !isMobile ? 22 : 18}
-            className="transition-transform duration-300 group-hover:scale-105"
+            size={isCollapsed && !isMobile ? (isPrimary ? 24 : 22) : (isPrimary ? 20 : 18)}
+            className={`transition-transform duration-300 group-hover:scale-105 ${isPrimary ? 'group-hover:scale-110' : ''}`}
           />
         </span>
         {/* Label */}
@@ -155,9 +166,14 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
           <>
             <span className={`
               flex-1 transition-all duration-300 text-sm
+              ${isPrimary ? 'font-bold' : 'font-medium'}
               ${isActive 
-                ? 'font-semibold text-gray-900' 
-                : 'font-medium text-gray-700 group-hover:text-gray-900'
+                ? isPrimary 
+                  ? 'text-blue-800' 
+                  : 'font-semibold text-gray-900' 
+                : isPrimary
+                  ? 'text-blue-700 group-hover:text-blue-800'
+                  : 'font-medium text-gray-700 group-hover:text-gray-900'
               }
             `}>
               {item.label}
@@ -166,9 +182,13 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, t, isCollapsed, setIsCollap
             {item.badge && (
               <span className={`
                 px-2.5 py-1 text-xs rounded-full transition-all duration-300
-                ${isActive 
-                  ? 'bg-blue-100 text-blue-700 font-semibold' 
-                  : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
+                ${isPrimary 
+                  ? isActive 
+                    ? 'bg-blue-200 text-blue-800 font-bold' 
+                    : 'bg-blue-100 text-blue-700 font-bold'
+                  : isActive 
+                    ? 'bg-blue-100 text-blue-700 font-semibold' 
+                    : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
                 }
               `}>
                 {stats.loading.sidebar ? (
