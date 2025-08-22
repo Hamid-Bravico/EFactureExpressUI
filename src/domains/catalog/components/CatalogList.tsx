@@ -3,9 +3,7 @@ import { Catalog, NewCatalog } from '../types/catalog.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import CatalogForm from './CatalogForm';
-import { 
-  canSelectCatalogForBulkOperation
-} from '../utils/catalog.permissions';
+
 import { tokenManager } from '../../../utils/tokenManager';
 import { decodeJWT } from '../../../utils/jwt';
 
@@ -35,7 +33,7 @@ interface CatalogListProps {
   loading: boolean;
   error?: string | null;
   onDelete: (id: number) => void;
-  onBulkDelete: (ids: number[]) => Promise<void>;
+
   onSubmit: (id: number) => void;
   onCreateCatalog: (catalog: NewCatalog) => Promise<void>;
   onUpdateCatalog: (catalog: NewCatalog) => Promise<void>;
@@ -54,7 +52,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
   loading,
   error,
   onDelete,
-  onBulkDelete,
+
   onCreateCatalog,
   onUpdateCatalog,
   token,
@@ -62,12 +60,10 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
   disabled = false
 }) => {
   const { t, i18n } = useTranslation();
-  const [selectedCatalogs, setSelectedCatalogs] = useState<Set<number>>(new Set());
   const [selectedCatalog, setSelectedCatalog] = useState<number | null>(null);
   const [showCatalogForm, setShowCatalogForm] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState<Catalog | undefined>();
   const [showFilters, setShowFilters] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState<{ type: 'submit' | 'delete'; count: number } | null>(null);
 
   // Filter and sort state
   const [filters, setFilters] = useState<Filters>({
@@ -91,37 +87,20 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
     }
   }, []);
 
-  // Memoized computed values for better performance
-  const selectableCatalogs = useMemo(() => {
-    if (!data?.items) return [];
-    return data.items;
-  }, [data?.items, userRole]);
 
-  const allSelectable = useMemo(() => {
-    if (!data?.items || selectableCatalogs.length === 0) return false;
-    return selectedCatalogs.size === selectableCatalogs.length && selectableCatalogs.length > 0;
-  }, [data?.items, selectedCatalogs.size, selectableCatalogs.length]);
 
   // Keyboard navigation support
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       // Close dropdowns on Escape
       if (event.key === 'Escape') {
-        setShowConfirmDialog(null);
-      }
-      
-      // Select all with Ctrl+A
-      if (event.ctrlKey && event.key === 'a') {
-        event.preventDefault();
-        if (data?.items && selectableCatalogs.length > 0) {
-          setSelectedCatalogs(new Set(selectableCatalogs.map(catalog => catalog.id)));
-        }
+        // Handle escape key if needed
       }
     }
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [data?.items, selectableCatalogs]);
+  }, []);
 
 
 
@@ -140,27 +119,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
     onRefreshCatalogs(filters, { sortField: newSortField, sortDirection: newSortDirection }, { page: currentPage, pageSize });
   }, [sortField, sortDirection, filters, currentPage, pageSize, onRefreshCatalogs]);
 
-  const handleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!data?.items) return;
-    
-    if (e.target.checked) {
-      setSelectedCatalogs(new Set(selectableCatalogs.map(catalog => catalog.id)));
-    } else {
-      setSelectedCatalogs(new Set());
-    }
-  }, [data?.items, selectableCatalogs]);
 
-  const handleSelectCatalog = useCallback((id: number) => {
-    setSelectedCatalogs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  }, [userRole]);
 
   const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -202,47 +161,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
     }
   }, [onDelete, t]);
 
-  const handleBulkDelete = useCallback(async () => {
-    if (!data?.items) return;
-    // Allow bulk delete for catalogs that can be deleted based on permissions
-    const deleteIds = Array.from(selectedCatalogs).filter(id => {
-      const catalog = data.items.find(c => c.id === id);
-      return catalog && canSelectCatalogForBulkOperation();
-    });
-    if (deleteIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'delete',
-      count: deleteIds.length
-    });
-  }, [selectedCatalogs, data?.items]);
 
-  const confirmBulkAction = useCallback(async () => {
-    if (!showConfirmDialog || !data?.items) return;
-
-    setShowConfirmDialog(null);
-
-    try {
-      if (showConfirmDialog.type === 'delete') {
-        // Delete catalogs that can be deleted based on permissions
-        const deleteIds = Array.from(selectedCatalogs).filter(id => {
-          const catalog = data.items.find(c => c.id === id);
-          return catalog && canSelectCatalogForBulkOperation();
-        });
-        
-        if (onBulkDelete && deleteIds.length > 0) {
-          await onBulkDelete(deleteIds);
-        }
-      }
-      setSelectedCatalogs(new Set());
-    } catch (error) {
-      toast.error(
-        t('errors.bulkActionFailed', { 
-          action: t('common.delete'),
-          error: error instanceof Error ? error.message : t('errors.unknown')
-        })
-      );
-    }
-  }, [showConfirmDialog, selectedCatalogs, data?.items, onBulkDelete, t]);
 
   // Handle page size change
   const handlePageSizeChange = useCallback((newPageSize: number) => {
@@ -403,20 +322,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
                 </svg>
                 {t('catalog.filters.reset')}
               </button>
-              {selectedCatalogs.size > 0 && (
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={disabled}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
-                    disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                  }`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {t('catalog.bulk.delete')}
-                </button>
-              )}
+
             </div>
         </div>
 
@@ -483,15 +389,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
            <div className="overflow-x-auto">
              <table className="min-w-full divide-y divide-gray-100">
                <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
-                 <tr>
-                   <th scope="col" className="relative px-4 py-3">
-                     <input
-                       type="checkbox"
-                       className="absolute left-2 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                       checked={allSelectable}
-                       onChange={handleSelectAll}
-                     />
-                   </th>
+                                 <tr>
                    <th 
                      scope="col" 
                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
@@ -596,16 +494,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
                        }
                        onClick={() => setSelectedCatalog(selectedCatalog === catalog.id ? null : catalog.id)}
                      >
-                       <td className="px-4 py-2 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
-                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-r"></div>
-                         <input
-                           type="checkbox"
-                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                           checked={selectedCatalogs.has(catalog.id)}
-                           onChange={() => handleSelectCatalog(catalog.id)}
-                           disabled={disabled}
-                         />
-                       </td>
+
                        <td className="px-4 py-2 whitespace-nowrap">
                          <div 
                            className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center"
@@ -828,57 +717,7 @@ const CatalogList: React.FC<CatalogListProps> = React.memo(({
         </div>
       )}
 
-      {/* Confirmation Dialog */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
-            <div className="flex items-center mb-4">
-              <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 ${
-                showConfirmDialog.type === 'submit' ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                {showConfirmDialog.type === 'submit' ? (
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                )}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {t('catalog.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('common.submit') : t('common.delete') })}
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                                {t('catalog.confirm.message', { 
-                    action: showConfirmDialog.type === 'submit' ? t('common.submit') : t('common.delete'),
-                    count: showConfirmDialog.count,
-                    plural: showConfirmDialog.count !== 1 ? 's' : '',
-                    warning: showConfirmDialog.type === 'delete' ? t('catalog.confirm.warning') : ''
-                  })}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowConfirmDialog(null)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={confirmBulkAction}
-                className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 ${
-                  showConfirmDialog.type === 'submit'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                {showConfirmDialog.type === 'submit' ? t('common.submit') : t('common.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Catalog Form Modal */}
       {showCatalogForm && (

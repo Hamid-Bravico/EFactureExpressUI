@@ -8,7 +8,6 @@ import InvoiceStatusBadge from './InvoiceStatusBadge';
 import PaymentStatusBadge from './PaymentStatusBadge';
 import ErrorModal from '../../../components/ErrorModal';
 import { 
-  canSelectForBulkOperation,
   canDeleteInvoice,
   canModifyInvoice,
   InvoiceStatus
@@ -82,8 +81,7 @@ interface InvoiceListProps {
   disabled?: boolean;
   importLoading: boolean;
   onImportCSV: (file: File) => Promise<void>;
-  onBulkDelete?: (ids: number[]) => Promise<void>;
-  onBulkSubmit?: (ids: number[]) => Promise<void>;
+
   onUpdateInvoiceStatus?: (id: number, status: number, dgiSubmissionId?: string, dgiRejectionReason?: string) => void;
 }
 
@@ -109,8 +107,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   disabled = false,
   importLoading,
   onImportCSV,
-  onBulkDelete,
-  onBulkSubmit,
+
   onUpdateInvoiceStatus
 }) => {
   const { t, i18n } = useTranslation();
@@ -119,14 +116,8 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
   const [sortField, setSortField] = useState<'date' | 'invoiceNumber' | 'customer' | 'total' | 'status' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedInvoices, setSelectedInvoices] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [, setShowBulkActions] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState<{
-    type: 'submit' | 'delete';
-    count: number;
-  } | null>(null);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | undefined>();
   const [rejectionReasonModal, setRejectionReasonModal] = useState<{
@@ -164,39 +155,9 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     onRefreshInvoices();
   }, [onRefreshInvoices]);
 
-  // Memoized computed values for better performance
-  const selectableInvoices = useMemo(() => {
-    if (!data?.invoices) return [];
-    return data.invoices.filter(invoice => 
-      canSelectForBulkOperation(userRole, invoice.status as InvoiceStatus, 'delete') ||
-      canSelectForBulkOperation(userRole, invoice.status as InvoiceStatus, 'submit')
-    );
-  }, [data?.invoices, userRole]);
 
-  const allSelectable = useMemo(() => {
-    return data?.invoices ? selectedInvoices.size === selectableInvoices.length : false;
-  }, [data?.invoices, selectedInvoices.size, selectableInvoices.length]);
 
-  // Keyboard navigation support
-  React.useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      // Close dropdowns on Escape
-      if (event.key === 'Escape') {
-        setShowConfirmDialog(null);
-      }
-      
-      // Select all with Ctrl+A
-      if (event.ctrlKey && event.key === 'a') {
-        event.preventDefault();
-        if (data?.invoices && selectableInvoices.length > 0) {
-          setSelectedInvoices(new Set(selectableInvoices.map(inv => inv.id)));
-        }
-      }
-    }
-    
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [data?.invoices, selectableInvoices]);
+
 
   // Update handleSort to only allow valid sortField values
   const handleSort = useCallback((field: string) => {
@@ -271,102 +232,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
     onRefreshInvoices(filters, sortParams, { page: 1, pageSize: newPageSize });
   }, [filters, sortField, sortDirection, onRefreshInvoices]);
 
-  const handleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!data?.invoices) return;
-    
-    if (e.target.checked) {
-      setSelectedInvoices(new Set(selectableInvoices.map(inv => inv.id)));
-    } else {
-      setSelectedInvoices(new Set());
-    }
-  }, [data?.invoices, selectableInvoices]);
 
-  const handleSelectInvoice = useCallback((id: number, status: number) => {
-    const invoiceStatus = status as InvoiceStatus;
-    
-    // Check if invoice can be selected for any bulk operation
-    const canSelectForDelete = canSelectForBulkOperation(userRole, invoiceStatus, 'delete');
-    const canSelectForSubmit = canSelectForBulkOperation(userRole, invoiceStatus, 'submit');
-    
-    if (canSelectForDelete || canSelectForSubmit) {
-      setSelectedInvoices(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(id)) {
-          newSet.delete(id);
-        } else {
-          newSet.add(id);
-        }
-        return newSet;
-      });
-    }
-  }, [userRole]);
-
-  const handleBulkSubmit = useCallback(async () => {
-    if (!data?.invoices) return;
-    // Only allow bulk submit for invoices that can be submitted based on permissions
-    const submitIds = Array.from(selectedInvoices).filter(id => {
-      const inv = data.invoices.find(i => i.id === id);
-      return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'submit');
-    });
-    if (submitIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'submit',
-      count: submitIds.length
-    });
-  }, [selectedInvoices, data?.invoices, userRole]);
-
-  const handleBulkDelete = useCallback(async () => {
-    if (!data?.invoices) return;
-    // Allow bulk delete for invoices that can be deleted based on permissions
-    const deleteIds = Array.from(selectedInvoices).filter(id => {
-      const inv = data.invoices.find(i => i.id === id);
-      return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'delete');
-    });
-    if (deleteIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'delete',
-      count: deleteIds.length
-    });
-  }, [selectedInvoices, data?.invoices, userRole]);
-
-  const confirmBulkAction = useCallback(async () => {
-    if (!showConfirmDialog || !data?.invoices) return;
-
-    setShowConfirmDialog(null);
-
-    try {
-      if (showConfirmDialog.type === 'submit') {
-        // Only submit invoices that can be submitted based on permissions
-        const submitIds = Array.from(selectedInvoices).filter(id => {
-          const inv = data.invoices.find(i => i.id === id);
-          return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'submit');
-        });
-        
-        if (onBulkSubmit && submitIds.length > 0) {
-          await onBulkSubmit(submitIds);
-        }
-      } else {
-        // Delete invoices that can be deleted based on permissions
-        const deleteIds = Array.from(selectedInvoices).filter(id => {
-          const inv = data.invoices.find(i => i.id === id);
-          return inv && canSelectForBulkOperation(userRole, inv.status as InvoiceStatus, 'delete');
-        });
-        
-        if (onBulkDelete && deleteIds.length > 0) {
-          await onBulkDelete(deleteIds);
-        }
-      }
-      setSelectedInvoices(new Set());
-      setShowBulkActions(false);
-    } catch (error) {
-      toast.error(
-        t('errors.bulkActionFailed', { 
-          action: showConfirmDialog.type === 'submit' ? t('invoice.actions.submit') : t('invoice.actions.delete'),
-          error: error instanceof Error ? error.message : t('errors.unknown')
-        })
-      );
-    }
-  }, [showConfirmDialog, selectedInvoices, data?.invoices, onBulkSubmit, onBulkDelete, userRole, t]);
 
   const handleEditInvoice = useCallback(async (invoice: any) => {
     try {
@@ -734,65 +600,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
         )}
       </div>
 
-            {/* Floating Bulk Actions Bar */}
-      {selectedInvoices.size > 0 && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-30 animate-fade-in-scale">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-6 py-4 backdrop-blur-sm bg-white/95">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
-                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  {t('invoice.bulk.selected', { count: selectedInvoices.size })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {(userRole === 'Admin' || userRole === 'Manager') && (
-                  <button
-                    onClick={handleBulkSubmit}
-                    disabled={disabled}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${
-                      disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    {t('invoice.bulk.submit')}
-                  </button>
-                )}
-                {(userRole === 'Admin' || userRole === 'Manager') && (
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={disabled}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
-                      disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    {t('invoice.bulk.delete')}
-                  </button>
-                )}
-                <button
-                  onClick={() => setSelectedInvoices(new Set())}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  title={t('invoice.bulk.clearSelection')}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  {t('common.clear')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {!data?.invoices || data.invoices.length === 0 ? (
         <div className="text-center py-16">
@@ -816,14 +624,6 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
                 <tr>
-                  <th scope="col" className="relative px-4 py-3">
-                    <input
-                      type="checkbox"
-                      className="absolute left-2 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                      checked={allSelectable}
-                      onChange={handleSelectAll}
-                    />
-                  </th>
                   <th 
                     scope="col" 
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
@@ -906,19 +706,6 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                       className="hover:bg-blue-50/40 cursor-pointer transition-all duration-300 group"
                       onClick={() => setSelectedInvoice(selectedInvoice === invoice.id ? null : invoice.id)}
                     >
-                      <td className="px-4 py-2 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-r"></div>
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                          checked={selectedInvoices.has(invoice.id)}
-                          onChange={() => handleSelectInvoice(invoice.id, invoice.status)}
-                          disabled={
-                            !canSelectForBulkOperation(userRole, invoice.status as InvoiceStatus, 'delete') &&
-                            !canSelectForBulkOperation(userRole, invoice.status as InvoiceStatus, 'submit')
-                          }
-                        />
-                      </td>
                       <td className="px-4 py-2 whitespace-nowrap">
                         <div 
                           className={`text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center ${invoice.createdBy ? 'cursor-help relative group/tooltip' : ''}`}
@@ -1112,54 +899,7 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
         />
       )}
 
-      {/* Confirmation Dialog */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
-            <div className="flex items-center mb-4">
-              <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 ${
-                showConfirmDialog.type === 'submit' ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                {showConfirmDialog.type === 'submit' ? (
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                )}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {t('invoice.confirm.title', { action: showConfirmDialog.type === 'submit' ? t('invoice.actions.submit') : t('invoice.actions.delete') })}
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-              {t(showConfirmDialog.type === 'submit' ? 'invoice.bulk.confirm.submit' : 'invoice.bulk.confirm.delete', { 
-                count: showConfirmDialog.count,
-              })}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowConfirmDialog(null)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={confirmBulkAction}
-                className={`px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 ${
-                  showConfirmDialog.type === 'submit'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                {showConfirmDialog.type === 'submit' ? t('invoice.actions.submit') : t('invoice.actions.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
 
 

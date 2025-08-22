@@ -9,13 +9,12 @@ export interface TokenData {
 }
 
 export interface RefreshTokenResponse {
-  token?: string;
-  refreshToken?: string;
-  csrfToken?: string;
+  success?: boolean;
+  message?: string;
   data?: {
-    token?: string;
-    refreshToken?: string;
-    csrfToken?: string;
+    newAccessToken?: string;
+    newRefreshToken?: string;
+    newCsrfToken?: string;
   };
 }
 
@@ -223,8 +222,8 @@ class TokenManager {
       }
 
       const data: RefreshTokenResponse = await response.json();
-      // Support both { token } and { data: { token } }
-      const newAccessToken = data?.data?.token || data?.token;
+      // Support new backend response structure
+      const newAccessToken = data?.data?.newAccessToken;
       if (!newAccessToken) {
         throw new Error('Invalid refresh response');
       }
@@ -237,7 +236,12 @@ class TokenManager {
       }
 
       // Update stored token (skip scheduling refresh to prevent infinite loop)
-      this.setToken(newAccessToken, data?.data?.refreshToken || data?.refreshToken, data?.data?.csrfToken || data?.csrfToken, true);
+      this.setToken(
+        newAccessToken, 
+        data?.data?.newRefreshToken, 
+        data?.data?.newCsrfToken, 
+        true
+      );
       
       // Manually schedule the next refresh for the new token
       try {

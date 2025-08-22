@@ -542,7 +542,7 @@
     "download": "Download PDF",
     "invoiceNumber": "Invoice Number",
     "deleting": "Deleting invoice...",
-    "submitting": "Submitting invoice...",
+    "submittingInvoice": "Submitting invoice...",
     "downloadingPDF": "Downloading PDF...",
     "previewingPDF": "Loading PDF preview...",
     "status": {

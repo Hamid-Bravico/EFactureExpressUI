@@ -542,7 +542,7 @@
     "download": "Télécharger le PDF",
     "invoiceNumber": "Numéro de facture",
     "deleting": "Suppression de la facture...",
-    "submitting": "Soumission de la facture...",
+    "submittingInvoice": "Soumission de la facture...",
     "downloadingPDF": "Téléchargement du PDF...",
     "previewingPDF": "Chargement de l'aperçu PDF...",
     "status": {

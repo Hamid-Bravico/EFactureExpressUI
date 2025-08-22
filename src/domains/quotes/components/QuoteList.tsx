@@ -6,7 +6,6 @@ import QuoteForm from './QuoteForm';
 import QuoteDetail from './QuoteDetail';
 import QuoteStatusBadge from './QuoteStatusBadge';
 import { 
-  canSelectQuoteForBulkOperation,
   QuoteStatus,
   canUpdateQuote,
   canDeleteQuote
@@ -77,7 +76,7 @@ interface QuoteListProps {
   disabled?: boolean;
   token: string | null;
 
-  onBulkDelete?: (ids: number[]) => Promise<void>;
+
   onUpdateQuoteStatus?: (id: number, status: string) => void;
   onOptimisticQuoteStatusUpdate?: (id: number, status: string) => void;
   onConvertToInvoice?: (id: number) => Promise<void>;
@@ -106,18 +105,16 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
   disabled = false,
 
 
-  onBulkDelete,
+
   onUpdateQuoteStatus,
   onOptimisticQuoteStatusUpdate,
   onConvertToInvoice
 }) => {
   const { t, i18n } = useTranslation();
-  const [selectedQuotes, setSelectedQuotes] = useState<Set<number>>(new Set());
   const [selectedQuote, setSelectedQuote] = useState<number | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [editingQuote, setEditingQuote] = useState<Quote | undefined>();
   const [showFilters, setShowFilters] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState<{ type: 'delete'; count: number } | null>(null);
   const [rejectionModal, setRejectionModal] = useState<{ quoteId: number; reason: string } | null>(null);
   const [downloadDropdownOpenId, setDownloadDropdownOpenId] = useState<number | null>(null);
   const downloadDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -144,18 +141,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     return decoded?.role || 'Clerk';
   }, []);
 
-  // Memoized computed values for better performance
-  const selectableQuotes = useMemo(() => {
-    if (!data?.quotes) return [];
-    return data.quotes.filter(quote => 
-      canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete')
-    );
-  }, [data?.quotes, userRole]);
 
-  const allSelectable = useMemo(() => {
-    if (!data?.quotes || selectableQuotes.length === 0) return false;
-    return selectedQuotes.size === selectableQuotes.length && selectableQuotes.length > 0;
-  }, [data?.quotes, selectedQuotes.size, selectableQuotes.length]);
 
   // Close dropdown on outside click
   React.useEffect(() => {
@@ -184,22 +170,13 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
       // Close dropdowns on Escape
       if (event.key === 'Escape') {
         setDownloadDropdownOpenId(null);
-        setShowConfirmDialog(null);
         setRejectionModal(null);
-      }
-      
-      // Select all with Ctrl+A
-      if (event.ctrlKey && event.key === 'a') {
-        event.preventDefault();
-        if (data?.quotes && selectableQuotes.length > 0) {
-          setSelectedQuotes(new Set(selectableQuotes.map(quote => quote.id)));
-        }
       }
     }
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [data?.quotes, selectableQuotes]);
+  }, []);
 
 
 
@@ -218,34 +195,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
     onRefreshQuotes(filters, { sortField: newSortField, sortDirection: newSortDirection }, { page: currentPage, pageSize });
   }, [sortField, sortDirection, filters, currentPage, pageSize, onRefreshQuotes]);
 
-  const handleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!data?.quotes) return;
-    
-    if (e.target.checked) {
-      setSelectedQuotes(new Set(selectableQuotes.map(quote => quote.id)));
-    } else {
-      setSelectedQuotes(new Set());
-    }
-  }, [data?.quotes, selectableQuotes]);
 
-  const handleSelectQuote = useCallback((id: number, status: string) => {
-    const quoteStatus = status as QuoteStatus;
-    
-    // Check if quote can be selected for bulk delete operation
-    const canSelectForDelete = canSelectQuoteForBulkOperation(userRole, quoteStatus, 'delete');
-    
-    if (canSelectForDelete) {
-      setSelectedQuotes(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(id)) {
-          newSet.delete(id);
-        } else {
-          newSet.add(id);
-        }
-        return newSet;
-      });
-    }
-  }, [userRole]);
 
   const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -283,45 +233,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
 
 
 
-  const handleBulkDelete = useCallback(async () => {
-    if (!data?.quotes) return;
-    // Allow bulk delete for quotes that can be deleted based on permissions
-    const deleteIds = Array.from(selectedQuotes).filter(id => {
-      const quote = data.quotes.find(q => q.id === id);
-      return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete');
-    });
-    if (deleteIds.length === 0) return;
-    setShowConfirmDialog({
-      type: 'delete',
-      count: deleteIds.length
-    });
-  }, [selectedQuotes, data?.quotes, userRole]);
 
-  const confirmBulkAction = useCallback(async () => {
-    if (!showConfirmDialog || !data?.quotes) return;
-
-    setShowConfirmDialog(null);
-
-    try {
-      // Delete quotes that can be deleted based on permissions
-      const deleteIds = Array.from(selectedQuotes).filter(id => {
-        const quote = data.quotes.find(q => q.id === id);
-        return quote && canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete');
-      });
-      
-      if (onBulkDelete && deleteIds.length > 0) {
-        await onBulkDelete(deleteIds);
-      }
-      setSelectedQuotes(new Set());
-    } catch (error) {
-      toast.error(
-        t('errors.bulkActionFailed', { 
-          action: t('quote.actions.delete'),
-          error: error instanceof Error ? error.message : t('errors.unknown')
-        })
-      );
-    }
-  }, [showConfirmDialog, selectedQuotes, data?.quotes, onBulkDelete, userRole, t]);
 
   const handleDelete = useCallback((id: number) => {
     if (window.confirm(t('quote.confirm.message', { 
@@ -610,50 +522,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
         )}
       </div>
 
-      {/* Floating Bulk Actions Bar */}
-      {selectedQuotes.size > 0 && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-30 animate-fade-in-scale">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-6 py-4 backdrop-blur-sm bg-white/95">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
-                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  {t('quote.bulk.selected', { count: selectedQuotes.size })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
 
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={disabled}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150 shadow-sm hover:shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
-                    disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''
-                  }`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {t('quote.bulk.delete')}
-                </button>
-                <button
-                  onClick={() => setSelectedQuotes(new Set())}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  title={t('quote.bulk.clearSelection')}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  {t('common.clear')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
              {/* Quotes Table */}
        {!data?.quotes || data.quotes.length === 0 ? (
@@ -677,15 +546,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
            <div className="overflow-x-auto">
              <table className="min-w-full divide-y divide-gray-100">
                <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
-                 <tr>
-                   <th scope="col" className="relative px-4 py-3">
-                     <input
-                       type="checkbox"
-                       className="absolute left-2 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                       checked={allSelectable}
-                       onChange={handleSelectAll}
-                     />
-                   </th>
+                                 <tr>
                    <th 
                      scope="col" 
                      className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors duration-150"
@@ -782,19 +643,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                        className="hover:bg-blue-50/40 cursor-pointer transition-all duration-300 group"
                        onClick={() => setSelectedQuote(selectedQuote === quote.id ? null : quote.id)}
                      >
-                       <td className="px-4 py-2 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
-                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-r"></div>
-                         <input
-                           type="checkbox"
-                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all duration-200 hover:scale-110"
-                           checked={selectedQuotes.has(quote.id)}
-                           onChange={() => handleSelectQuote(quote.id, quote.status)}
-                           disabled={
-                             !canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'delete') &&
-                             !canSelectQuoteForBulkOperation(userRole, quote.status as QuoteStatus, 'submit')
-                           }
-                         />
-                       </td>
+
                        <td className="px-4 py-2 whitespace-nowrap">
                           <div 
                             className={`text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center ${quote.createdBy ? 'cursor-help relative group/tooltip' : ''}`}
@@ -1080,47 +929,7 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
         </div>
       )}
 
-      {/* Confirmation Dialog */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
-            <div className="flex items-center mb-4">
-              <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 ${
-                                  'bg-red-100'
-              }`}>
-                                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                {t('quote.confirm.title', { action: t('quote.delete') })}
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-              {t('quote.confirm.message', { 
-                action: t('quote.delete'),
-                count: showConfirmDialog.count,
-                plural: showConfirmDialog.count !== 1 ? 's' : '',
-                warning: showConfirmDialog.type === 'delete' ? t('quote.confirm.warning') : ''
-              })}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowConfirmDialog(null)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={confirmBulkAction}
-                className="px-4 py-2.5 text-sm font-semibold text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 bg-red-600 hover:bg-red-700"
-              >
-                {t('quote.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Rejection Reason Modal */}
       {rejectionModal && (
