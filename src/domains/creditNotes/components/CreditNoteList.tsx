@@ -270,7 +270,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
         },
         dgiSubmissionId: creditNote.dgiSubmissionId || undefined,
         dgiRejectionReason: creditNote.dgiRejectionReason || undefined,
-        originalInvoiceId: creditNote.originalInvoiceId || undefined,
+        originalInvoiceId: (creditNote.originalInvoiceId ?? creditNote.originalInvoice?.id) || undefined,
         isVatExempt: creditNote.isVatExempt || false,
         vatExemptionReason: creditNote.vatExemptionReason || undefined,
         paymentMethod: creditNote.paymentMethod || 1, // Default to BankTransfer

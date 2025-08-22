@@ -108,11 +108,14 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
   // Update originalInvoice when editing
   useEffect(() => {
     if (creditNote && invoices.length > 0) {
-      const inv = invoices.find(i => i.id === creditNote.originalInvoiceId);
-      if (inv) {
-        setOriginalInvoice(inv);
-        setIsVatExempt(inv.isVatExempt || false);
-        setVatExemptionReason(inv.vatExemptionReason || '');
+      const wantedId = (creditNote.originalInvoiceId ?? creditNote.originalInvoice?.id) as number | undefined;
+      if (wantedId) {
+        const inv = invoices.find(i => i.id === wantedId);
+        if (inv) {
+          setOriginalInvoice(inv);
+          setIsVatExempt(inv.isVatExempt || false);
+          setVatExemptionReason(inv.vatExemptionReason || '');
+        }
       }
     }
   }, [creditNote, invoices]);

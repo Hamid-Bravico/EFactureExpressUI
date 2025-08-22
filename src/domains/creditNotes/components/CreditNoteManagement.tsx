@@ -185,11 +185,11 @@ const CreditNoteManagement = () => {
         // Transform the items to extract originalInvoice data
         const transformedCreditNotes = Array.isArray(apiData.items) ? apiData.items.map((item: any) => ({
           ...item,
-          originalInvoiceId: item.originalInvoiceId, // Set the originalInvoiceId to the item's id
-          originalInvoice: {
+          originalInvoiceId: item.originalInvoiceId ?? item.originalInvoice?.id,
+          originalInvoice: item.originalInvoice ? {
             id: item.originalInvoice.id,
             invoiceNumber: item.originalInvoice.invoiceNumber
-          }
+          } : undefined
         })) : [];
         
         const transformed = {
