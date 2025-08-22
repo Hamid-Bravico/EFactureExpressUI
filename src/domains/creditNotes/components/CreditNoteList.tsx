@@ -50,6 +50,15 @@ interface CreditNoteListResponse {
     originalInvoiceId?: number;
     isVatExempt?: boolean;
     vatExemptionReason?: string;
+    originalInvoice?: {
+      id: number;
+      invoiceNumber: string;
+      date: string;
+      customer: {
+        id: number;
+        legalName: string;
+      };
+    };
   }>;
   pagination: {
     totalItems: number;
@@ -755,6 +764,7 @@ const CreditNoteList: React.FC<CreditNoteListProps> = React.memo(({
                               dgiSubmissionId: creditNote.dgiSubmissionId,
                               dgiRejectionReason: creditNote.dgiRejectionReason,
                               originalInvoiceId: creditNote.originalInvoiceId || undefined,
+                              originalInvoice: creditNote.originalInvoice,
                               isVatExempt: creditNote.isVatExempt || false,
                               vatExemptionReason: creditNote.vatExemptionReason || undefined
                             }}

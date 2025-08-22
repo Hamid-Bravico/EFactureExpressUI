@@ -1481,6 +1481,7 @@
       "email": "Email",
       "phone": "Phone",
       "dgiSubmissionId": "DGI Submission ID",
+      "originalInvoice": "Original Invoice",
       "rejectionReason": "DGI Rejection Reason",
       "warnings": "Warnings",
       "taxRate": "Tax Rate",

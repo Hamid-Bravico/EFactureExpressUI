@@ -1213,6 +1213,7 @@
       "email": "E-mail",
       "phone": "Téléphone",
       "dgiSubmissionId": "ID de soumission DGI",
+      "originalInvoice": "Facture d'origine",
       "rejectionReason": "Raison du rejet DGI",
       "warnings": "Avertissements",
       "taxRate": "Taux de TVA",

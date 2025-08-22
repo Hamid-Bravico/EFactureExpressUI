@@ -39,6 +39,10 @@ export interface CreditNote {
   dgiRejectionReason?: string;
   warnings?: string[];
   originalInvoiceId?: number;
+  originalInvoice?: {
+    id: number;
+    invoiceNumber: string;
+  };
   isVatExempt: boolean;
   vatExemptionReason?: string;
 }

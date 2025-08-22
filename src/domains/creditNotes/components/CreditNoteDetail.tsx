@@ -1061,6 +1061,9 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
               <div><span className="font-medium">{t('creditNote.details.creditNoteNumber')}:</span> {creditNote.creditNoteNumber}</div>
               <div><span className="font-medium">{t('creditNote.details.date')}:</span> {new Date(creditNote.date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}</div>
               <div><span className="font-medium">{t('creditNote.details.status')}:</span> <CreditNoteStatusBadge status={creditNote.status} /></div>
+              {creditNote.originalInvoice && creditNote.originalInvoice.invoiceNumber && (
+                <div><span className="font-medium">{t('creditNote.details.originalInvoice')}:</span> {creditNote.originalInvoice.invoiceNumber}</div>
+              )}
               {creditNote.dgiSubmissionId && (
                 <div><span className="font-medium">{t('creditNote.details.dgiSubmissionId')}:</span> {creditNote.dgiSubmissionId}</div>
               )}

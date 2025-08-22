@@ -180,21 +180,31 @@ const CreditNoteManagement = () => {
         const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('errors.failedToFetch');
         throw new Error(errorMessage);
       }
-
-      const apiData = responseData.data || {};
-      const transformed = {
-        creditNotes: Array.isArray(apiData.items) ? apiData.items : (apiData.creditNotes || []),
-        pagination: apiData.pagination || {
-          totalItems: 0,
-          page: 1,
-          pageSize: 20,
-          totalPages: 0
-        },
-        filters: apiData.filters || { statuses: [], customers: [] }
-      };
-      setCreditNoteListData(transformed);
-      // Keep the old creditNotes state for backward compatibility
-      setCreditNotes(transformed.creditNotes);
+        const apiData = responseData.data || {};
+        
+        // Transform the items to extract originalInvoice data
+        const transformedCreditNotes = Array.isArray(apiData.items) ? apiData.items.map((item: any) => ({
+          ...item,
+          originalInvoiceId: item.originalInvoiceId, // Set the originalInvoiceId to the item's id
+          originalInvoice: {
+            id: item.originalInvoice.id,
+            invoiceNumber: item.originalInvoice.invoiceNumber
+          }
+        })) : [];
+        
+        const transformed = {
+          creditNotes: transformedCreditNotes,
+          pagination: apiData.pagination || {
+            totalItems: 0,
+            page: 1,
+            pageSize: 20,
+            totalPages: 0
+          },
+          filters: apiData.filters || { statuses: [], customers: [] }
+        };
+        setCreditNoteListData(transformed);
+        // Keep the old creditNotes state for backward compatibility
+        setCreditNotes(transformed.creditNotes);
     } catch (err) {
       let errorMessage = err instanceof Error ? err.message : 'An error occurred';
       
@@ -252,6 +262,10 @@ const CreditNoteManagement = () => {
           email: userEmail
         },
         originalInvoiceId: newCreditNote.OriginalInvoiceId,
+        originalInvoice: {
+          id: newCreditNote.OriginalInvoiceId,
+          invoiceNumber: 'TEMP-INV-' + newCreditNote.OriginalInvoiceId
+        },
         isVatExempt: newCreditNote.isVatExempt,
         vatExemptionReason: newCreditNote.vatExemptionReason
       };
@@ -390,6 +404,11 @@ const CreditNoteManagement = () => {
           address: originalCreditNote.customer.address,
           email: originalCreditNote.customer.email,
           phoneNumber: originalCreditNote.customer.phoneNumber
+        },
+        originalInvoiceId: creditNote.OriginalInvoiceId,
+        originalInvoice: {
+          id: creditNote.OriginalInvoiceId,
+          invoiceNumber: originalCreditNote.originalInvoice?.invoiceNumber || 'TEMP-INV-' + creditNote.OriginalInvoiceId
         },
         lines: creditNote.lines.map(line => ({
           id: Date.now() + Math.random(), // Temporary ID for new lines
