@@ -1,291 +1,168 @@
 import React, { useState } from 'react';
 import { Company } from '../types/common';
 import { useTranslation } from 'react-i18next';
-import { COMPANY_ENDPOINTS } from '../domains/auth/api/company.endpoints';
-import { secureApiClient } from '../config/api';
-import { toast } from 'react-hot-toast';
-import { ApiResponse } from '../domains/auth/types/auth.types';
-import { decodeJWT } from '../utils/jwt';
 
 interface CompanyProfileProps {
   company: Company | null;
   token?: string | null;
-  onUpdate?: (updatedCompany: Partial<Company>) => void;
 }
 
-const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdate }) => {
+const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token }) => {
   const { t, i18n } = useTranslation();
-  const [copied, setCopied] = useState(false);
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState({
-    name: '',
-    identifiantFiscal: '',
-    address: ''
-  });
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const decodedToken = token ? decodeJWT(token) : null;
-  const userRole = decodedToken?.role;
-  const canEdit = userRole === 'Admin';
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!company) {
     return (
-      <div className="flex items-center justify-center h-full p-8 text-center bg-white rounded-lg shadow-md">
-        <p className="text-lg text-gray-500">{t('errors.noCompanyData')}</p>
+      <div className="flex items-center justify-center h-full p-8 text-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="animate-pulse">
+            <div className="h-12 bg-gray-200 rounded-lg mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+          </div>
+          <p className="text-lg text-gray-500 mt-4">{t('errors.noCompanyData')}</p>
+        </div>
       </div>
     );
   }
 
-  const handleCopy = () => {
-    const iceValue = company?.ice;
-    if (iceValue) {
-      navigator.clipboard.writeText(iceValue);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleCopy = (field: string, value: string | number) => {
+    const stringValue = String(value);
+    if (stringValue && stringValue !== t('common.noId', 'No ID') && stringValue !== t('auth.noCompanyName') && 
+        stringValue !== t('auth.noICE') && stringValue !== t('auth.noIdentifiantFiscal') && 
+        stringValue !== t('auth.noTaxeProfessionnelle', 'No Taxe Professionnelle') && 
+        stringValue !== t('auth.noAddress')) {
+      navigator.clipboard.writeText(stringValue);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
     }
   };
 
-  const handleEdit = (field: string) => {
-    setEditingField(field);
-    setEditValues({
-      name: company.name || '',
-      identifiantFiscal: company.identifiantFiscal || '',
-      address: company.address || ''
-    });
-  };
-
-  const validateField = (field: string, value: string): boolean => {
-    const trimmedValue = value.trim();
-    
-    if (field === 'name') {
-      if (!trimmedValue) {
-        toast.error(t('errors.companyNameRequired'));
-        return false;
-      }
-      if (trimmedValue.length > 120) {
-        toast.error(t('errors.companyNameTooLong'));
-        return false;
-      }
-    } else if (field === 'identifiantFiscal') {
-      if (trimmedValue && trimmedValue.length > 8) {
-        toast.error(t('errors.identifiantFiscalTooLong'));
-        return false;
-      }
-    } else if (field === 'address') {
-      if (trimmedValue && trimmedValue.length > 255) {
-        toast.error(t('errors.addressTooLong'));
-        return false;
-      }
-    }
-    
-    return true;
-  };
-
-  const handleSave = async (field: string) => {
-    const trimmedValue = editValues[field as keyof typeof editValues].trim();
-    
-    if (!validateField(field, trimmedValue)) {
-      return;
-    }
-
-    setIsUpdating(true);
-    
-    try {
-      const updateData: any = {};
-      
-      if (field === 'name') {
-        updateData.name = trimmedValue;
-      } else if (field === 'identifiantFiscal') {
-        updateData.identifiantFiscal = trimmedValue || null;
-      } else if (field === 'address') {
-        updateData.address = trimmedValue || null;
-      }
-
-      const response = await secureApiClient.put(COMPANY_ENDPOINTS.UPDATE, updateData, true, true);
-      
-      const responseData: ApiResponse<Company> = await response.json().catch(() => ({ 
-        succeeded: false, 
-        message: t('errors.anErrorOccurred') 
-      }));
-
-      if (!response.ok || !responseData?.succeeded) {
-        const errorMessage = responseData?.errors?.join(', ') || responseData?.message || t('errors.updateCompanyFailed');
-        throw new Error(errorMessage);
-      }
-      
-      if (onUpdate) {
-        const updatePayload: Partial<Company> = {};
-        
-        if (field === 'name') {
-          updatePayload.name = trimmedValue;
-        } else if (field === 'identifiantFiscal') {
-          updatePayload.identifiantFiscal = trimmedValue || undefined;
-        } else if (field === 'address') {
-          updatePayload.address = trimmedValue || undefined;
-        }
-        
-        if (responseData.data) {
-          Object.assign(updatePayload, responseData.data);
-        }
-        
-        onUpdate(updatePayload);
-      }
-      
-      toast.success(responseData.message || t('common.updateSuccess'));
-      setEditingField(null);
-    } catch (error: any) {
-      toast.error(error.message || t('errors.updateCompanyFailed'));
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setEditingField(null);
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setEditValues(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const renderEditableField = (field: string, currentValue: string, label: string) => {
-    const isEditing = editingField === field;
-    
-    if (isEditing) {
-      return (
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            value={editValues[field as keyof typeof editValues]}
-            onChange={(e) => handleInputChange(field, e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            autoFocus
-          />
-          <button
-            onClick={() => handleSave(field)}
-            disabled={isUpdating}
-            className={`px-3 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center ${
-              isUpdating ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            title={t('common.save')}
-          >
-            {isUpdating ? (
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            )}
-          </button>
-          <button
-            onClick={handleCancel}
-            disabled={isUpdating}
-            className={`px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center ${
-              isUpdating ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            title={t('common.cancel')}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center justify-between">
-        <span className="font-semibold text-gray-900">
-          {currentValue || <span className="text-gray-500 italic">{t(`auth.no${label}`)}</span>}
-        </span>
-        {canEdit && (
-          <button
-            onClick={() => handleEdit(field)}
-            className="ml-4 px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors duration-200"
-          >
-            {t('common.edit')}
-          </button>
-        )}
-      </div>
+  const handleContactSupport = () => {
+    const subject = encodeURIComponent(t('common.supportSubject', 'Company Profile Update Request'));
+    const body = encodeURIComponent(
+      t('common.supportBody', 'Hello,\n\nI would like to request an update to my company profile information.\n\nCompany Name: {{companyName}}\nCompany ID: {{companyId}}\n\nPlease provide the specific information you would like to update.\n\nBest regards,')
+        .replace('{{companyName}}', company.name || 'N/A')
+        .replace('{{companyId}}', String(company.id || 'N/A'))
     );
+    window.open(`mailto:contact@bravico.ma?subject=${subject}&body=${body}`, '_blank');
   };
 
   const profileItems = [
     {
-      label: t('auth.companyName'),
-      value: renderEditableField('name', company.name, 'CompanyName'),
+      field: 'id',
+      label: t('common.companyId', 'Company ID'),
+      value: company.id || t('common.noId', 'No ID'),
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
-        </svg>
-      ),
-    },
-    {
-      label: t('auth.ice'),
-      value: (
-        <div className="flex items-center">
-          {(company.ice) ? (
-            <span className="font-semibold text-gray-900">{company.ice}</span>
-          ) : (
-            <span className="text-gray-500 italic">{t('auth.noICE')}</span>
-          )}
-          <button
-            onClick={handleCopy}
-            disabled={!(company.ice)}
-            className={`ml-4 px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${
-              !(company.ice)
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : copied
-                ? 'bg-green-100 text-green-700'
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-          >
-            {copied ? t('common.copied') : t('common.copy')}
-          </button>
+        <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+          </svg>
         </div>
       ),
+      gradient: 'from-blue-50 to-blue-100',
+      borderColor: 'border-blue-200',
+      hoverGradient: 'hover:from-blue-100 hover:to-blue-200',
+      hasCopy: true,
+      fullWidth: false
+    },
+    {
+      field: 'name',
+      label: t('auth.companyName'),
+      value: company.name || t('auth.noCompanyName'),
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+        <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+        </svg>
+        </div>
+      ),
+      gradient: 'from-emerald-50 to-emerald-100',
+      borderColor: 'border-emerald-200',
+      hoverGradient: 'hover:from-emerald-100 hover:to-emerald-200',
+      hasCopy: true,
+      fullWidth: false
+    },
+    {
+      field: 'ice',
+      label: t('auth.ice'),
+      value: company.ice || t('auth.noICE'),
+      icon: (
+        <div className="p-2.5 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
           <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
           <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
         </svg>
+        </div>
       ),
+      gradient: 'from-purple-50 to-purple-100',
+      borderColor: 'border-purple-200',
+      hoverGradient: 'hover:from-purple-100 hover:to-purple-200',
+      hasCopy: true,
+      fullWidth: false
     },
     {
+      field: 'identifiantFiscal',
       label: t('auth.identifiantFiscal'),
-      value: renderEditableField('identifiantFiscal', company.identifiantFiscal || '', 'IdentifiantFiscal'),
+      value: company.identifiantFiscal || t('auth.noIdentifiantFiscal'),
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+        <div className="p-2.5 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm2 4a1 1 0 112 0 1 1 0 01-2 0zm-1 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h2a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
         </svg>
+        </div>
       ),
+      gradient: 'from-orange-50 to-orange-100',
+      borderColor: 'border-orange-200',
+      hoverGradient: 'hover:from-orange-100 hover:to-orange-200',
+      hasCopy: true,
+      fullWidth: false
     },
     {
-      label: t('auth.address'),
-      value: renderEditableField('address', company.address || '', 'Address'),
+      field: 'taxeProfessionnelle',
+      label: t('auth.taxeProfessionnelle', 'Taxe Professionnelle'),
+      value: company.taxeProfessionnelle || t('auth.noTaxeProfessionnelle', 'No Taxe Professionnelle'),
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+        <div className="p-2.5 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+          </svg>
+        </div>
+      ),
+      gradient: 'from-teal-50 to-teal-100',
+      borderColor: 'border-teal-200',
+      hoverGradient: 'hover:from-teal-100 hover:to-teal-200',
+      hasCopy: true,
+      fullWidth: false
+    },
+    {
+      field: 'address',
+      label: t('auth.address'),
+      value: company.address || t('auth.noAddress'),
+      icon: (
+        <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
         </svg>
+        </div>
       ),
+      gradient: 'from-indigo-50 to-indigo-100',
+      borderColor: 'border-indigo-200',
+      hoverGradient: 'hover:from-indigo-100 hover:to-indigo-200',
+      hasCopy: true,
+      fullWidth: true
     },
     {
+      field: 'createdAt',
       label: t('auth.memberSince'),
       value: (() => {
         if (!company.createdAt) {
-          return <span className="text-gray-500 italic">{t('common.unknownDate')}</span>;
+          return t('common.unknownDate');
         }
         
         try {
           const date = new Date(company.createdAt);
           if (isNaN(date.getTime())) {
-            return <span className="text-gray-500 italic">{t('common.unknownDate')}</span>;
+            return t('common.unknownDate');
           }
           
           return date.toLocaleDateString(i18n.language, {
@@ -294,41 +171,128 @@ const CompanyProfile: React.FC<CompanyProfileProps> = ({ company, token, onUpdat
             day: 'numeric',
           });
         } catch (error) {
-          return <span className="text-gray-500 italic">{t('common.unknownDate')}</span>;
+          return t('common.unknownDate');
         }
       })(),
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="p-2.5 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
+        </div>
       ),
+      gradient: 'from-pink-50 to-pink-100',
+      borderColor: 'border-pink-200',
+      hoverGradient: 'hover:from-pink-100 hover:to-pink-200',
+      hasCopy: false,
+      fullWidth: false
     },
   ];
 
   return (
-    <div className="bg-white shadow-lg rounded-2xl p-8 max-w-3xl mx-auto animate-fadeIn">
-      <div className="flex items-center mb-8">
-        <div className="p-3 bg-blue-100 rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
+      <div className="max-w-6xl mx-auto p-6">
+        {/* Header Section */}
+        <div className="mb-10 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl shadow-lg mb-6 transform hover:scale-105 transition-transform duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm5 3a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm-1 4a1 1 0 100 2h2a1 1 0 100-2H8zm2 3a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
           </svg>
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 ml-4">{t('common.companyProfile')}</h2>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">
+            {t('common.companyProfile')}
+          </h1>
+          <p className="text-slate-600 text-base">
+            {t('common.companyProfileSubtitle', 'Complete company information and details')}
+          </p>
       </div>
       
-      <div className="space-y-6">
-        {profileItems.filter(Boolean).map((item, index) => {
-          const nonNullItem = item!;
-          return (
-            <div key={index} className="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors duration-200">
-              <div className="flex-shrink-0 mr-4">{nonNullItem.icon}</div>
-              <div className="w-full">
-                <p className="text-sm font-medium text-gray-500">{nonNullItem.label}</p>
-                <div className="text-lg mt-1">{nonNullItem.value}</div>
+        {/* Profile Cards Grid */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {profileItems.map((item, index) => (
+            <div
+              key={index}
+              className={`
+                group relative overflow-hidden bg-white rounded-xl shadow-sm border ${item.borderColor} 
+                transform transition-all duration-300 hover:shadow-md ${item.hoverGradient}
+                ${item.fullWidth ? 'md:col-span-2' : ''}
+              `}
+            >
+              <div className="p-5">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 transform group-hover:rotate-6 transition-transform duration-300">
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+                      {item.label}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-base font-medium text-slate-900 truncate">
+                        {item.value}
+                      </p>
+                      {item.hasCopy && (
+                        <button
+                          onClick={() => handleCopy(item.field, item.value)}
+                          disabled={!item.value || item.value === t('common.noId', 'No ID') || 
+                                   item.value === t('auth.noCompanyName') || item.value === t('auth.noICE') || 
+                                   item.value === t('auth.noIdentifiantFiscal') || 
+                                   item.value === t('auth.noTaxeProfessionnelle', 'No Taxe Professionnelle') || 
+                                   item.value === t('auth.noAddress')}
+                          className={`
+                            ml-2 p-1.5 rounded-md transition-all duration-200 
+                            transform hover:scale-110 active:scale-95
+                            ${!item.value || item.value === t('common.noId', 'No ID') || 
+                              item.value === t('auth.noCompanyName') || item.value === t('auth.noICE') || 
+                              item.value === t('auth.noIdentifiantFiscal') || 
+                              item.value === t('auth.noTaxeProfessionnelle', 'No Taxe Professionnelle') || 
+                              item.value === t('auth.noAddress')
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : copiedField === item.field
+                              ? 'bg-emerald-500 text-white shadow-sm'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800'
+                            }
+                          `}
+                          title={copiedField === item.field ? t('common.copied') : t('common.copy')}
+                        >
+                          {copiedField === item.field ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
+              
+              {/* Subtle gradient overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none`}></div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Footer Section */}
+        <div className="mt-10 text-center">
+          <div className="inline-flex items-center space-x-2 text-slate-500 text-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{t('common.profileInfo', 'Company information is read-only.')}</span>
+            <button
+              onClick={handleContactSupport}
+              className="text-blue-600 hover:text-blue-800 underline transition-colors duration-200"
+            >
+              {t('common.contactSupport', 'Contact support')}
+            </button>
+            <span>{t('common.forUpdates', 'for updates.')}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

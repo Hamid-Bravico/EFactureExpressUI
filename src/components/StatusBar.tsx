@@ -444,9 +444,6 @@ const StatusBar: React.FC<StatusBarProps> = ({
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
                   <div className="p-4 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-lg">
-                        {userEmail?.charAt(0)?.toUpperCase() || 'U'}
-                      </div>
                       <div className="flex-1">
                         <div className="font-medium text-gray-900 truncate">{userEmail}</div>
                         <div className="text-sm text-gray-500 capitalize flex items-center gap-1">

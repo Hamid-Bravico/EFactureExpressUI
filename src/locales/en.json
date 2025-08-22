@@ -56,6 +56,13 @@
     "thisWeek": "This week",
     "thisMonth": "This month",
     "companyProfile": "Company Profile",
+    "companyId": "Company ID",
+    "companyProfileSubtitle": "Complete company information and details",
+    "profileInfo": "Company information is read-only.",
+    "contactSupport": "Contact support",
+    "forUpdates": "for updates.",
+    "supportSubject": "Company Profile Update Request",
+    "supportBody": "Hello,\n\nI would like to request an update to my company profile information.\n\nCompany Name: {{companyName}}\nCompany ID: {{companyId}}\n\nPlease provide the specific information you would like to update.\n\nBest regards,",
     "pagination": {
       "showing": "Showing",
       "to": "to",

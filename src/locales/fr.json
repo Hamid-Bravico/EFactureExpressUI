@@ -56,6 +56,13 @@
     "thisWeek": "Cette semaine",
     "thisMonth": "Ce mois",
     "companyProfile": "Profil de l'entreprise",
+    "companyId": "ID de l'entreprise",
+    "companyProfileSubtitle": "Informations complètes de l'entreprise et détails",
+    "profileInfo": "Les informations de l'entreprise sont en lecture seule.",
+    "contactSupport": "Contacter le support",
+    "forUpdates": "pour les mises à jour.",
+    "supportSubject": "Demande de mise à jour du profil d'entreprise",
+    "supportBody": "Bonjour,\n\nJe souhaite demander une mise à jour des informations de mon profil d'entreprise.\n\nNom de l'entreprise : {{companyName}}\nID de l'entreprise : {{companyId}}\n\nVeuillez fournir les informations spécifiques que vous souhaitez mettre à jour.\n\nCordialement,",
     "pagination": {
       "showing": "Affichage de",
       "to": "à",

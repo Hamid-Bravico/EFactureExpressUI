@@ -92,10 +92,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token }) => {
       });
 
       const data = await response.json();
-      console.log('Response data:', data);
       
       if (data.succeeded) {
-         toast.success(data.message || t(`admin.messages.${action.action}Success`));
+         toast.success(data.message || t(`admin.messages.${action.action}Success`), { duration: 8000 });
          fetchAllCompanies();
          setShowRejectModal(false);
          setRejectReason('');

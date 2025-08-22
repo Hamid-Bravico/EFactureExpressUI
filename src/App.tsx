@@ -25,6 +25,7 @@ import CreditNotePage from "./routes/CreditNoteRoutes";
 import SettingsPage from "./routes/SettingsRoutes";
 import NotificationPage from "./routes/NotificationRoutes";
 import AdminPage from "./routes/AdminRoutes";
+import ProfilePage from "./routes/ProfileRoutes";
 import Layout from "./components/Layout";
 import { StatsProvider } from "./domains/stats/context/StatsContext";
 import CompanyRejectedPage from "./domains/auth/components/CompanyRejectedPage";
@@ -282,6 +283,7 @@ function App() {
                     <Route path="/credit-notes" element={<CreditNotePage token={token} />} />
                     <Route path="/settings" element={<SettingsPage token={token} />} />
                     <Route path="/notifications" element={<NotificationPage token={token} />} />
+                    <Route path="/profile" element={<ProfilePage token={token} company={company} />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>

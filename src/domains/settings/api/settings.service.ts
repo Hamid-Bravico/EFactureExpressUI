@@ -29,7 +29,7 @@ export const settingsService = {
       Value: typeof p.value === 'string' ? (p.value as string).trim() : String(p.value) 
     }));
     const requestBody = { Settings: trimmedPayload };
-    const response = await secureApiClient.put(SETTINGS_ENDPOINTS.BASE, requestBody);
+    const response = await secureApiClient.put(SETTINGS_ENDPOINTS.BASE, requestBody, true, true);
     const responseData: ApiResponse<UpdateSettingsResponse> = await response.json();
     
     if (!response.ok || !responseData?.succeeded) {
@@ -60,7 +60,7 @@ export const settingsService = {
 
   async updateByKey(key: string, value: string | number | boolean | null): Promise<{ key: string; value: string | number | boolean | null }> {
     const payload = { Value: typeof value === 'string' ? (value as string).trim() : String(value) };
-    const response = await secureApiClient.put(SETTINGS_ENDPOINTS.BY_KEY(key.trim()), payload);
+    const response = await secureApiClient.put(SETTINGS_ENDPOINTS.BY_KEY(key.trim()), payload, true, true);
     const responseData: ApiResponse<{ key: string; value: string | number | boolean | null }> = await response.json();
     if (!response.ok || !responseData?.succeeded) {
       const errorMessage = responseData?.errors?.join(', ') || responseData?.message || 'Failed to update setting';
