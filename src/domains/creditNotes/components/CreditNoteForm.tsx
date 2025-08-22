@@ -531,44 +531,27 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
                 <div className="text-red-500 text-xs mt-1">{invoicesError}</div>
               )}
             </div>
+            <div className="col-span-2">
+              <label className="block text-sm text-gray-600 mb-1">
+                {t('creditNote.form.vatExempt')}
+                <span className="text-xs text-gray-500 ml-2">({t('creditNote.form.inherited')})</span>
+              </label>
+              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                <span className={`text-sm font-medium ${
+                  originalInvoice?.isVatExempt ? 'text-blue-700' : 'text-gray-600'
+                }`}>
+                  {originalInvoice?.isVatExempt ? t('common.yes') : t('common.no')}
+                </span>
+                {originalInvoice?.isVatExempt && originalInvoice?.vatExemptionReason && (
+                  <span className="text-xs text-gray-500 ml-2">
+                    - {originalInvoice.vatExemptionReason}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
-          {originalInvoice && (
-            <div className={`border rounded-lg p-3 transition-all duration-200 ${
-              originalInvoice.isVatExempt ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
-            }`}>
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  id="vatExemptInherited"
-                  checked={originalInvoice.isVatExempt}
-                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  disabled={true}
-                />
-                <label htmlFor="vatExemptInherited" className={`text-sm font-medium ${
-                  originalInvoice.isVatExempt ? 'text-blue-800' : 'text-gray-700'
-                }`}>
-                  {t('creditNote.form.vatExempt')} ({t('creditNote.form.inherited')})
-                </label>
-              </div>
-              
-              {originalInvoice.isVatExempt && (
-                <div className="ml-6 space-y-2">
-                  <p className="text-xs text-blue-600 italic">
-                    {t('creditNote.form.vatExemptionInherited')}
-                  </p>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('creditNote.form.vatExemptionReason')}
-                    </label>
-                    <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
-                      {originalInvoice.vatExemptionReason || t('common.notSpecified')}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+
 
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-4">
