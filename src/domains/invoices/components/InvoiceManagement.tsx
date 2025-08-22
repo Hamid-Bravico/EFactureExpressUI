@@ -230,7 +230,16 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
         id: Date.now(), // Temporary ID
         invoiceNumber: 'TEMP-' + Date.now(),
         date: newInvoice.date,
-        customer: { id: newInvoice.customerId, name: customerName || 'Unknown Customer' },
+        customer: { 
+          id: newInvoice.customerId, 
+          type: 0,
+          legalName: customerName || 'Unknown Customer',
+          address: '',
+          ice: undefined,
+          identifiantFiscal: undefined,
+          email: undefined,
+          phoneNumber: undefined
+        },
         subTotal: 0, // Will be calculated by backend
         vat: 0, // Will be calculated by backend
         total: 0, // Will be calculated by backend
@@ -387,7 +396,13 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
         date: invoice.date,
         customer: { 
           id: invoice.customerId, 
-          name: customerName || originalInvoice.customer.name 
+          type: originalInvoice.customer.type,
+          legalName: customerName || originalInvoice.customer.legalName,
+          ice: originalInvoice.customer.ice,
+          identifiantFiscal: originalInvoice.customer.identifiantFiscal,
+          address: originalInvoice.customer.address,
+          email: originalInvoice.customer.email,
+          phoneNumber: originalInvoice.customer.phoneNumber
         },
         lines: invoice.lines.map(line => ({
           id: Date.now() + Math.random(), // Temporary ID for new lines

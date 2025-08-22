@@ -23,10 +23,11 @@ export interface QuoteListResponse {
     customerName: string;
     customer?: {
       id: number;
-      name: string;
+      type: number;
+      legalName: string;
       ice?: string;
-      taxId?: string;
-      address?: string;
+      identifiantFiscal?: string;
+      address: string;
       email?: string;
       phoneNumber?: string;
     };
@@ -372,7 +373,13 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
       expiryDate: quoteData.expiryDate,
       customer: {
         id: quoteData.customer?.id || quoteData.customerId || 0,
-        name: quoteData.customerName
+        type: quoteData.customer?.type || 0,
+        legalName: quoteData.customer?.legalName || quoteData.customerName || 'Unknown Customer',
+        ice: quoteData.customer?.ice,
+        identifiantFiscal: quoteData.customer?.identifiantFiscal,
+        address: quoteData.customer?.address || '',
+        email: quoteData.customer?.email,
+        phoneNumber: quoteData.customer?.phoneNumber
       },
       subTotal: quoteData.subTotal,
       vat: quoteData.vat,
@@ -829,12 +836,12 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                        <td className="px-4 py-2 whitespace-nowrap">
                          <div 
                            className="text-sm font-medium text-gray-900 flex items-center cursor-help"
-                           title={quote.customer?.name || quote.customerName || 'Unknown Customer'}
+                           title={quote.customer?.legalName || quote.customerName || 'Unknown Customer'}
                          >
                            <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                            </svg>
-                           {quote.customer?.name || quote.customerName || 'Unknown Customer'}
+                           {quote.customer?.legalName || quote.customerName || 'Unknown Customer'}
                          </div>
                        </td>
                        <td className="px-4 py-2 whitespace-nowrap text-right">
@@ -899,8 +906,13 @@ const QuoteList: React.FC<QuoteListProps> = React.memo(({
                                expiryDate: quote.expiryDate,
                                customer: {
                                  id: quote.customer?.id || quote.customerId || 0,
-                                 name: quote.customer?.name || quote.customerName || 'Unknown Customer',
-                                 ice: quote.customer?.ice
+                                 type: quote.customer?.type || 0,
+                                 legalName: quote.customer?.legalName || quote.customerName || 'Unknown Customer',
+                                 ice: quote.customer?.ice,
+                                 identifiantFiscal: quote.customer?.identifiantFiscal,
+                                 address: quote.customer?.address || '',
+                                 email: quote.customer?.email,
+                                 phoneNumber: quote.customer?.phoneNumber
                                },
                                subTotal: quote.subTotal,
                                vat: quote.vat,

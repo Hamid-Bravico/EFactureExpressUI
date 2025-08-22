@@ -1249,17 +1249,19 @@
     "addCustomer": "Add Customer",
     "editCustomer": "Edit Customer",
     "headers": {
-      "name": "Name",
+      "type": "Type",
+      "legalName": "Legal Name",
       "ice": "ICE",
-      "taxId": "Tax ID",
+      "identifiantFiscal": "Tax ID",
+      "address": "Address",
       "email": "Email",
       "phone": "Phone",
       "actions": "Actions"
     },
     "form": {
-      "namePlaceholder": "Name",
+      "legalNamePlaceholder": "Legal Name",
       "icePlaceholder": "ICE",
-      "taxIdPlaceholder": "Tax ID",
+      "identifiantFiscalPlaceholder": "Tax ID",
       "addressPlaceholder": "Address",
       "emailPlaceholder": "Email",
       "phonePlaceholder": "Phone Number",
@@ -1278,9 +1280,10 @@
         "deleteFailed": "Failed to delete customer."
     },
     "errors": {
-        "nameRequired": "Name is required.",
+        "legalNameRequired": "Legal name is required.",
+        "addressRequired": "Address is required.",
         "invalidICE": "ICE must be 15 digits.",
-        "invalidTaxId": "Tax ID must be 8 digits.",
+        "invalidIdentifiantFiscal": "Tax ID must be 8 digits.",
         "companyNameRequired": "Company name is required.",
         "companyNameTooLong": "Company name cannot exceed 120 characters.",
         "addressTooLong": "Address cannot exceed 255 characters.",
@@ -1294,6 +1297,10 @@
     "actions": {
       "edit": "Edit",
       "delete": "Delete"
+    },
+    "types": {
+      "business": "Business",
+      "individual": "Individual"
     }
   },
   "roles": {

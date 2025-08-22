@@ -16,15 +16,7 @@ export interface Company {
 
 
 
-export interface Customer {
-  id: number;
-  name: string;
-  ice?: string;
-  taxId?: string;
-  address?: string;
-  email?: string;
-  phoneNumber?: string;
-}
+
 
 export interface DgiStatusResponse {
   submissionId: string;

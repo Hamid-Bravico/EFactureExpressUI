@@ -222,7 +222,16 @@ const CreditNoteManagement = () => {
         id: Date.now(), // Temporary ID
         creditNoteNumber: 'TEMP-' + Date.now(),
         date: newCreditNote.date,
-        customer: { id: newCreditNote.customerId, name: customerName || 'Unknown Customer' },
+        customer: { 
+          id: newCreditNote.customerId, 
+          type: 0,
+          legalName: customerName || 'Unknown Customer',
+          address: '',
+          ice: undefined,
+          identifiantFiscal: undefined,
+          email: undefined,
+          phoneNumber: undefined
+        },
         subTotal: 0, // Will be calculated by backend
         vat: 0, // Will be calculated by backend
         total: 0, // Will be calculated by backend
@@ -371,7 +380,13 @@ const CreditNoteManagement = () => {
         date: creditNote.date,
         customer: { 
           id: creditNote.customerId, 
-          name: customerName || originalCreditNote.customer.name 
+          type: originalCreditNote.customer.type,
+          legalName: customerName || originalCreditNote.customer.legalName,
+          ice: originalCreditNote.customer.ice,
+          identifiantFiscal: originalCreditNote.customer.identifiantFiscal,
+          address: originalCreditNote.customer.address,
+          email: originalCreditNote.customer.email,
+          phoneNumber: originalCreditNote.customer.phoneNumber
         },
         lines: creditNote.lines.map(line => ({
           id: Date.now() + Math.random(), // Temporary ID for new lines

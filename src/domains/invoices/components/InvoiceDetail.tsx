@@ -278,11 +278,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       }
     } catch (error: any) {
       // Handle error with title and body structure
-      let errorTitle = t('invoice.dgiStatus.errorChecking');
       let errorBody = '';
       
       if (error.title && error.body) {
-        errorTitle = error.title;
         errorBody = error.body;
       } else {
         errorBody = error.message || t('errors.anErrorOccurred');
@@ -316,17 +314,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       onSubmit(id);
     }
   }, [onSubmit, t]);
-
-  const handleDelete = useCallback((id: number) => {
-    if (window.confirm(t('invoice.confirm.message', { 
-      action: t('invoice.actions.delete'),
-      count: 1,
-      plural: '',
-      warning: t('invoice.confirm.warning')
-    }))) {
-      onDelete(id);
-    }
-  }, [onDelete, t]);
 
   const handlePreviewPdf = useCallback(async (invoiceId: number) => {
     const toastId = toast.loading(t('invoice.previewingPDF'));
@@ -381,11 +368,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         }
       });
     } catch (err: any) {
-      let errorTitle = t('invoice.errors.failedToPreviewPDF');
       let errorBody = '';
       
       if (err.title && err.body) {
-        errorTitle = err.title;
         errorBody = err.body;
       } else {
         errorBody = err.message || t('errors.anErrorOccurred');
@@ -523,15 +508,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       setRefreshingStatusId(null);
     }
   }, [onOptimisticStatusUpdate, t]);
-
-  // Confirmation handlers for status changes
-  const handleMakeReady = useCallback(() => {
-    if (window.confirm(t('invoice.confirm.makeReady', { 
-      invoiceNumber: invoice.invoiceNumber 
-    }))) {
-      handleStatusChange(invoice.id, 1);
-    }
-  }, [handleStatusChange, invoice.id, invoice.invoiceNumber, t]);
 
   const handleMakeReadyWithSignature = useCallback(async () => {
     if (!window.confirm(t('invoice.confirm.makeReady', { 
@@ -1072,7 +1048,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           <div>
             <h5 className="font-medium text-gray-900 mb-2">{t('invoice.details.customerInfo')}</h5>
             <div className="space-y-1 text-gray-600">
-              <div><span className="font-medium">{t('invoice.details.customerName')}:</span> {invoice.customer?.name || 'Unknown Customer'}</div>
+              <div><span className="font-medium">{t('invoice.details.customerName')}:</span> {invoice.customer?.legalName || 'Unknown Customer'}</div>
               <div><span className="font-medium">{t('invoice.details.ice')}:</span> {invoice.customer?.ice || t('common.notAvailable')}</div>
               {invoice.customer?.email && (
                 <div><span className="font-medium">{t('invoice.details.email')}:</span> {invoice.customer.email}</div>

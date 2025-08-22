@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NewQuote, NewLine, Quote } from '../types/quote.types';
-import { Customer } from '../../../types/common';
+import { Customer } from '../../customers/types/customer.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { secureApiClient } from '../../../config/api';
@@ -427,7 +427,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
         privateNotes: privateNotes.trim(),
       };
 
-      await onSubmit(newQuote, selectedCustomer?.name);
+      await onSubmit(newQuote, selectedCustomer?.legalName);
       onClose();
     } catch (error: any) {
       if (error.errors) {
@@ -554,7 +554,7 @@ const QuoteForm: React.FC<QuoteFormProps> = ({ onSubmit, onClose, quote, disable
               >
                 <option value="">{t('quote.form.selectCustomer')}</option>
                 {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>{c.legalName}</option>
                 ))}
               </select>
               {(errors.customerId || getQuoteErrorMessage('customerId')) && (

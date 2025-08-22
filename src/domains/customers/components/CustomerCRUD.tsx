@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { secureApiClient } from '../../../config/api';
 import { CUSTOMER_ENDPOINTS } from '../api/customer.endpoints';
-import { Customer } from '../../../types/common';
-import { ApiResponse } from '../../auth/types/auth.types';
+import { Customer, CustomerType } from '../types/customer.types';
 import { decodeJWT } from '../../../utils/jwt';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
@@ -20,7 +19,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [form, setForm] = useState<Partial<Customer>>({});
+  const [form, setForm] = useState<Partial<Customer>>({ type: CustomerType.Business });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -80,24 +79,48 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const value = e.target.name === 'type' ? Number(e.target.value) : e.target.value;
+    setForm({ ...form, [e.target.name]: value });
   }, [form]);
 
   const validate = () => {
     const newFieldErrors: Record<string, string[]> = {};
-    if (!form.name?.trim()) {
-      newFieldErrors.Name = [t('customers.errors.nameRequired')];
+    
+    // CustomerType: required
+    if (form.type === undefined || form.type === null) {
+      newFieldErrors.Type = [t('customers.errors.typeRequired')];
     }
+    
+    // LegalName: required
+    if (!form.legalName?.trim()) {
+      newFieldErrors.LegalName = [t('customers.errors.legalNameRequired')];
+    }
+    
+    // Address: required
+    if (!form.address?.trim()) {
+      newFieldErrors.Address = [t('customers.errors.addressRequired')];
+    }
+    
+    // ICE: Required if BUSINESS, optional if INDIVIDUAL
+    if (form.type === CustomerType.Business && !form.ice?.trim()) {
+      newFieldErrors.ICE = [t('customers.errors.iceRequiredForBusiness')];
+    } else if (form.ice && !/^\d{15}$/.test(form.ice)) {
+      newFieldErrors.ICE = [t('customers.errors.invalidICE')];
+    }
+    
+    // IdentifiantFiscal: Required if BUSINESS, optional if INDIVIDUAL
+    if (form.type === CustomerType.Business && !form.identifiantFiscal?.trim()) {
+      newFieldErrors.IdentifiantFiscal = [t('customers.errors.identifiantFiscalRequiredForBusiness')];
+    } else if (form.identifiantFiscal && !/^\d{8}$/.test(form.identifiantFiscal)) {
+      newFieldErrors.IdentifiantFiscal = [t('customers.errors.invalidIdentifiantFiscal')];
+    }
+    
+    // Email validation (optional field)
     if (form.email && !/\S+@\S+\.\S+/.test(form.email)) {
       newFieldErrors.Email = [t('errors.invalidEmail')];
     }
-    if (form.ice && !/^\d{15}$/.test(form.ice)) {
-      newFieldErrors.ICE = [t('customers.errors.invalidICE')];
-    }
-    if (form.taxId && !/^\d{8}$/.test(form.taxId)) {
-      newFieldErrors.TaxId = [t('customers.errors.invalidTaxId')];
-    }
+    
     setFieldErrors(newFieldErrors);
     return Object.keys(newFieldErrors).length === 0;
   };
@@ -222,7 +245,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
 
       setShowForm(false);
       setEditingCustomer(null);
-      setForm({});
+      setForm({ type: CustomerType.Business });
 
       if (editingCustomer) {
         const updated = responseData?.data as Customer | undefined;
@@ -385,7 +408,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
           </div>
           {canCreate && (
             <button
-              onClick={() => { setShowForm(true); setEditingCustomer(null); setForm({}); }}
+                              onClick={() => { setShowForm(true); setEditingCustomer(null); setForm({ type: CustomerType.Business }); }}
               className="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,9 +451,11 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
           <table className="w-full divide-y divide-gray-100">
             <thead className="bg-gradient-to-r from-gray-50 via-blue-50/30 to-gray-100">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.name')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.type')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.legalName')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.ice')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.taxId')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.identifiantFiscal')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.address')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.email')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.phone')}</th>
                 {canPerformActions && <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('customers.headers.actions')}</th>}
@@ -441,10 +466,21 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
               <tr key={c.id} className="hover:bg-blue-50/40 transition-all duration-300 group">
                 <td className="px-4 py-2 whitespace-nowrap">
                   <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      c.type === CustomerType.Business 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {c.type === CustomerType.Business ? t('customers.types.business') : t('customers.types.individual')}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200 flex items-center">
                     <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    {c.name}
+                    {c.legalName}
                   </div>
                 </td>
                 <td className="px-4 py-2 whitespace-nowrap">
@@ -460,7 +496,16 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
                     <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    {c.taxId || '-'}
+                    {c.identifiantFiscal || '-'}
+                  </div>
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-700 flex items-center">
+                    <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {c.address}
                   </div>
                 </td>
                 <td className="px-4 py-2 whitespace-nowrap">
@@ -528,7 +573,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
             </p>
             {canCreate && (
               <button
-                onClick={() => { setShowForm(true); setEditingCustomer(null); setForm({}); }}
+                onClick={() => { setShowForm(true); setEditingCustomer(null); setForm({ type: CustomerType.Business }); }}
                 className="mt-6 inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,22 +598,74 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">{t('customers.headers.name')}</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  {t('customers.headers.type')} <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, type: CustomerType.Business })}
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      form.type === CustomerType.Business
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span className="font-medium">{t('customers.types.business')}</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, type: CustomerType.Individual })}
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      form.type === CustomerType.Individual
+                        ? 'border-green-500 bg-green-50 text-green-700 shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span className="font-medium">{t('customers.types.individual')}</span>
+                    </div>
+                  </button>
+                </div>
                 <input 
-                  name="name" 
-                  value={form.name || ''} 
+                  type="hidden" 
+                  name="type" 
+                  value={form.type ?? CustomerType.Business} 
+                  required 
+                />
+                {fieldErrors.Type && (
+                  <div className="text-red-500 text-xs mt-1">{fieldErrors.Type.join(', ')}</div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">
+                  {t('customers.headers.legalName')} <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  name="legalName" 
+                  value={form.legalName || ''} 
                   onBlur={handleBlur} 
                   onChange={handleChange} 
-                  placeholder={t('customers.form.namePlaceholder')} 
+                  placeholder={t('customers.form.legalNamePlaceholder')} 
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    fieldErrors.Name?.length ? 'border-red-500' : 'border-gray-300'
+                    fieldErrors.LegalName?.length ? 'border-red-500' : 'border-gray-300'
                   }`}
                   required 
                 />
-                {renderFieldError('Name')}
+                {renderFieldError('LegalName')}
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">{t('customers.headers.ice')}</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  {t('customers.headers.ice')} {form.type === CustomerType.Business && <span className="text-red-500">*</span>}
+                </label>
                 <input 
                   name="ice" 
                   value={form.ice || ''} 
@@ -578,25 +675,31 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                     fieldErrors.ICE?.length ? 'border-red-500' : 'border-gray-300'
                   }`}
+                  required={form.type === CustomerType.Business}
                 />
                 {renderFieldError('ICE')}
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">{t('customers.headers.taxId')}</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  {t('customers.headers.identifiantFiscal')} {form.type === CustomerType.Business && <span className="text-red-500">*</span>}
+                </label>
                 <input 
-                  name="taxId" 
-                  value={form.taxId || ''} 
+                  name="identifiantFiscal" 
+                  value={form.identifiantFiscal || ''} 
                   onBlur={handleBlur} 
                   onChange={handleChange} 
-                  placeholder={t('customers.form.taxIdPlaceholder')} 
+                  placeholder={t('customers.form.identifiantFiscalPlaceholder')} 
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    fieldErrors.TaxId?.length ? 'border-red-500' : 'border-gray-300'
+                    fieldErrors.IdentifiantFiscal?.length ? 'border-red-500' : 'border-gray-300'
                   }`}
+                  required={form.type === CustomerType.Business}
                 />
-                {renderFieldError('TaxId')}
+                {renderFieldError('IdentifiantFiscal')}
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">{t('customers.form.addressPlaceholder')}</label>
+                <label className="block text-sm text-gray-600 mb-1">
+                  {t('customers.headers.address')} <span className="text-red-500">*</span>
+                </label>
                 <textarea 
                   name="address" 
                   value={form.address || ''} 
@@ -604,9 +707,10 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
                   onChange={handleChange} 
                   placeholder={t('customers.form.addressPlaceholder')} 
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    fieldErrors.Address ? 'border-red-500' : 'border-gray-300'
+                    fieldErrors.Address?.length ? 'border-red-500' : 'border-gray-300'
                   }`}
                   rows={3}
+                  required
                 />
                 {renderFieldError('Address')}
               </div>
@@ -633,7 +737,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
                   onChange={handleChange} 
                   placeholder={t('customers.form.phonePlaceholder')} 
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    fieldErrors.PhoneNumber ? 'border-red-500' : 'border-gray-300'
+                    fieldErrors.PhoneNumber?.length ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {renderFieldError('PhoneNumber')}
@@ -642,7 +746,7 @@ const CustomerCRUD = React.memo(({ token }: CustomerCRUDProps) => {
               <div className="flex justify-end gap-3">
                 <button 
                   type="button" 
-                  onClick={() => { setShowForm(false); setEditingCustomer(null); setForm({}); }} 
+                  onClick={() => { setShowForm(false); setEditingCustomer(null); setForm({ type: CustomerType.Business }); }} 
                   className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   disabled={isSubmitting}
                 >

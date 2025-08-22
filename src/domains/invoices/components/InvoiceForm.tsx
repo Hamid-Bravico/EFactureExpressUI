@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NewInvoice, NewLine, Invoice } from '../types/invoice.types';
-import { Customer } from '../../../types/common';
+import { Customer } from '../../customers/types/customer.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { secureApiClient } from '../../../config/api';
@@ -306,7 +306,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
         })),
       };
 
-      await onSubmit(newInvoice, selectedCustomer?.name);
+      await onSubmit(newInvoice, selectedCustomer?.legalName);
       onClose();
     } catch (error: any) {
       if (error.errors) {
@@ -397,7 +397,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
               >
                 <option value="">{t('invoice.form.selectCustomer')}</option>
                 {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>{c.legalName}</option>
                 ))}
               </select>
               {(errors.customerId || getInvoiceErrorMessage('customerId')) && (

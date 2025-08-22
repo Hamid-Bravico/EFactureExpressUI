@@ -435,7 +435,7 @@ const QuoteDetail: React.FC<QuoteDetailProps> = ({
           <div>
             <h5 className="font-medium text-gray-900 mb-2">{t('quote.details.customerInfo')}</h5>
             <div className="space-y-1 text-gray-600">
-              <div><span className="font-medium">{t('quote.details.customerName')}:</span> {quote.customer.name}</div>
+              <div><span className="font-medium">{t('quote.details.customerName')}:</span> {quote.customer.legalName}</div>
               <div><span className="font-medium">{t('quote.details.ice')}:</span> {quote.customer.ice || t('common.notAvailable')}</div>
             </div>
           </div>

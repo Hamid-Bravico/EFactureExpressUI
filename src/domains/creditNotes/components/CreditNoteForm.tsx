@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NewCreditNote, NewLine, CreditNote } from '../types/creditNote.types';
-import { Customer } from '../../../types/common';
+import { Customer } from '../../customers/types/customer.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { secureApiClient } from '../../../config/api';
@@ -376,7 +376,7 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
         OriginalInvoiceId: originalInvoice?.id!,
       };
 
-      await onSubmit(newCreditNote, selectedCustomer?.name);
+      await onSubmit(newCreditNote, selectedCustomer?.legalName);
       onClose();
     } catch (error: any) {
       if (error.errors) {
@@ -467,7 +467,7 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({ onSubmit, onClose, cred
               >
                 <option value="">{t('creditNote.form.selectCustomer')}</option>
                 {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>{c.legalName}</option>
                 ))}
               </select>
               {(errors.customerId || getCreditNoteErrorMessage('customerId')) && (

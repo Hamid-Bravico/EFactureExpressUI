@@ -15,7 +15,16 @@ export interface Quote {
   quoteNumber: string;
   issueDate: string;
   expiryDate?: string;
-  customer: { id: number; name: string; ice?: string };
+  customer: { 
+    id: number; 
+    type: number;
+    legalName: string;
+    ice?: string;
+    identifiantFiscal?: string;
+    address: string;
+    email?: string;
+    phoneNumber?: string;
+  };
   subTotal: number;
   vat: number;
   total: number;

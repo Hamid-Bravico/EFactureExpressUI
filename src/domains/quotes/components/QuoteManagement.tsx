@@ -292,7 +292,13 @@ const QuoteManagement = React.memo(({ token }: QuoteManagementProps) => {
         customerName: customerName || originalQuote.customerName,
         customer: {
           id: quote.customerId,
-          name: customerName || originalQuote.customer?.name || originalQuote.customerName
+          type: originalQuote.customer?.type || 0,
+          legalName: customerName || originalQuote.customer?.legalName || originalQuote.customerName || 'Unknown Customer',
+          ice: originalQuote.customer?.ice,
+          identifiantFiscal: originalQuote.customer?.identifiantFiscal,
+          address: originalQuote.customer?.address || '',
+          email: originalQuote.customer?.email,
+          phoneNumber: originalQuote.customer?.phoneNumber
         },
         customerId: quote.customerId,
         subTotal: quote.subTotal,

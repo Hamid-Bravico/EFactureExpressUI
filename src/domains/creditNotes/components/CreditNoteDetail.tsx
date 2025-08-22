@@ -1069,7 +1069,7 @@ const CreditNoteDetail: React.FC<CreditNoteDetailProps> = ({
           <div>
             <h5 className="font-medium text-gray-900 mb-2">{t('creditNote.details.customerInfo')}</h5>
             <div className="space-y-1 text-gray-600">
-              <div><span className="font-medium">{t('creditNote.details.customerName')}:</span> {creditNote.customer?.name || 'Unknown Customer'}</div>
+              <div><span className="font-medium">{t('creditNote.details.customerName')}:</span> {creditNote.customer?.legalName || 'Unknown Customer'}</div>
               <div><span className="font-medium">{t('creditNote.details.ice')}:</span> {creditNote.customer?.ice || t('common.notAvailable')}</div>
               {creditNote.customer?.email && (
                 <div><span className="font-medium">{t('creditNote.details.email')}:</span> {creditNote.customer.email}</div>

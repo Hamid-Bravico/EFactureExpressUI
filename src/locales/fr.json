@@ -1502,17 +1502,19 @@
     "addCustomer": "Ajouter un client",
     "editCustomer": "Modifier le client",
     "headers": {
-      "name": "Nom",
+      "type": "Type",
+      "legalName": "Nom légal",
       "ice": "ICE",
-      "taxId": "ID Fiscal",
+      "identifiantFiscal": "ID Fiscal",
+      "address": "Adresse",
       "email": "E-mail",
       "phone": "Téléphone",
       "actions": "Actions"
     },
     "form": {
-      "namePlaceholder": "Nom",
+      "legalNamePlaceholder": "Nom légal",
       "icePlaceholder": "ICE",
-      "taxIdPlaceholder": "ID Fiscal",
+      "identifiantFiscalPlaceholder": "ID Fiscal",
       "addressPlaceholder": "Adresse",
       "emailPlaceholder": "E-mail",
       "phonePlaceholder": "Numéro de téléphone",
@@ -1531,9 +1533,10 @@
         "deleteFailed": "Échec de la suppression du client."
     },
     "errors": {
-        "nameRequired": "Le nom est requis.",
+        "legalNameRequired": "Le nom légal est requis.",
+        "addressRequired": "L'adresse est requise.",
         "invalidICE": "L'ICE doit comporter 15 chiffres.",
-        "invalidTaxId": "L'ID fiscal doit comporter 8 chiffres.",
+        "invalidIdentifiantFiscal": "L'ID fiscal doit comporter 8 chiffres.",
         "companyNameRequired": "Le nom de l'entreprise est requis.",
         "companyNameTooLong": "Le nom de l'entreprise ne peut pas dépasser 120 caractères.",
         "addressTooLong": "L'adresse ne peut pas dépasser 255 caractères.",
@@ -1547,6 +1550,10 @@
     "actions": {
       "edit": "Modifier",
       "delete": "Supprimer"
+    },
+    "types": {
+      "business": "Entreprise",
+      "individual": "Particulier"
     }
   },
   "roles": {

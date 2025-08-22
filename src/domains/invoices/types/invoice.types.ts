@@ -15,10 +15,11 @@ export interface Invoice {
   date: string;
   customer: { 
     id: number; 
-    name: string;
+    type: number;
+    legalName: string;
     ice?: string;
-    taxId?: string;
-    address?: string;
+    identifiantFiscal?: string;
+    address: string;
     email?: string;
     phoneNumber?: string;
   };
