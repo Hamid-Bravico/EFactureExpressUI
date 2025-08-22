@@ -599,6 +599,11 @@
       "vatExemptionNote": "Lorsque l'exonération de TVA est sélectionnée, tous les articles auront automatiquement un taux de taxe de 0% et vous devez fournir une justification légale.",
       "vatExemptionNoteDetail": "Cela garantit la conformité avec les réglementations fiscales et fournit une documentation appropriée pour les audits.",
       "vatExemptionHint": "Cochez cette case si votre facture est exonérée de TVA et fournissez la justification légale ci-dessous.",
+      "paymentInfo": "Informations de paiement",
+      "paymentMethod": "Mode de paiement",
+      "paymentReference": "Référence de paiement",
+      "paymentReferencePlaceholder": "Entrez le numéro de chèque, ID de virement, etc.",
+      "paymentReferenceHint": "Optionnel : Référence supplémentaire pour le mode de paiement (ex: numéro de chèque, ID de virement)",
       "catalogModal": {
         "title": "Ajouter depuis le catalogue",
         "search": "Rechercher...",
@@ -640,6 +645,14 @@
       "confirmTitle": "Confirmer le paiement",
       "confirmMessage": "Êtes-vous sûr de vouloir enregistrer un paiement de {{amount}} ? Cette action ne peut pas être annulée.",
       "confirmWarning": "Attention : Une fois enregistré, ce paiement ne peut plus être modifié ou réduit."
+    },
+    "paymentMethod": {
+      "bankTransfer": "Virement bancaire",
+      "check": "Chèque",
+      "billOfExchange": "Lettre de change/Effet de commerce",
+      "bankCard": "Carte bancaire",
+      "cash": "Espèces",
+      "unknown": "Inconnu"
     },
     "filters": {
       "title": "Filtres",
@@ -719,7 +732,10 @@
       "taxRate": "Taux de TVA",
       "createdBy": "Créé par",
       "createdAt": "Créé le",
-      "paymentProgress": "Progression du paiement"
+      "paymentProgress": "Progression du paiement",
+      "paymentInfo": "Informations de paiement",
+      "paymentMethod": "Mode de paiement",
+      "paymentReference": "Référence de paiement"
     },
     "tooltip": {
       "createdBy": "Créé le {{date}} par {{name}}"

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Invoice } from '../types/invoice.types';
+import { Invoice, PaymentMethod, getPaymentMethodLabel } from '../types/invoice.types';
 import { DgiStatusResponse } from '../../../types/common';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -1030,7 +1030,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         )}
         
         {/* Invoice Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm">
           <div>
             <h5 className="font-medium text-gray-900 mb-2">{t('invoice.details.invoiceInfo')}</h5>
             <div className="space-y-1 text-gray-600">
@@ -1042,6 +1042,15 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
               )}
               {invoice.status === 3 && (
                 <div><span className="font-medium">{t('invoice.details.paymentProgress')}:</span> {Math.round(((invoice.amountPaid || 0) / invoice.total) * 100)}%</div>
+              )}
+            </div>
+          </div>
+          <div>
+            <h5 className="font-medium text-gray-900 mb-2">{t('invoice.details.paymentInfo')}</h5>
+            <div className="space-y-1 text-gray-600">
+              <div><span className="font-medium">{t('invoice.details.paymentMethod')}:</span> {invoice.paymentMethod ? getPaymentMethodLabel(invoice.paymentMethod as PaymentMethod, t) : t('common.notAvailable')}</div>
+              {invoice.paymentReference && (
+                <div><span className="font-medium">{t('invoice.details.paymentReference')}:</span> {invoice.paymentReference}</div>
               )}
             </div>
           </div>

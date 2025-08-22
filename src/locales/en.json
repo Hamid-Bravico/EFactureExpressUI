@@ -599,6 +599,11 @@
       "vatExemptionNote": "When VAT exempt is selected, all line items will automatically have 0% tax rate and you must provide a legal justification.",
       "vatExemptionNoteDetail": "This ensures compliance with tax regulations and provides proper documentation for audits.",
       "vatExemptionHint": "Check this box if your invoice is exempt from VAT and provide the legal justification below.",
+      "paymentInfo": "Payment Information",
+      "paymentMethod": "Payment Method",
+      "paymentReference": "Payment Reference",
+      "paymentReferencePlaceholder": "Enter check number, transfer ID, etc.",
+      "paymentReferenceHint": "Optional: Additional reference for the payment method (e.g., check number, transfer ID)",
       "catalogModal": {
         "title": "Add from Catalog",
         "search": "Search...",
@@ -640,6 +645,14 @@
       "confirmTitle": "Confirm Payment",
       "confirmMessage": "Are you sure you want to record a payment of {{amount}} MAD? This action cannot be undone.",
       "confirmWarning": "Warning: Once recorded, this payment cannot be modified or reduced later."
+    },
+    "paymentMethod": {
+      "bankTransfer": "Bank Transfer",
+      "check": "Check",
+      "billOfExchange": "Bill of Exchange",
+      "bankCard": "Bank Card",
+      "cash": "Cash",
+      "unknown": "Unknown"
     },
     "filters": {
       "title": "Filters",
@@ -719,7 +732,10 @@
       "taxRate": "Tax Rate",
       "createdBy": "Created By",
       "createdAt": "Created At",
-      "paymentProgress": "Payment Progress"
+      "paymentProgress": "Payment Progress",
+      "paymentInfo": "Payment Information",
+      "paymentMethod": "Payment Method",
+      "paymentReference": "Payment Reference"
     },
     "tooltip": {
       "createdBy": "Created on {{date}} by {{name}}"

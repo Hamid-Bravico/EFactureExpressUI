@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Invoice, NewInvoice } from '../types/invoice.types';
+import { Invoice, NewInvoice, PaymentMethod } from '../types/invoice.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import InvoiceForm from './InvoiceForm';
@@ -57,6 +57,8 @@ interface InvoiceListResponse {
     warnings?: string[];
     isVatExempt?: boolean;
     vatExemptionReason?: string;
+    paymentMethod?: number;
+    paymentReference?: string;
   }>;
   pagination: {
     totalItems: number;
@@ -283,7 +285,9 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
         dgiSubmissionId: invoice.dgiSubmissionId || undefined,
         dgiRejectionReason: invoice.dgiRejectionReason || undefined,
         isVatExempt: invoice.isVatExempt || false,
-        vatExemptionReason: invoice.vatExemptionReason || undefined
+        vatExemptionReason: invoice.vatExemptionReason || undefined,
+        paymentMethod: invoice.paymentMethod || 1, // Default to BankTransfer
+        paymentReference: invoice.paymentReference || undefined
       };
       
       setEditingInvoice(transformedInvoice);
@@ -872,7 +876,9 @@ const InvoiceList: React.FC<InvoiceListProps> = React.memo(({
                               dgiSubmissionId: invoice.dgiSubmissionId,
                               dgiRejectionReason: invoice.dgiRejectionReason,
                               isVatExempt: invoice.isVatExempt || false,
-                              vatExemptionReason: invoice.vatExemptionReason || undefined
+                              vatExemptionReason: invoice.vatExemptionReason || undefined,
+                              paymentMethod: invoice.paymentMethod || 1,
+                              paymentReference: invoice.paymentReference || undefined
                             }}
                             onOptimisticStatusUpdate={onUpdateInvoiceStatus}
                             onDownloadPdf={onDownloadPdf}

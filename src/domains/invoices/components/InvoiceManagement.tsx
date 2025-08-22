@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Invoice, NewInvoice } from "../types/invoice.types";
+import { Invoice, NewInvoice, PaymentMethod } from "../types/invoice.types";
 import { ApiResponse } from "../../auth/types/auth.types";
 import { INVOICE_ENDPOINTS } from "../api/invoice.endpoints";
 import { secureApiClient } from "../../../config/api";
@@ -261,7 +261,9 @@ function InvoiceManagement({ token }: InvoiceManagementProps) {
           email: 'user@example.com'
         },
         isVatExempt: newInvoice.isVatExempt,
-        vatExemptionReason: newInvoice.vatExemptionReason
+        vatExemptionReason: newInvoice.vatExemptionReason,
+        paymentMethod: newInvoice.paymentMethod,
+        paymentReference: newInvoice.paymentReference
       };
 
       // Optimistically add the invoice

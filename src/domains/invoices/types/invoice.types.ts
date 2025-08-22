@@ -1,3 +1,11 @@
+export enum PaymentMethod {
+  BankTransfer = 1,
+  Check = 2,
+  BillOfExchange = 3,
+  BankCard = 4,
+  Cash = 5
+}
+
 export interface InvoiceLine {
   id: number;
   description: string;
@@ -41,6 +49,8 @@ export interface Invoice {
   warnings?: string[];
   isVatExempt: boolean;
   vatExemptionReason?: string;
+  paymentMethod: PaymentMethod;
+  paymentReference?: string;
 }
 
 // For creating, we don't send `id` or `invoiceId`
@@ -58,4 +68,23 @@ export interface NewInvoice {
   lines: NewLine[];
   isVatExempt: boolean;
   vatExemptionReason?: string;
+  paymentMethod: PaymentMethod;
+  paymentReference?: string;
+}
+
+export function getPaymentMethodLabel(method: PaymentMethod, t: (key: string) => string): string {
+  switch (method) {
+    case PaymentMethod.BankTransfer:
+      return t('invoice.paymentMethod.bankTransfer');
+    case PaymentMethod.Check:
+      return t('invoice.paymentMethod.check');
+    case PaymentMethod.BillOfExchange:
+      return t('invoice.paymentMethod.billOfExchange');
+    case PaymentMethod.BankCard:
+      return t('invoice.paymentMethod.bankCard');
+    case PaymentMethod.Cash:
+      return t('invoice.paymentMethod.cash');
+    default:
+      return t('invoice.paymentMethod.unknown');
+  }
 }

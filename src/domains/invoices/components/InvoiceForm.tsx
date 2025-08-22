@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NewInvoice, NewLine, Invoice } from '../types/invoice.types';
+import { NewInvoice, NewLine, Invoice, PaymentMethod, getPaymentMethodLabel } from '../types/invoice.types';
 import { Customer } from '../../customers/types/customer.types';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +52,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
   const [paymentTerms, setPaymentTerms] = useState<number>(30);
   const [isVatExempt, setIsVatExempt] = useState(invoice?.isVatExempt || false);
   const [vatExemptionReason, setVatExemptionReason] = useState(invoice?.vatExemptionReason || '');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(invoice?.paymentMethod || PaymentMethod.BankTransfer);
+  const [paymentReference, setPaymentReference] = useState(invoice?.paymentReference || '');
 
   useEffect(() => {
     secureApiClient.get(`${process.env.REACT_APP_API_URL || '/api'}/customers`)
@@ -79,6 +81,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
       setCustomerId(invoice.customer?.id || null);
       setIsVatExempt(invoice.isVatExempt || false);
       setVatExemptionReason(invoice.vatExemptionReason || '');
+      setPaymentMethod(invoice.paymentMethod || PaymentMethod.BankTransfer);
+      setPaymentReference(invoice.paymentReference || '');
 
       setLines(invoice.lines.map(line => ({
         description: line.description.trim(),
@@ -330,6 +334,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
         })),
         isVatExempt,
         vatExemptionReason: isVatExempt ? vatExemptionReason : undefined,
+        paymentMethod,
+        paymentReference: paymentReference.trim() || undefined,
       };
 
       await onSubmit(newInvoice, selectedCustomer?.legalName);
@@ -386,54 +392,63 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-2">
+          {/* Invoice Information Section */}
+          <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="text-lg font-medium text-green-800">{t('invoice.form.invoiceInfo')}</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <label className="block text-sm text-gray-600">{t('invoice.form.date')}</label>
+                  <label className="block text-sm font-medium text-green-800">{t('invoice.form.date')}</label>
                   <div className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                     {t('invoice.form.paymentDue')}: {calculateDueDate(date, paymentTerms)}
                     <span className="text-blue-500 ml-1">({paymentTerms}d)</span>
                   </div>
                 </div>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  if (errors.date) {
-                    setErrors(prev => ({ ...prev, date: undefined }));
-                  }
-                  clearInvoiceError('date');
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.date || getInvoiceErrorMessage('date') ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={disabled || isSubmitting}
-                required
-              />
-              {(errors.date || getInvoiceErrorMessage('date')) && (
-                <div className="text-red-500 text-xs mt-1">
-                  {errors.date || getInvoiceErrorMessage('date')}
-                </div>
-              )}
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">{t('invoice.form.customerName')}</label>
-              <select
-                value={customerId ?? ''}
-                onChange={e => { setCustomerId(Number(e.target.value)); if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined })); clearInvoiceError('customerId'); }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.customerId || getInvoiceErrorMessage('customerId') ? 'border-red-500' : 'border-gray-300'}`}
-                disabled={disabled || isSubmitting}
-                required
-              >
-                <option value="">{t('invoice.form.selectCustomer')}</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.legalName}</option>
-                ))}
-              </select>
-              {(errors.customerId || getInvoiceErrorMessage('customerId')) && (
-                <div className="text-red-500 text-xs mt-1">{errors.customerId || getInvoiceErrorMessage('customerId')}</div>
-              )}
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => {
+                    setDate(e.target.value);
+                    if (errors.date) {
+                      setErrors(prev => ({ ...prev, date: undefined }));
+                    }
+                    clearInvoiceError('date');
+                  }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white ${
+                    errors.date || getInvoiceErrorMessage('date') ? 'border-red-500' : 'border-green-300'
+                  }`}
+                  disabled={disabled || isSubmitting}
+                  required
+                />
+                {(errors.date || getInvoiceErrorMessage('date')) && (
+                  <div className="text-red-500 text-xs mt-1">
+                    {errors.date || getInvoiceErrorMessage('date')}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-green-800 mb-1">{t('invoice.form.customerName')}</label>
+                <select
+                  value={customerId ?? ''}
+                  onChange={e => { setCustomerId(Number(e.target.value)); if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined })); clearInvoiceError('customerId'); }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white ${errors.customerId || getInvoiceErrorMessage('customerId') ? 'border-red-500' : 'border-green-300'}`}
+                  disabled={disabled || isSubmitting}
+                  required
+                >
+                  <option value="">{t('invoice.form.selectCustomer')}</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.legalName}</option>
+                  ))}
+                </select>
+                {(errors.customerId || getInvoiceErrorMessage('customerId')) && (
+                  <div className="text-red-500 text-xs mt-1">{errors.customerId || getInvoiceErrorMessage('customerId')}</div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -488,6 +503,53 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Payment Information Section */}
+          <div className="mt-4">
+            <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
+              <div className="flex items-center gap-2 mb-4">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                <h3 className="text-lg font-medium text-blue-800">{t('invoice.form.paymentInfo')}</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-blue-800 mb-1">
+                    {t('invoice.form.paymentMethod')} <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(Number(e.target.value) as PaymentMethod)}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    disabled={disabled || isSubmitting}
+                    required
+                  >
+                    {Object.values(PaymentMethod).filter(value => typeof value === 'number').map((method) => (
+                      <option key={method} value={method}>
+                        {getPaymentMethodLabel(method as PaymentMethod, t)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-blue-800 mb-1">
+                    {t('invoice.form.paymentReference')}
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder={t('invoice.form.paymentReferencePlaceholder')}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    disabled={disabled || isSubmitting}
+                    maxLength={100}
+                  />
+                  <p className="text-xs text-blue-600 mt-1">{t('invoice.form.paymentReferenceHint')}</p>
+                </div>
+              </div>
             </div>
           </div>
 
