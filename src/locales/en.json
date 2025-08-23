@@ -92,7 +92,8 @@
       "revenue": "Revenue",
       "overdue": "Overdue",
       "totalCount": "Total Count"
-    }
+    },
+    "submittingCreditNote": "Submitting credit note..."
   },
   "notifications": {
     "title": "Notifications",
@@ -1491,7 +1492,8 @@
       "viewRejectionReason": "View Rejection Reason",
       "copyDgiSubmissionId": "Copy DGI Submission ID",
       "signing": "Signing...",
-      "downloading": "Downloading..."
+      "downloading": "Downloading...",
+      "checking": "Checking..."
     },
     "details": {
       "title": "Credit Note Details",

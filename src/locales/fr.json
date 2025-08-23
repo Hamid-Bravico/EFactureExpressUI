@@ -92,7 +92,8 @@
       "revenue": "Revenus",
       "overdue": "En retard",
       "totalCount": "Nombre total"
-    }
+    },
+    "submittingCreditNote": "Soumission de l'avoir..."
   },
   "notifications": {
     "title": "Notifications",
@@ -1223,7 +1224,8 @@
       "viewRejectionReason": "Voir la raison du rejet",
       "copyDgiSubmissionId": "Copier l'ID de soumission DGI",
       "signing": "Signature en cours...",
-      "downloading": "Téléchargement..."
+      "downloading": "Téléchargement...",
+      "checking": "Vérification..."
     },
     "details": {
       "title": "Détails de l'avoir",
