@@ -133,6 +133,13 @@ const QuoteImportCSV: React.FC<QuoteImportCSVProps> = ({ onImport, loading = fal
                   })}
                 </ul>
               </div>
+
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2">{t('quote.import.help.businessLogic')}</h4>
+                <p className="text-xs text-gray-600 bg-yellow-50 p-2 rounded border border-yellow-200">
+                  {t('quote.import.help.businessLogicNote')}
+                </p>
+              </div>
             </div>
           </div>
         )}

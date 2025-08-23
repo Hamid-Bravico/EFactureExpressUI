@@ -1065,18 +1065,20 @@
           "requiredFields": [
             "NumeroDevis - Quote number",
             "DateEmission - Issue date",
-            "ClientICE - Customer ICE number",
             "Description - Item description",
             "Quantite - Quantity",
             "PrixUnitaire - Unit price",
-            "TauxTVA - VAT rate"
+            "TauxTVA - Tax rate"
           ],
           "optionalFields": [
+            "ClientICE - Customer ICE number",
+            "ClientNom - Customer name",
             "DateExpiration - Expiry date",
-            "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)",
             "TermesConditions - Terms and conditions",
             "NotesPrivees - Private notes"
-          ]
+          ],
+          "businessLogic": "Business Logic Validation:",
+          "businessLogicNote": "At least one of ClientICE OR ClientNom must be provided"
         }
     }
   },

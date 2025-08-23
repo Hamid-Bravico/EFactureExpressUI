@@ -1065,18 +1065,20 @@
           "requiredFields": [
             "NumeroDevis - Numéro de devis",
             "DateEmission - Date d'émission",
-            "ClientICE - Numéro ICE du client",
             "Description - Description de l'article",
             "Quantite - Quantité",
             "PrixUnitaire - Prix unitaire",
             "TauxTVA - Taux de TVA"
           ],
           "optionalFields": [
+            "ClientICE - Numéro ICE du client",
+            "ClientNom - Nom du client",
             "DateExpiration - Date d'expiration",
-            "ClientNom - Nom du client (utilisé uniquement pour nommer un nouveau client si son ClientICE n'est pas trouvé dans la base de données)",
             "TermesConditions - Termes et conditions",
             "NotesPrivees - Notes privées"
-          ]
+          ],
+          "businessLogic": "Validation de la logique métier :",
+          "businessLogicNote": "Au moins un des champs ClientICE OU ClientNom doit être fourni"
         }
     }
   },
