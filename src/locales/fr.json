@@ -652,6 +652,7 @@
       "billOfExchange": "Lettre de change/Effet de commerce",
       "bankCard": "Carte bancaire",
       "cash": "Espèces",
+      "setOff": "Compensation",
       "unknown": "Inconnu"
     },
     "filters": {
@@ -1167,6 +1168,7 @@
       "billOfExchange": "Lettre de change/Effet de commerce",
       "bankCard": "Carte bancaire",
       "cash": "Espèces",
+      "setOff": "Compensation",
       "unknown": "Inconnu"
     },
     "filters": {

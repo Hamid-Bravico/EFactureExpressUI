@@ -3,7 +3,8 @@ export enum PaymentMethod {
   Check = 2,
   BillOfExchange = 3,
   BankCard = 4,
-  Cash = 5
+  Cash = 5,
+  SetOff = 6
 }
 
 export interface InvoiceLine {
@@ -84,6 +85,8 @@ export function getPaymentMethodLabel(method: PaymentMethod, t: (key: string) =>
       return t('invoice.paymentMethod.bankCard');
     case PaymentMethod.Cash:
       return t('invoice.paymentMethod.cash');
+    case PaymentMethod.SetOff:
+      return t('invoice.paymentMethod.setOff');
     default:
       return t('invoice.paymentMethod.unknown');
   }

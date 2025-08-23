@@ -3,7 +3,8 @@ export enum PaymentMethod {
   Check = 2,
   BillOfExchange = 3,
   BankCard = 4,
-  Cash = 5
+  Cash = 5,
+  SetOff = 6
 }
 
 export interface CreditNoteLine {
@@ -69,6 +70,8 @@ export function getPaymentMethodLabel(method: PaymentMethod, t: (key: string) =>
       return t('creditNote.paymentMethod.bankCard');
     case PaymentMethod.Cash:
       return t('creditNote.paymentMethod.cash');
+    case PaymentMethod.SetOff:
+      return t('creditNote.paymentMethod.setOff');
     default:
       return t('creditNote.paymentMethod.unknown');
   }
