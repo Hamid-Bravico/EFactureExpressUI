@@ -813,14 +813,27 @@
           "requiredFields": [
             "NumeroFacture - Invoice number",
             "Date - Invoice date",
-            "ClientICE - Customer ICE number",
             "Description - Item description",
             "Quantite - Quantity",
             "PrixUnitaire - Unit price",
-            "TauxTVA - VAT rate"
+            "TauxTVA - Tax rate",
+            "MethodePaiement - Payment method"
           ],
           "optionalFields": [
-            "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)"
+            "ClientICE - Customer ICE number",
+            "ClientNom - Customer name",
+            "ReferencePaiement - Payment reference"
+          ],
+          "businessLogic": "Business Logic Validation:",
+          "businessLogicNote": "At least one of ClientICE OR ClientNom must be provided",
+          "paymentMethods": "Payment Method Values:",
+          "paymentMethodValues": [
+            "Virement bancaire/virement → Virement bancaire",
+            "Chèque/Cheque → Chèque",
+            "Effet de commerce/Effet → Effet de commerce",
+            "Carte bancaire/Carte → Carte bancaire",
+            "Espèces/Especes → Espèces",
+            "Compensation → Compensation"
           ]
         }
     }
@@ -1600,14 +1613,27 @@
           "NumeroAvoir - Credit note number",
           "Date - Credit note date",
           "NumeroFactureOriginale - Original invoice number",
-          "ClientICE - Customer ICE number",
           "Description - Item description",
           "Quantite - Quantity",
           "PrixUnitaire - Unit price",
-          "TauxTVA - VAT rate"
+          "TauxTVA - Tax rate",
+          "MethodePaiement - Payment method"
         ],
         "optionalFields": [
-          "ClientNom - Customer name (only used to name a new customer if their ClientICE is not found in the database)"
+          "ClientICE - Customer ICE number",
+          "ClientNom - Customer name",
+          "ReferencePaiement - Payment reference"
+        ],
+        "businessLogic": "Business Logic Validation:",
+        "businessLogicNote": "At least one of ClientICE OR ClientNom must be provided",
+        "paymentMethods": "Payment Method Values:",
+        "paymentMethodValues": [
+          "Virement bancaire/virement → Virement bancaire",
+          "Chèque/Cheque → Chèque",
+          "Effet de commerce/Effet → Effet de commerce",
+          "Carte bancaire/Carte → Carte bancaire",
+          "Espèces/Especes → Espèces",
+          "Compensation → Compensation"
         ]
       }
     }

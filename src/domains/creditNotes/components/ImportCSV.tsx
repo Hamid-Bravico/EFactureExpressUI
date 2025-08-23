@@ -133,6 +133,25 @@ const ImportCSV: React.FC<ImportCSVProps> = ({ onImport, loading = false }) => {
                   })}
                 </ul>
               </div>
+
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2">{t('creditNote.import.help.businessLogic')}</h4>
+                <p className="text-xs text-gray-600 bg-yellow-50 p-2 rounded border border-yellow-200">
+                  {t('creditNote.import.help.businessLogicNote')}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2">{t('creditNote.import.help.paymentMethods')}</h4>
+                <ul className="space-y-1 text-gray-600">
+                  {(t('creditNote.import.help.paymentMethodValues', { returnObjects: true }) as string[]).map((method: string, index: number) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-2 text-purple-500">•</span>
+                      <span className="text-xs font-mono">{method}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         )}
