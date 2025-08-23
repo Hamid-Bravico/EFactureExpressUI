@@ -133,7 +133,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ onSubmit, onClose, invoice, d
     setLines(prev =>
       prev.map((ln, i) =>
         i === index
-          ? { ...ln, [field]: field === "description" ? value.trim() : Number(value) }
+          ? { ...ln, [field]: field === "description" ? value : Number(value) }
           : ln
       )
     );
