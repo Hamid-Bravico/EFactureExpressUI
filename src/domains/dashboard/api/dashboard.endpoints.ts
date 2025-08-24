@@ -5,13 +5,13 @@ import { DashboardPeriod, DashboardSummaryResponse } from '../types/dashboard.ty
 export const dashboardEndpoints = {
   // Get dashboard summary with optional period filter
   getSummary: async (period?: DashboardPeriod): Promise<DashboardSummaryResponse> => {
-    const url = new URL(`${API_BASE_URL}/dashboard/summary`);
+    let url = `${API_BASE_URL}/dashboard/summary`;
     
     if (period) {
-      url.searchParams.append('period', period);
+      url += `?period=${period}`;
     }
 
-    const response = await secureApiClient.get(url.toString());
+    const response = await secureApiClient.get(url);
 
     if (!response.ok) {
       throw new Error(`Dashboard API error: ${response.status}`);
