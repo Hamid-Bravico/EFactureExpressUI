@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   DashboardPeriod, 
@@ -28,7 +28,7 @@ const Dashboard: React.FC<DashboardProps> = ({ company, userRole }) => {
 
   const isClerk = userRole === 'Clerk';
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -44,11 +44,11 @@ const Dashboard: React.FC<DashboardProps> = ({ company, userRole }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPeriod]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, [selectedPeriod]);
+  }, [fetchDashboardData]);
 
   if (loading) {
     return (

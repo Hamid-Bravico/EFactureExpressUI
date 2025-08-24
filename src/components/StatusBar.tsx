@@ -1,27 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
-  Bell, 
-  Plus, 
+  Bell,
   Calendar,
-  TrendingUp,
   AlertTriangle,
   DollarSign,
   Globe,
   User,
   LogOut,
-  Settings,
   ChevronDown,
   Check,
-  Eye
 } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 import { useStatsContext } from '../domains/stats/context/StatsContext';
-import { formatCurrency } from '../domains/stats/utils/stats.utils';
 import { API_BASE_URL } from '../config/constants';
 import { secureApiClient } from '../config/api';
 import { ApiResponse } from '../domains/auth/types/auth.types';
-import { format, differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, isYesterday, isThisWeek } from 'date-fns';
+import { format, differenceInSeconds, differenceInMinutes, differenceInHours, isYesterday, isThisWeek } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 
 interface StatusBarProps {
@@ -163,7 +158,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
     const seconds = differenceInSeconds(now, date);
     const minutes = differenceInMinutes(now, date);
     const hours = differenceInHours(now, date);
-    const days = differenceInDays(now, date);
+    //const days = differenceInDays(now, date);
     const lang = i18n.language === 'fr' ? 'fr' : 'en';
     
     if (seconds < 30) return t('notifications.time.justNow') || (lang === 'fr' ? "À l'instant" : 'Just now');

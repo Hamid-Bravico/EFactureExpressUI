@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { APP_CONFIG } from '../../../config/app';
-import { getJsonHeaders } from '../../../config/api';
+import { getAcceptLanguageHeader } from '../../../config/api';
 import { AUTH_ENDPOINTS } from '../api/auth.endpoints';
 import { RegisterPageProps, RegisterFormData } from '../types/auth.types';
 import { toast } from 'react-hot-toast';
@@ -271,6 +271,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
 
       const response = await fetch(AUTH_ENDPOINTS.REGISTER, {
         method: 'POST',
+        headers: {
+          'Accept-Language': getAcceptLanguageHeader()
+        },
         body: formDataToSend
       });
 
