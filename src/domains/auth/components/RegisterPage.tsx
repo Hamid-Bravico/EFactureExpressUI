@@ -278,10 +278,15 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
       });
 
       const responseData = await response.json();
+
+      console.log(responseData);
       
       if (!responseData.succeeded) {
         const errorMessage = responseData.errors?.join('\n') || responseData.message || t('errors.registrationFailed');
-        throw new Error(errorMessage, { cause: responseData.message });
+        const error = new Error(errorMessage);
+        (error as any).title = responseData.message || t('errors.registrationFailed');
+        (error as any).body = responseData.errors?.join('\n') || '';
+        throw error;
       }
 
       // Handle successful response
@@ -296,15 +301,25 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onToggleLanguage, currentLa
         errorMessage = t('errors.networkError');
       }
       
-      toast.error(
-        <div className="space-y-1">
-          <p className="font-medium">{err.cause || t('errors.registrationFailed')}</p>
-          {errorMessage.split('\n').map((line, index) => (
-            <p key={index} className="text-sm"> - {line}</p>
-          ))}
-        </div>,
-        { duration: 9000 }
-      );
+      // Use title/body structure if available, otherwise fallback to old logic
+      const title = (err as any).title || err.cause || t('errors.registrationFailed');
+      const body = (err as any).body || '';
+      
+      if (body && body !== title) {
+        // Show title and body separately
+        toast.error(
+          <div className="space-y-1">
+            <p className="font-medium">{title}</p>
+            {body.split('\n').map((line: string, index: number) => (
+              <p key={index} className="text-sm">• {line}</p>
+            ))}
+          </div>,
+          { duration: 9000 }
+        );
+      } else {
+        // Show single error message
+        toast.error(title, { duration: 9000 });
+      }
     } finally {
       setLoading(false);
     }
